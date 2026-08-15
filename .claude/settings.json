@@ -1,0 +1,33 @@
+{
+    "permissions": {
+        "allow": [
+            "Bash(npm run:*)",
+            "Bash(npm install:*)",
+            "Bash(npx:*)",
+            "Bash(git status:*)",
+            "Bash(git diff:*)",
+            "Bash(git log:*)"
+        ],
+        "deny": [
+            "Bash(rm -rf:*)",
+            "Bash(git push --force:*)"
+        ]
+    },
+    "hooks": {
+        "PostToolUse": [
+            {
+                "matcher": "Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "npm run lint --silent 2>/dev/null || true"
+                    }
+                ]
+            }
+        ]
+    },
+    "env": {
+        "MAX_THINKING_TOKENS": "10000",
+        "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
+    }
+}

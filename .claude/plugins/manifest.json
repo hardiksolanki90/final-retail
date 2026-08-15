@@ -1,0 +1,14 @@
+{
+  "name": "retail-app-react-plugins",
+  "version": "1.0.0",
+  "description": "Plugin registry for the Retail App React Claude configuration",
+  "plugins": {
+    "my-plugin": {
+      "name": "My Plugin",
+      "version": "1.0.0",
+      "description": "Custom plugin for extending Claude capabilities in the React frontend",
+      "enabled": true,
+      "entry": "./my-plugin/index.js"
+    }
+  }
+}

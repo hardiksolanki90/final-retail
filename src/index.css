@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+@variant dark (&:is(.dark *));
+
+@theme {
+  /* Light Theme Colors */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+  --color-bg-card: #ffffff;
+  --color-bg-sidebar: #ffffff;
+  --color-bg-header: #ffffff;
+
+  /* Dark Theme Colors */
+  --color-dark-bg-primary: #0f172a;
+  --color-dark-bg-secondary: #1e293b;
+  --color-dark-bg-tertiary: #334155;
+  --color-dark-bg-card: #1e293b;
+  --color-dark-bg-sidebar: #0f172a;
+  --color-dark-bg-header: #1e293b;
+
+  /* Primary Brand Colors */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  /* Neutral Colors */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* Semantic Colors */
+  --color-success-50: #f0fdf4;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-warning-50: #fffbeb;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-error-50: #fef2f2;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-info-50: #eff6ff;
+  --color-info-500: #3b82f6;
+  --color-info-600: #2563eb;
+
+  /* Border Colors */
+  --color-border-light: #e2e8f0;
+  --color-border-dark: #334155;
+
+  /* Text Colors */
+  --color-text-primary-light: #0f172a;
+  --color-text-secondary-light: #475569;
+  --color-text-muted-light: #334155;
+  --color-text-primary-dark: #f8fafc;
+  --color-text-secondary-dark: #94a3b8;
+  --color-text-muted-dark: #64748b;
+
+  /* Sidebar Dimensions */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 70px;
+  --header-height: 64px;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  @apply bg-bg-primary text-text-primary-light;
+}
+
+.dark body {
+  @apply bg-dark-bg-primary text-text-primary-dark;
+}
+
+/* Light Theme */
+:root {
+  --bg-primary: var(--color-bg-primary);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-tertiary: var(--color-bg-tertiary);
+  --bg-card: var(--color-bg-card);
+  --bg-sidebar: var(--color-bg-sidebar);
+  --bg-header: var(--color-bg-header);
+  --text-primary: var(--color-text-primary-light);
+  --text-secondary: var(--color-text-secondary-light);
+  --text-muted: var(--color-text-muted-light);
+  --border-color: var(--color-border-light);
+}
+
+/* Dark Theme */
+.dark {
+  --bg-primary: var(--color-dark-bg-primary);
+  --bg-secondary: var(--color-dark-bg-secondary);
+  --bg-tertiary: var(--color-dark-bg-tertiary);
+  --bg-card: var(--color-dark-bg-card);
+  --bg-sidebar: var(--color-dark-bg-sidebar);
+  --bg-header: var(--color-dark-bg-header);
+  --text-primary: var(--color-text-primary-dark);
+  --text-secondary: var(--color-text-secondary-dark);
+  --text-muted: var(--color-text-muted-dark);
+  --border-color: var(--color-border-dark);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-600);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-500);
+}
+
+/* Transition Classes */
+.transition-theme {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Drawer Animations */
+.drawer-overlay {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.drawer-content {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* Focus States */
+:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--color-primary-100);
+  color: var(--color-primary-900);
+}
+
+.dark ::selection {
+  background: var(--color-primary-800);
+  color: var(--color-primary-100);
+}
