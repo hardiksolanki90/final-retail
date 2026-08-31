@@ -32,3 +32,11 @@ export const deleteDepot = async (uuid: string) => {
   await axiosInstance.delete(`/depot/delete/${uuid}`);
   showToast.success('Depot deleted successfully');
 };
+
+export const getDepotOptions = async (): Promise<{ value: number; label: string }[]> => {
+  const response = await axiosInstance.get('/depot/all');
+  return (response.data?.data ?? []).map((d: { id: number; depotCode: string; depotName: string }) => ({
+    value: d.id,
+    label: `${d.depotCode} - ${d.depotName}`,
+  }));
+};

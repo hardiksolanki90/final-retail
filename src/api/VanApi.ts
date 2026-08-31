@@ -32,3 +32,14 @@ export const deleteVan = async (uuid: string) => {
   await axiosInstance.delete(`/van/delete/${uuid}`);
   showToast.success('Van deleted successfully');
 };
+
+export interface VanOption { value: number; label: string; }
+
+export const getVanOptions = async (): Promise<VanOption[]> => {
+  const response = await axiosInstance.get('/van/all');
+  const data = response.data.data || response.data || [];
+  return data.map((v: { id: number; vanCode?: string; plateNumber?: string }) => ({
+    value: v.id,
+    label: `${v.vanCode || ''} - ${v.plateNumber || ''}`.replace(/^ - | - $/g, ''),
+  }));
+};

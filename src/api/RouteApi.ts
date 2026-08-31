@@ -32,3 +32,11 @@ export const deleteRoute = async (uuid: string) => {
   await axiosInstance.delete(`/route/delete/${uuid}`);
   showToast.success('Route deleted successfully');
 };
+
+export const getRouteOptions = async (): Promise<{ value: number; label: string }[]> => {
+  const response = await axiosInstance.get('/route/all');
+  return (response.data?.data ?? []).map((r: { id: number; code?: string; name?: string }) => ({
+    value: r.id,
+    label: r.code ? `${r.code} - ${r.name ?? ''}` : (r.name ?? String(r.id)),
+  }));
+};

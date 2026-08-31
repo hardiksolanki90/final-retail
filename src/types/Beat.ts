@@ -1,83 +1,29 @@
+// Beat/Area entity - maps to backend `areas` table (hierarchical lookup)
 export interface Beat {
-  id: number;
-  code: string;
-  name: string;
-  salesmanId: number;
-  areaId: number;
-  routeId: number;
-  workingDays: string[];
-  description?: string;
+  id?: number;
+  uuid?: string;
+  areaName: string;
+  name?: string; // alias of areaName from backend
+  parentId?: string | null;
+  nodeLevel?: number;
   status: boolean;
   createdAt?: string;
   updatedAt?: string;
-  
-  // Relationships
-  salesman?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  area?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  route?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  outlets?: Array<{
-    id: number;
-    name: string;
-    code: string;
-  }>;
-  outletCount?: number;
 }
 
 export interface BeatFormData {
-  name: string;
-  salesmanId: number;
-  areaId: number;
-  routeId: number;
-  workingDays: string[];
-  selectedOutlets: number[];
-  description?: string;
+  areaName: string;
+  parentId?: string | null;
   status?: boolean;
 }
 
 export interface BeatListResponse {
   data: Beat[];
-  total: number;
-  currentPage: number;
-  perPage: number;
-  lastPage: number;
-  nextPage?: number;
-  prevPage?: number;
-}
-
-export interface Salesman {
-  id: number;
-  name: string;
-  code: string;
-}
-
-export interface Area {
-  id: number;
-  name: string;
-  code: string;
-}
-
-export interface Route {
-  id: number;
-  name: string;
-  code: string;
-  areaId: number;
-}
-
-export interface Outlet {
-  id: number;
-  name: string;
-  code: string;
-  routeId: number;
+  meta?: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+    has_more_pages?: boolean;
+  };
 }

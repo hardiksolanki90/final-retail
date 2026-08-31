@@ -1,19 +1,21 @@
 export interface Bank {
   id?: string;
   uuid?: string;
-  code: string;
-  name: string;
+  bankCode: string;
+  bankName: string;
+  bankAddress: string;
   accountNumber: string;
-  address: string;
+  status: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface BankFormData {
-  code: string;
-  name: string;
+  bankCode: string;
+  bankName: string;
+  bankAddress: string;
   accountNumber: string;
-  address: string;
+  status: string;
 }
 
 export interface BankListResponse {

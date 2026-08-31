@@ -93,9 +93,11 @@ npm run preview
 5. **Styling**: Use TailwindCSS utility classes
 6. **Notifications**: Use `react-hot-toast` for user feedback
 7. **UUID**: All entity references use UUID, never internal DB IDs
+8. **Database**: Use `docs/DATABASE_STRUCTURE.md` as the canonical backend schema reference (`prod_nfpc`)
 
 ## See Also
 
+- `docs/DATABASE_STRUCTURE.md` — Backend database structure (tables, columns, FKs, domains)
 - `.claude/rules/frontend/react.md` — React component standards
 - `.claude/rules/frontend/styling.md` — TailwindCSS conventions
 - `.claude/rules/frontend/api.md` — API integration patterns

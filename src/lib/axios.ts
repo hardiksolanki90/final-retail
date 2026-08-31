@@ -6,7 +6,7 @@ import { showToast } from './toast';
 // withCredentials: true is REQUIRED so the browser sends the Laravel session
 // cookie and XSRF-TOKEN cookie with every request (cross-origin SPA).
 
-const BASE_URL = 'http://api.retail-chain.test/api/';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://app.retail.test/api/';
 // const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/';
 
 const axiosInstance = axios.create({

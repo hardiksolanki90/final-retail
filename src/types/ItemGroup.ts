@@ -3,7 +3,7 @@ export interface ItemGroup {
   uuid?: string;
   code: string;
   name: string;
-  description?: string;
+  status: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -11,7 +11,7 @@ export interface ItemGroup {
 export interface ItemGroupFormData {
   code: string;
   name: string;
-  description?: string;
+  status: string;
 }
 
 export interface ItemGroupListResponse {

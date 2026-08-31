@@ -3,30 +3,10 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Building2, ChevronLeft } from 'lucide-react';
 import { CancelButton, SaveButton } from '../../components/ui/Button';
-
-interface OrganisationFormData {
-  org_name: string;
-  org_company_id: string;
-  org_tax_id?: string;
-  org_street1: string;
-  org_street2?: string;
-  org_city?: string;
-  org_state?: string;
-  org_country_id?: string;
-  org_postal?: string;
-  org_phone: string;
-  org_contact_person?: string;
-  org_contact_person_number?: string;
-  org_currency: string;
-  org_fiscal_year?: string;
-  is_batch_enabled: boolean;
-  is_credit_limit_enabled: boolean;
-  gstin_number?: string;
-  gst_reg_date?: string;
-  is_auto_approval_set: boolean;
-  org_status: boolean;
-  is_trial_period: boolean;
-}
+import { updateOrganisation } from '../../api/OrganisationApi';
+import { showToast } from '../../lib/toast';
+import { useAuth } from '../../context/AuthContext';
+import type { OrganisationFormData } from '../../types/Organisation';
 
 const initialFormData: OrganisationFormData = {
   org_name: '',
@@ -42,26 +22,29 @@ const initialFormData: OrganisationFormData = {
   org_contact_person: '',
   org_contact_person_number: '',
   org_currency: 'USD',
-  org_fiscal_year: '',
+  org_fasical_year: '',
   is_batch_enabled: false,
   is_credit_limit_enabled: false,
   gstin_number: '',
   gst_reg_date: '',
-  is_auto_approval_set: false,
-  org_status: true,
-  is_trial_period: true,
 };
 
 export const OrganisationAdd: React.FC = () => {
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<OrganisationFormData>({
+  const { checkAuthStatus } = useAuth();
+  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<OrganisationFormData>({
     defaultValues: initialFormData
   });
 
   const onSubmit = async (data: OrganisationFormData) => {
-    console.log('Organisation Form Data:', data);
-    // TODO: implement API call
-    navigate('/organisation/view');
+    try {
+      await updateOrganisation(data);
+      await checkAuthStatus();
+      showToast.success('Organisation profile saved');
+      navigate('/dashboard');
+    } catch (error: any) {
+      setError('root', { message: error.response?.data?.message || 'Failed to save organisation' });
+    }
   };
 
   const inputClass = "mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-gray-100 sm:text-sm";
@@ -72,7 +55,7 @@ export const OrganisationAdd: React.FC = () => {
       <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <Building2 className="w-6 h-6 text-gray-900 dark:text-white" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Organisation</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Complete Organisation Profile</h2>
         </div>
         <button
           type="button"
@@ -84,6 +67,12 @@ export const OrganisationAdd: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+        {errors.root && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {errors.root.message}
+          </div>
+        )}
+
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
           <div className="px-4 py-5 sm:p-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">Basic Information</h3>
@@ -135,21 +124,10 @@ export const OrganisationAdd: React.FC = () => {
                 <label className={labelClass}>Fiscal Year</label>
                 <input
                   type="text"
-                  {...register('org_fiscal_year')}
+                  {...register('org_fasical_year')}
                   className={inputClass}
                   placeholder="e.g. Jan-Dec"
                 />
-              </div>
-
-              <div className="flex items-center pt-6 space-x-4">
-                <label className="flex items-center">
-                  <input type="checkbox" {...register('org_status')} className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
-                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Active Status</span>
-                </label>
-                <label className="flex items-center">
-                  <input type="checkbox" {...register('is_trial_period')} className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
-                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Trial Period</span>
-                </label>
               </div>
             </div>
           </div>
@@ -169,7 +147,7 @@ export const OrganisationAdd: React.FC = () => {
                 />
                 {errors.org_phone && <p className="mt-1 text-sm text-red-600">{errors.org_phone.message}</p>}
               </div>
-              
+
               <div>
                 <label className={labelClass}>Contact Person</label>
                 <input
@@ -257,10 +235,6 @@ export const OrganisationAdd: React.FC = () => {
                 <label className="flex items-center">
                   <input type="checkbox" {...register('is_credit_limit_enabled')} className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Enable Credit Limit</span>
-                </label>
-                <label className="flex items-center">
-                  <input type="checkbox" {...register('is_auto_approval_set')} className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
-                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Auto Approval Set</span>
                 </label>
               </div>
             </div>

@@ -1,19 +1,17 @@
 export interface Zone {
   id?: string;
   uuid?: string;
-  code: string;
   name: string;
-  regionId?: string;
-  description?: string;
+  noTruck: string;
+  status: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface ZoneFormData {
-  code: string;
   name: string;
-  regionId?: string;
-  description?: string;
+  noTruck: string;
+  status: string;
 }
 
 export interface ZoneListResponse {

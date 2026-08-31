@@ -3,23 +3,24 @@ import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { DriverReplacementFormData } from '../../../types/DriverReplacement';
-import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 
 interface DriverReplacementAddProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: DriverReplacementFormData) => void | Promise<void>;
   initialData?: DriverReplacementFormData;
-  isLoading?: boolean;
+  salesmanOptions: { value: number; label: string }[];
+  vanOptions: { value: number; label: string }[];
+  reasonOptions: { value: number; label: string }[];
 }
 
 const initialFormData: DriverReplacementFormData = {
-  originalDriverId: '',
-  replacementDriverId: '',
-  startDate: '',
-  endDate: '',
-  reason: '',
-  status: 'active',
+  oldSalesmanId: '',
+  newSalesmanId: '',
+  oldVanId: '',
+  newVanId: '',
+  reasonId: '',
+  date: '',
 };
 
 export function DriverReplacementAdd({
@@ -27,37 +28,36 @@ export function DriverReplacementAdd({
   onClose,
   onSubmit,
   initialData,
-  isLoading = false,
+  salesmanOptions,
+  vanOptions,
+  reasonOptions,
 }: DriverReplacementAddProps) {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    watch,
-    setError
-  } = useForm<DriverReplacementFormData>({
-    defaultValues: initialFormData
-  });
-
-  const watchedStatus = watch('status');
+    setError,
+  } = useForm<DriverReplacementFormData>({ defaultValues: initialFormData });
 
   useEffect(() => {
-    if (initialData) {
-      reset(initialData);
-    } else {
-      reset(initialFormData);
-    }
+    if (initialData) reset(initialData);
+    else reset(initialFormData);
   }, [initialData, isOpen, reset]);
 
   const onFormSubmit = async (data: DriverReplacementFormData) => {
+    const payload: DriverReplacementFormData = {
+      ...data,
+      oldSalesmanId: data.oldSalesmanId ? Number(data.oldSalesmanId) : '',
+      newSalesmanId: data.newSalesmanId ? Number(data.newSalesmanId) : '',
+      oldVanId: data.oldVanId ? Number(data.oldVanId) : '',
+      newVanId: data.newVanId ? Number(data.newVanId) : '',
+      reasonId: data.reasonId ? Number(data.reasonId) : '',
+    };
     try {
-      await onSubmit(data);
-      onClose();
+      await onSubmit(payload);
     } catch (error: any) {
-      setError('root', { 
-        message: error.response?.data?.message || 'Error saving driver replacement' 
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving driver replacement' });
     }
   };
 
@@ -71,15 +71,8 @@ export function DriverReplacementAdd({
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Driver Replacement' : 'Add Driver Replacement'}
-      width="w-[500px]"
-      footer={footerContent}
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Driver Replacement' : 'Add Driver Replacement'} width="w-[500px]" footer={footerContent}>
       <form id="driver-replacement-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-        {/* Show root errors */}
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             <strong className="font-bold">Error:</strong>
@@ -88,92 +81,51 @@ export function DriverReplacementAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Original Driver *</label>
-                  <OrderCodeSettingsIcon label="Original Driver *" value="" onChange={() => {}} />
-          <select
-            {...register('originalDriverId', {
-              required: 'Original Driver is required'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select driver</option>
-            <option value="1">Driver 1</option>
-            <option value="2">Driver 2</option>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Old Salesman *</label>
+          <select {...register('oldSalesmanId', { required: 'Old Salesman is required' })} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select salesman</option>
+            {salesmanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
-          {errors.originalDriverId && (
-            <p className="text-red-600 text-xs mt-1">{errors.originalDriverId.message}</p>
-          )}
+          {errors.oldSalesmanId && <p className="text-red-600 text-xs mt-1">{errors.oldSalesmanId.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Replacement Driver *</label>
-          <select
-            {...register('replacementDriverId', {
-              required: 'Replacement Driver is required'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select replacement</option>
-            <option value="3">Driver 3</option>
-            <option value="4">Driver 4</option>
+          <label className="block text-sm font-medium text-gray-700 mb-1">New Salesman *</label>
+          <select {...register('newSalesmanId', { required: 'New Salesman is required' })} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select salesman</option>
+            {salesmanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
-          {errors.replacementDriverId && (
-            <p className="text-red-600 text-xs mt-1">{errors.replacementDriverId.message}</p>
-          )}
+          {errors.newSalesmanId && <p className="text-red-600 text-xs mt-1">{errors.newSalesmanId.message}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
-            <input
-              {...register('startDate', {
-                required: 'Start Date is required'
-              })}
-              type="date"
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {errors.startDate && (
-              <p className="text-red-600 text-xs mt-1">{errors.startDate.message}</p>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              {...register('endDate')}
-              type="date"
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {errors.endDate && (
-              <p className="text-red-600 text-xs mt-1">{errors.endDate.message}</p>
-            )}
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Old Van</label>
+          <select {...register('oldVanId')} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select van (optional)</option>
+            {vanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">New Van</label>
+          <select {...register('newVanId')} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select van (optional)</option>
+            {vanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-          <input
-            {...register('reason')}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter reason"
-          />
-          {errors.reason && (
-            <p className="text-red-600 text-xs mt-1">{errors.reason.message}</p>
-          )}
+          <select {...register('reasonId')} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select reason (optional)</option>
+            {reasonOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select
-            {...register('status')}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          {errors.status && (
-            <p className="text-red-600 text-xs mt-1">{errors.status.message}</p>
-          )}
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+          <input type="date" {...register('date', { required: 'Date is required' })} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+          {errors.date && <p className="text-red-600 text-xs mt-1">{errors.date.message}</p>}
         </div>
       </form>
     </Drawer>

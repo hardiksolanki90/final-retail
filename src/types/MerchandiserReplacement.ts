@@ -1,18 +1,19 @@
 export interface MerchandiserReplacement {
   id: number;
-  originalMerchandiserId: string;
-  replacementMerchandiserId: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-  status: 'active' | 'inactive';
+  uuid: string;
+  oldSalesmanId: number;
+  newSalesmanId: number;
+  type: string;
+  addedOn: string;
+  createdAt?: string;
+  updatedAt?: string;
+  oldSalesman?: { id: number; name: string };
+  newSalesman?: { id: number; name: string };
 }
 
 export interface MerchandiserReplacementFormData {
-  originalMerchandiserId: string;
-  replacementMerchandiserId: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-  status: 'active' | 'inactive';
+  oldSalesmanId: number | '';
+  newSalesmanId: number | '';
+  type: string;
+  addedOn: string;
 }

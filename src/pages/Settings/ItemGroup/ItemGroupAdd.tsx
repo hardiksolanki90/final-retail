@@ -3,28 +3,32 @@ import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { ItemGroupFormData } from '../../../types/ItemGroup';
-import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 
 interface ItemGroupAddProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: ItemGroupFormData) => void | Promise<void>;
-  initialData?: ItemGroupFormData;
-  isLoading?: boolean;
+  data?: {
+    initialData?: ItemGroupFormData;
+    isLoading?: boolean;
+  };
+  onEvent?: (event: any) => void;
 }
 
 const initialFormData: ItemGroupFormData = {
   code: '',
   name: '',
-  description: '',
+  status: 'active',
 };
 
 export function ItemGroupAdd({
   isOpen,
   onClose,
-  onSubmit,
-  initialData,
+  data,
+  onEvent,
 }: ItemGroupAddProps) {
+  const initialData = data?.initialData;
+  const isLoading = data?.isLoading || false;
+
   const {
     register,
     handleSubmit,
@@ -45,11 +49,14 @@ export function ItemGroupAdd({
 
   const onFormSubmit = async (formData: ItemGroupFormData) => {
     try {
-      await onSubmit(formData);
+      onEvent?.({
+        eventType: initialData ? 'ItemGroupUpdated' : 'ItemGroupCreated',
+        itemGroup: formData,
+      });
       onClose();
     } catch (error: any) {
-      setError('root', { 
-        message: error.response?.data?.message || 'Error saving item group' 
+      setError('root', {
+        message: error.response?.data?.message || 'Error saving item group'
       });
     }
   };
@@ -72,7 +79,6 @@ export function ItemGroupAdd({
       footer={footerContent}
     >
       <form id="item-group-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-        {/* Show root errors */}
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             <strong className="font-bold">Error:</strong>
@@ -82,7 +88,6 @@ export function ItemGroupAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-                  <OrderCodeSettingsIcon label="Code *" value="" onChange={() => {}} />
           <input
             {...register('code', {
               required: 'Code is required',
@@ -112,15 +117,16 @@ export function ItemGroupAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea
-            {...register('description')}
-            rows={3}
+          <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+          <select
+            {...register('status', { required: 'Status is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter description"
-          />
-          {errors.description && (
-            <p className="text-red-600 text-xs mt-1">{errors.description.message}</p>
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          {errors.status && (
+            <p className="text-red-600 text-xs mt-1">{errors.status.message}</p>
           )}
         </div>
 

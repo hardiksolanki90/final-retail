@@ -1,27 +1,27 @@
 export interface OutletProductCode {
-  id?: string;
-  uuid?: string;
+  id: number;
+  uuid: string;
+  name: string;
   code: string;
-  productName: string;
-  outletId: string;
-  outletName: string;
-  customerId: string;
-  customerName: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface OutletProductCodeFormData {
+  name: string;
   code: string;
-  productName: string;
-  outletId: string;
-  customerId: string;
 }
 
 export interface OutletProductCodeListResponse {
   data: OutletProductCode[];
-  total: number;
-  currentPage: number;
-  perPage: number;
-  lastPage: number;
+  meta: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+    has_more_pages: boolean;
+    next_page_url: string | null;
+    prev_page_url: string | null;
+  };
+  message: string;
 }

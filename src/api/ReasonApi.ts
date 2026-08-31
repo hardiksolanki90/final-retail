@@ -32,3 +32,11 @@ export const deleteReason = async (uuid: string) => {
   await axiosInstance.delete(`/reason-type/delete/${uuid}`);
   showToast.success('Reason deleted successfully');
 };
+
+export interface ReasonOption { value: number; label: string; }
+
+export const getReasonOptions = async (): Promise<ReasonOption[]> => {
+  const response = await axiosInstance.get('/reason-type/all');
+  const data = response.data.data || response.data || [];
+  return data.map((r: { id: number; name?: string }) => ({ value: r.id, label: r.name || '' }));
+};

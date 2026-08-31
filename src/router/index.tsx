@@ -74,6 +74,7 @@ import { ZoneList } from "../pages/Settings/Zone/ZoneList";
 import { MerchandiserReplacementList } from "../pages/Settings/MerchandiserReplacement/MerchandiserReplacementList";
 import { DriverReplacementList } from "../pages/Settings/DriverReplacement/DriverReplacementList";
 import { BeatList } from "../pages/Beats/BeatList";
+import CreditLimitList from "../pages/Settings/CreditLimit/CreditLimitList";
 import TaxProvider from '../providers/TaxProvider';
 import CurrencyProvider from '../providers/CurrencyProvider';
 import BankProvider from '../providers/BankProvider';
@@ -86,6 +87,11 @@ import ItemGroupProvider from '../providers/ItemGroupProvider';
 import ReasonProvider from '../providers/ReasonProvider';
 import ZoneProvider from '../providers/ZoneProvider';
 import ItemUomProvider from '../providers/ItemUomProvider';
+import WarehouseProvider from '../providers/WarehouseProvider';
+import OutletProductCodeProvider from '../providers/OutletProductCodeProvider';
+import MerchandiserReplacementProvider from '../providers/MerchandiserReplacementProvider';
+import DriverReplacementProvider from '../providers/DriverReplacementProvider';
+import CreditLimitProvider from '../providers/CreditLimitProvider';
 import Login from "../pages/Authentication/Login";
 import Register from "../pages/Authentication/Register";
 import { OrganisationAdd } from "../pages/Organisation/OrganisationAdd";
@@ -559,7 +565,9 @@ export const router = createBrowserRouter([
     path: "/settings/warehouse",
     element: (
       <Layout>
-        <WarehouseList />
+        <WarehouseProvider>
+          <WarehouseList />
+        </WarehouseProvider>
       </Layout>
     ),
   },
@@ -617,7 +625,9 @@ export const router = createBrowserRouter([
     path: "/settings/outlet-product-code",
     element: (
       <Layout>
-        <OutletProductCodeList />
+        <OutletProductCodeProvider>
+          <OutletProductCodeList />
+        </OutletProductCodeProvider>
       </Layout>
     ),
   },
@@ -665,7 +675,9 @@ export const router = createBrowserRouter([
     path: "/settings/merchandiser-replacement",
     element: (
       <Layout>
-        <MerchandiserReplacementList />
+        <MerchandiserReplacementProvider>
+          <MerchandiserReplacementList />
+        </MerchandiserReplacementProvider>
       </Layout>
     ),
   },
@@ -673,7 +685,19 @@ export const router = createBrowserRouter([
     path: "/settings/driver-replacement",
     element: (
       <Layout>
-        <DriverReplacementList />
+        <DriverReplacementProvider>
+          <DriverReplacementList />
+        </DriverReplacementProvider>
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings/credit-limits",
+    element: (
+      <Layout>
+        <CreditLimitProvider>
+          <CreditLimitList />
+        </CreditLimitProvider>
       </Layout>
     ),
   },
@@ -704,9 +728,9 @@ export const router = createBrowserRouter([
   {
     path: "/organisation/add",
     element: (
-      // <ProtectedRoute>
+      <ProtectedRoute>
         <OrganisationAdd />
-      // </ProtectedRoute>
+      </ProtectedRoute>
     ),
   },
   {
