@@ -1,5 +1,5 @@
 import { useEffect, type ChangeEvent } from 'react';
-import { useForm, type FieldErrors } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
 import { Select, type SelectOption } from '../../components/ui/Select';
@@ -120,16 +120,23 @@ export function PlanogramAdd({
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Planogram Code"
-            {...register('planogramCode', {
-              required: 'Planogram Code is required',
-              validate: (value) => value?.trim() || 'Planogram Code is required'
-            })}
-            error={errors.planogramCode?.message}
-            placeholder="Enter planogram code"
-            required
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Planogram Code</label>
+            </div>
+            <div className="flex items-center gap-2 relative">
+              <Input
+                {...register('planogramCode', {
+                  required: 'Planogram Code is required',
+                  validate: (value) => value?.trim() || 'Planogram Code is required'
+                })}
+                error={errors.planogramCode?.message}
+                placeholder="Enter planogram code"
+                required
+              />
+              <OrderCodeSettingsIcon label="Planogram Code" value={watch('planogramCode') || ''} onChange={(v) => setValue('planogramCode', v)} />
+            </div>
+          </div>
           <Input
             label="Name"
             {...register('name', {
@@ -216,7 +223,6 @@ export function PlanogramAdd({
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-                  <OrderCodeSettingsIcon label="Description" value="" onChange={() => {}} />
           <textarea
             {...register('description')}
             placeholder="Enter description"

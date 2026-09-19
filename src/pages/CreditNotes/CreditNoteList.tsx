@@ -1,25 +1,35 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Filter,
   Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const creditNotesData = [
-  { id: 1, noteNo: 'CN001', invoiceNo: 'INV001', customer: 'Acme Corp', date: '2024-07-15', amount: 150.00, reason: 'Damaged Goods', status: 'Approved' },
-  { id: 2, noteNo: 'CN002', invoiceNo: 'INV003', customer: 'Global Trade', date: '2024-07-14', amount: 89.50, reason: 'Wrong Item', status: 'Pending' },
-  { id: 3, noteNo: 'CN003', invoiceNo: 'INV005', customer: 'Fresh Foods', date: '2024-07-13', amount: 56.00, reason: 'Price Adjustment', status: 'Approved' },
-  { id: 4, noteNo: 'CN004', invoiceNo: 'INV007', customer: 'Metro Dist.', date: '2024-07-12', amount: 420.00, reason: 'Return', status: 'Rejected' },
-  { id: 5, noteNo: 'CN005', invoiceNo: 'INV002', customer: 'Tech Solutions', date: '2024-07-11', amount: 345.00, reason: 'Overcharge', status: 'Approved' },
-  { id: 6, noteNo: 'CN006', invoiceNo: 'INV004', customer: 'Retail Mart', date: '2024-07-10', amount: 210.00, reason: 'Damaged Goods', status: 'Pending' },
-];
+import { useCreditNotes } from '../../hooks/CreditNotes/useCreditNotes';
+import { Pagination } from '../../components/ui/Pagination';
 
 interface Column { key: string; label: string; visible: boolean; }
 
 export function CreditNoteList() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const { creditNotes, total, isLoading, bulkAction } = useCreditNotes(currentPage);
+
+  const creditNotesData = useMemo(
+    () =>
+      creditNotes.map((cn) => ({
+        id: cn.uuid ?? '',
+        noteNo: cn.creditNoteNumber,
+        invoiceNo: cn.invoiceId ?? '—',
+        customer: cn.customerId ?? '—',
+        date: cn.creditNoteDate,
+        amount: cn.finalTotal,
+        reason: cn.reason,
+        status: cn.status ? 'Approved' : 'Pending',
+      })),
+    [creditNotes],
+  );
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -58,12 +68,11 @@ export function CreditNoteList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(creditNotesData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  // Apply filters
-  const filteredData = creditNotesData.filter(c =>
+  // Server already paginates by currentPage — client-side filter applies
+  // only within the current page's rows (full server-side filtering is a
+  // separate, larger change than wiring this page to the real endpoint).
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+  const currentData = creditNotesData.filter(c =>
     (!appliedFilter.noteNo || String(c.noteNo ?? '').toLowerCase().includes(appliedFilter.noteNo.toLowerCase())) &&
     (!appliedFilter.invoiceNo || String(c.invoiceNo ?? '').toLowerCase().includes(appliedFilter.invoiceNo.toLowerCase())) &&
     (!appliedFilter.customer || String(c.customer ?? '').toLowerCase().includes(appliedFilter.customer.toLowerCase())) &&
@@ -71,10 +80,9 @@ export function CreditNoteList() {
     (!appliedFilter.amount || String(c.amount ?? '').toLowerCase().includes(appliedFilter.amount.toLowerCase())) &&
     (!appliedFilter.reason || String(c.reason ?? '').toLowerCase().includes(appliedFilter.reason.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
   const handleSelectAll = () => setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
-  const handleSelectRow = (id: number) => setSelectedRows((prev) => prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]);
+  const handleSelectRow = (id: string) => setSelectedRows((prev) => prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]);
   const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   const visibleColumns = columns.filter((col) => col.visible);
 
@@ -82,9 +90,9 @@ export function CreditNoteList() {
   const handleExportCancel = () => { setExportModalOpen(false); setExportType('specific'); setExportFromDate(''); setExportToDate(''); setExportFormat(''); };
 
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => console.log('Delete', selectedRows) },
-    { label: 'Archive Selected', icon: Archive, action: () => console.log('Archive', selectedRows) },
-    { label: 'Update Status', icon: Tag, action: () => console.log('Update Status', selectedRows) },
+    { label: 'Activate Selected', icon: Tag, action: () => { bulkAction({ uuids: selectedRows, action: 'activate' }); setSelectedRows([]); } },
+    { label: 'Deactivate Selected', icon: Archive, action: () => { bulkAction({ uuids: selectedRows, action: 'deactivate' }); setSelectedRows([]); } },
+    { label: 'Delete Selected', icon: Trash2, action: () => { bulkAction({ uuids: selectedRows, action: 'delete' }); setSelectedRows([]); } },
   ];
 
   const getStatusBadge = (status: string) => {
@@ -202,7 +210,11 @@ export function CreditNoteList() {
           <table className="w-full">
             <thead><tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]"><th className="w-12 px-4 py-3"><input type="checkbox" checked={selectedRows.length === currentData.length && currentData.length > 0} onChange={handleSelectAll} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></th>{visibleColumns.map((column) => (<th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">{column.label}</th>))}</tr></thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
+              {isLoading ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading credit notes…</td></tr>
+              ) : currentData.length === 0 ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No credit notes yet.</td></tr>
+              ) : currentData.map((item) => (
                 <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
                   <td className="px-4 py-3"><input type="checkbox" checked={selectedRows.includes(item.id)} onChange={() => handleSelectRow(item.id)} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></td>
                   {visibleColumns.map((column) => (<td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">{column.key === 'status' ? <span className={getStatusBadge(item.status)}>{item.status}</span> : column.key === 'amount' ? formatCurrency(item.amount) : item[column.key as keyof typeof item]}</td>))}
@@ -211,10 +223,7 @@ export function CreditNoteList() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><span>Rows per page:</span><select value={rowsPerPage} onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"><option value={5}>5</option><option value={10}>10</option><option value={25}>25</option><option value={50}>50</option></select><span className="ml-4">{startIndex + 1}-{Math.min(endIndex, creditNotesData.length)} of {creditNotesData.length}</span></div>
-          <div className="flex items-center gap-1"><button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">First</button><button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Prev</button><span className="px-3 py-1 text-sm text-[var(--text-primary)]">Page {currentPage} of {totalPages}</span><button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Next</button><button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Last</button></div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
       {exportModalOpen && (

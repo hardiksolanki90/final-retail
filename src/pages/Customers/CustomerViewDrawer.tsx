@@ -148,8 +148,8 @@ export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawer
                     </button>
                     {expandedSections.address && (
                       <div className="p-4 bg-white dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-400">
-                        <p>{data.address || 'No address provided'}</p>
-                        <p>{data.city && `${data.city}, `}{data.state} {data.zipcode}</p>
+                        <p>{data.customerOfficeAddress || 'No address provided'}</p>
+                        <p>{data.customerOfficeCity && `${data.customerOfficeCity}, `}{data.customerOfficeState} {data.customerOfficeZipcode}</p>
                       </div>
                     )}
                   </div>
@@ -381,9 +381,9 @@ export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawer
                     <div className="font-bold text-gray-800 dark:text-gray-200 mb-1">To</div>
                     <div className="text-primary-600 font-medium mb-1">{data.shopName || `${data.firstName || ''} ${data.lastName || ''}`.trim()}</div>
                     <div className="text-gray-600 dark:text-gray-400">
-                      {data.code ? `${data.code}, ` : ''}{data.address || ''}<br/>
-                      {data.city || 'Mirfa'}<br/>
-                      {data.state || 'Dubai'}
+                      {data.code ? `${data.code}, ` : ''}{data.customerOfficeAddress || ''}<br/>
+                      {data.customerOfficeCity || 'Mirfa'}<br/>
+                      {data.customerOfficeState || 'Dubai'}
                     </div>
                   </div>
 

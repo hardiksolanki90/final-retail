@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { ChevronLeft } from 'lucide-react';
+import { Check, Map, ChevronLeft } from 'lucide-react';
 import type { JourneyPlanFullFormData } from '../../types/JourneyPlan';
 import { OverviewTab } from './tabs/OverviewTab';
 import { ScheduleTab } from './tabs/ScheduleTab';
 import { CustomersTab } from './tabs/CustomersTab';
+import { useJourneyPlanFormOptions, useJourneyPlanMutations } from '../../hooks/JourneyPlans/useJourneyPlans';
+import { CancelButton, SaveButton, Button } from '../../components/ui/Button';
 
-// ── Tab definitions ───────────────────────────────────────────────────────────
-type TabKey = 'overview' | 'schedule' | 'customers';
+// ── Step definitions ────────────────────────────────────────────────────────
+type StepKey = 'overview' | 'schedule' | 'customers';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'schedule', label: 'Schedule' },
-  { key: 'customers', label: 'Customers' },
+const STEPS: { key: StepKey; label: string; description: string }[] = [
+  { key: 'overview', label: 'Overview', description: 'Name & duration' },
+  { key: 'schedule', label: 'Schedule', description: 'Frequency & owner' },
+  { key: 'customers', label: 'Customers', description: 'Visit sequence' },
 ];
 
 // ── Default values ────────────────────────────────────────────────────────────
@@ -44,7 +46,10 @@ const DEFAULT_VALUES: JourneyPlanFullFormData = {
 // ── Component ─────────────────────────────────────────────────────────────────
 export function JourneyPlanAddPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeStep, setActiveStep] = useState<StepKey>('overview');
+  const [visited, setVisited] = useState<Set<StepKey>>(new Set(['overview']));
+  const { merchandisers, customers, isLoading: optionsLoading } = useJourneyPlanFormOptions();
+  const { createMutation } = useJourneyPlanMutations();
 
   const {
     register,
@@ -52,95 +57,135 @@ export function JourneyPlanAddPage() {
     watch,
     setValue,
     trigger,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<JourneyPlanFullFormData>({ defaultValues: DEFAULT_VALUES });
 
-  // ── Tab navigation helpers ─────────────────────────────────────────────────
-  const tabIndex = TABS.findIndex((t) => t.key === activeTab);
+  const stepIndex = STEPS.findIndex((s) => s.key === activeStep);
+
+  function goToStep(key: StepKey) {
+    setActiveStep(key);
+    setVisited((prev) => new Set(prev).add(key));
+  }
 
   async function goNext() {
-    // Validate current tab fields before advancing
     let fieldsToValidate: (keyof JourneyPlanFullFormData)[] = [];
-    if (activeTab === 'overview') {
+    if (activeStep === 'overview') {
       fieldsToValidate = ['journeyName', 'startDate', 'endDate'];
-    } else if (activeTab === 'schedule') {
+    } else if (activeStep === 'schedule') {
       fieldsToValidate = ['merchandiserId'];
     }
     const valid = await trigger(fieldsToValidate);
     if (!valid) return;
-    if (tabIndex < TABS.length - 1) setActiveTab(TABS[tabIndex + 1].key);
+    if (stepIndex < STEPS.length - 1) goToStep(STEPS[stepIndex + 1].key);
   }
 
   function goBack() {
-    if (tabIndex > 0) {
-      setActiveTab(TABS[tabIndex - 1].key);
+    if (stepIndex > 0) {
+      goToStep(STEPS[stepIndex - 1].key);
     } else {
       navigate(-1);
     }
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-  const onSubmit = (data: JourneyPlanFullFormData) => {
-    console.log('Journey Plan submitted:', data);
-    // TODO: call API
-    navigate('/journey-plan');
+  const onSubmit = async (data: JourneyPlanFullFormData) => {
+    try {
+      await createMutation.mutateAsync(data);
+      navigate('/journey-plan');
+    } catch {
+      // toast already shown by the mutation's onError handler
+    }
   };
-
-  // ── Tab header style ───────────────────────────────────────────────────────
-  function tabCls(key: TabKey) {
-    const isActive = key === activeTab;
-    return [
-      'relative px-8 py-3 text-sm font-medium transition-colors select-none',
-      isActive
-        ? 'text-primary-600 dark:text-primary-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-primary-600 dark:after:bg-primary-400 after:rounded-t'
-        : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200',
-    ].join(' ');
-  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Page Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-card)]">
-        {/* Stack icon */}
-        <svg
-          className="w-5 h-5 text-[var(--text-secondary)]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-          />
-        </svg>
-        <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-          Add Journey Plan
-        </h1>
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
+          <Map className="w-4 h-4" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold text-[var(--text-primary)] leading-tight">
+            Add Journey Plan
+          </h1>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Define a recurring visit route for a merchandiser
+          </p>
+        </div>
       </div>
 
       {/* Card */}
       <div className="px-6 py-6">
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden shadow-sm">
-            {/* Tab strip */}
-            <div className="flex border-b border-[var(--border-color)] overflow-x-auto">
-              {TABS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActiveTab(key)}
-                  className={tabCls(key)}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* Stepper header */}
+            <div className="px-6 sm:px-10 py-6 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/40">
+              <div className="flex items-start">
+                {STEPS.map((step, idx) => {
+                  const isActive = step.key === activeStep;
+                  const isDone = visited.has(step.key) && idx < stepIndex;
+                  const isClickable = visited.has(step.key);
+
+                  return (
+                    <div key={step.key} className="flex items-start flex-1 last:flex-none">
+                      <button
+                        type="button"
+                        onClick={() => isClickable && goToStep(step.key)}
+                        disabled={!isClickable}
+                        className={`flex items-center gap-3 text-left group ${
+                          isClickable ? 'cursor-pointer' : 'cursor-default'
+                        }`}
+                      >
+                        <span
+                          className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold shrink-0 border-2 transition-colors
+                            ${
+                              isDone
+                                ? 'bg-primary-600 border-primary-600 text-white'
+                                : isActive
+                                ? 'bg-primary-600 border-primary-600 text-white shadow-[0_0_0_4px_var(--color-primary-100)] dark:shadow-[0_0_0_4px_rgba(37,99,235,0.25)]'
+                                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)]'
+                            }`}
+                        >
+                          {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : idx + 1}
+                        </span>
+                        <span className="hidden sm:block">
+                          <span
+                            className={`block text-sm font-semibold ${
+                              isActive || isDone ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            {step.label}
+                          </span>
+                          <span className="block text-xs text-[var(--text-secondary)]">
+                            {step.description}
+                          </span>
+                        </span>
+                      </button>
+
+                      {idx < STEPS.length - 1 && (
+                        <div className="flex-1 h-[2px] mt-[18px] mx-3 sm:mx-4 rounded-full bg-[var(--border-color)] relative overflow-hidden">
+                          <div
+                            className="absolute inset-y-0 left-0 bg-primary-600 rounded-full transition-all duration-300"
+                            style={{ width: idx < stepIndex ? '100%' : '0%' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Tab content */}
-            <div className="px-6 py-6 min-h-[400px]">
-              {activeTab === 'overview' && (
+            {/* Step content */}
+            <div className="px-6 sm:px-10 py-8 min-h-[420px]">
+              {activeStep === 'overview' && (
                 <OverviewTab
                   register={register}
                   errors={errors}
@@ -148,49 +193,41 @@ export function JourneyPlanAddPage() {
                   setValue={setValue}
                 />
               )}
-              {activeTab === 'schedule' && (
+              {activeStep === 'schedule' && (
                 <ScheduleTab
-                  register={register}
+                  control={control}
                   errors={errors}
                   watch={watch}
                   setValue={setValue}
+                  merchandisers={merchandisers}
+                  merchandisersLoading={optionsLoading}
                 />
               )}
-              {activeTab === 'customers' && (
-                <CustomersTab watch={watch} setValue={setValue} />
+              {activeStep === 'customers' && (
+                <CustomersTab watch={watch} setValue={setValue} customers={customers} />
               )}
             </div>
 
-            {/* Horizontal rule separator before footer */}
-            <div className="border-t border-[var(--border-color)]" />
-
             {/* Footer actions */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 bg-[var(--bg-card)]">
-              <button
-                type="button"
-                onClick={goBack}
-                className="px-5 py-2 text-sm font-medium rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-              >
-                Back
-              </button>
+            <div className="flex items-center justify-between gap-3 px-6 sm:px-10 py-4 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/40">
+              <span className="text-xs text-[var(--text-secondary)]">
+                Step {stepIndex + 1} of {STEPS.length}
+              </span>
+              <div className="flex items-center gap-3">
+                <CancelButton type="button" onClick={goBack}>
+                  {stepIndex === 0 ? 'Cancel' : 'Back'}
+                </CancelButton>
 
-              {activeTab !== 'customers' ? (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="px-5 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isSubmitting ? 'Saving...' : 'Add Journey'}
-                </button>
-              )}
+                {activeStep !== 'customers' ? (
+                  <Button type="button" onClick={goNext}>
+                    Next
+                  </Button>
+                ) : (
+                  <SaveButton type="submit" isLoading={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : 'Add Journey'}
+                  </SaveButton>
+                )}
+              </div>
             </div>
           </div>
         </form>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import SalesmanAdd from './SalesmanAdd';
 import { SalesmanViewDrawer } from './SalesmanViewDrawer';
+import { Pagination } from '../../components/ui/Pagination';
 import { useSalesman } from '../../providers/SalesmanProvider';
 import type { Salesman } from '../../types/Salesman';
 
@@ -41,18 +42,11 @@ export function SalesmanList() {
     setSelectedRowKeys,
     handleDeleteWithConfirmation,
     handleBulkAction,
-    refetchSalesmen,
     isSalesmanModalVisible: isAddOpen,
     setIsSalesmanModalVisible: setIsAddOpen,
   } = useSalesman();
 
-  const salesmen: Salesman[] = Array.isArray(salesmanData?.data?.salesmans)
-    ? salesmanData.data.salesmans
-    : Array.isArray(salesmanData?.data?.data)
-      ? salesmanData.data.data
-      : Array.isArray(salesmanData?.data)
-        ? salesmanData.data
-        : [];
+  const salesmen: Salesman[] = salesmanData?.data ?? [];
   const meta = salesmanData?.meta;
   const totalPages = meta ? Math.ceil(meta.total / meta.per_page) : 1;
 
@@ -101,7 +95,6 @@ export function SalesmanList() {
   }, []);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  const visibleColumns = columns.filter(c => c.visible);
 
   const toggleColumn = (key: string) =>
     setColumns(prev => prev.map(col => col.key === key ? { ...col, visible: !col.visible } : col));
@@ -124,7 +117,7 @@ export function SalesmanList() {
 
   const handleEditClick = (salesman: Salesman) => { setSelectedSalesman(salesman); setIsAddOpen(true); };
   const handleDrawerClose = () => { setIsAddOpen(false); setSelectedSalesman(null); };
-  const handleSaved = () => { handleDrawerClose(); refetchSalesmen(); };
+  const handleSaved = () => { handleDrawerClose(); };
 
   const handleExportSubmit = () => {
     console.log('Exporting…', { exportType, exportFromDate, exportToDate, exportFormat });
@@ -229,7 +222,7 @@ export function SalesmanList() {
       )}
 
       {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[400px] mx-6">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[200px] mx-6">
         {isLoading && (
           <div className="absolute inset-0 z-10 bg-white/50 dark:bg-black/20 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
@@ -314,29 +307,7 @@ export function SalesmanList() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setCurrentPage(1); }} className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500">
-              {[10, 15, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-            {meta && <span className="ml-4">{((currentPage - 1) * perPage) + 1}–{Math.min(currentPage * perPage, meta.total)} of {meta.total}</span>}
-          </div>
-          <div className="flex items-center gap-1">
-            {(['First', 'Prev', 'Next', 'Last'] as const).map(label => {
-              const disabled = label === 'First' || label === 'Prev' ? currentPage === 1 : currentPage === totalPages || totalPages === 0;
-              const onClick = () => {
-                if (label === 'First') setCurrentPage(1);
-                else if (label === 'Prev') setCurrentPage(Math.max(currentPage - 1, 1));
-                else if (label === 'Next') setCurrentPage(Math.min(currentPage + 1, totalPages));
-                else setCurrentPage(totalPages);
-              };
-              return <button key={label} onClick={onClick} disabled={disabled} className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">{label}</button>;
-            })}
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">Page {currentPage} of {totalPages || 1}</span>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={meta?.total ?? 0} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
 
       {/* View Drawer */}

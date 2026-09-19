@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCreditLimitList, createCreditLimit, updateCreditLimit, deleteCreditLimit } from '../api/CreditLimitApi';
+import { getCreditLimitList, deleteCreditLimit } from '../api/CreditLimitApi';
 import { getAllSalesmen } from '../api/SalesmanApi';
 import { showToast } from '../lib/toast';
 import type { CreditLimit } from '../types/CreditLimit';
@@ -42,7 +42,7 @@ export default function CreditLimitProvider({ children }: { children: ReactNode 
   const deleteMutation = useMutation({
     mutationFn: deleteCreditLimit,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['credit-limit-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to delete', 'error'); },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {

@@ -3,7 +3,13 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
 import { Select, type SelectOption } from '../../components/ui/Select';
+import { HierarchicalCreatableSelect } from '../../components/ui/HierarchicalCreatableSelect';
+import { useItem } from '../../providers/ItemProvider';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
+import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { ItemGroupSelect } from '../../components/shared/ItemGroupSelect';
+import { SectionLabel } from '../../components/ui/SectionLabel';
+import { TwoOptionToggle } from '../../components/ui/TwoOptionToggle';
 import { Plus, Trash2, Upload } from 'lucide-react';
 import type { ItemFormData, ItemCategory, Brand, ItemUom } from '../../types/Item';
 
@@ -16,7 +22,6 @@ interface ItemAddProps {
   categories?: ItemCategory[];
   brands?: Brand[];
   uoms?: ItemUom[];
-  groups?: any[]; // For Item Group
 }
 
 const defaultValues: ItemFormData = {
@@ -75,12 +80,23 @@ export function ItemAdd({
   onSubmit,
   initialData,
   isLoading = false,
-  categories = [],
-  brands = [],
-  uoms = [],
-  groups = [],
+  categories: propCategories = [],
+  brands: propBrands = [],
+  uoms: propUoms = [],
 }: ItemAddProps) {
   const [activeTab, setActiveTab] = useState<'item' | 'uom' | 'catalog'>('item');
+
+  const {
+    categories: contextCategories,
+    brands: contextBrands,
+    uoms: contextUoms,
+    createCategoryOption,
+    createBrandOption,
+  } = useItem();
+
+  const categories = propCategories.length > 0 ? propCategories : contextCategories;
+  const brands = propBrands.length > 0 ? propBrands : contextBrands;
+  const uoms = propUoms.length > 0 ? propUoms : contextUoms;
 
   const {
     register,
@@ -99,9 +115,6 @@ export function ItemAdd({
 
   const [itemImageFile, setItemImageFile] = useState<File | null>(null);
   const [itemImagePreview, setItemImagePreview] = useState<string>('');
-  
-  const [catalogImageFile, setCatalogImageFile] = useState<File | null>(null);
-  const [catalogImagePreview, setCatalogImagePreview] = useState<string>('');
 
   const watchIsProductCatalog = watch('isProductCatalog');
   const watchIsPromotional = watch('isPromotional');
@@ -111,13 +124,10 @@ export function ItemAdd({
     if (initialData) {
       reset(initialData);
       if (initialData.itemImage) setItemImagePreview(initialData.itemImage);
-      if (initialData.catalogImage) setCatalogImagePreview(initialData.catalogImage);
     } else {
       reset(defaultValues);
       setItemImagePreview('');
-      setCatalogImagePreview('');
       setItemImageFile(null);
-      setCatalogImageFile(null);
     }
   }, [initialData, isOpen, reset]);
 
@@ -125,24 +135,18 @@ export function ItemAdd({
     const formData = {
       ...data,
       itemImage: itemImageFile ? itemImageFile.name : data.itemImage,
-      catalogImage: catalogImageFile ? catalogImageFile.name : data.catalogImage,
     };
     await onSubmit(formData);
     onClose();
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'item' | 'catalog') => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (type === 'item') {
-          setItemImageFile(file);
-          setItemImagePreview(reader.result as string);
-        } else {
-          setCatalogImageFile(file);
-          setCatalogImagePreview(reader.result as string);
-        }
+        setItemImageFile(file);
+        setItemImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -175,17 +179,12 @@ export function ItemAdd({
     label: `${uom.name} (${uom.code})`,
   }));
 
-  const groupOptions: SelectOption[] = groups.map(group => ({
-    value: group.id?.toString() || '',
-    label: group.name || 'Group',
-  }));
-
   return (
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Item' : 'Add Item'}
-      width="w-[900px]"
+      width="w-[700px]"
       footer={
         <div className="flex justify-end gap-3 flex-1">
           <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
@@ -197,21 +196,20 @@ export function ItemAdd({
         </div>
       }
     >
-      <form id="item-add-form" onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800">
-        
+      <form id="item-add-form" onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800">
+
         {/* Tabs Row */}
-        <div className="bg-white dark:bg-gray-800 px-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex gap-6 overflow-x-auto">
             {['item', 'uom', 'catalog'].map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab as any)}
-                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                  activeTab === tab
+                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === tab
                     ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
+                  }`}
               >
                 {tab === 'item' ? 'Item' : tab === 'uom' ? 'UOM' : 'Product Catalog'}
               </button>
@@ -220,20 +218,27 @@ export function ItemAdd({
         </div>
 
         {/* Tab Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-gray-800 min-h-full">
-          
+        <div className="p-6 bg-white dark:bg-gray-800">
+
           {/* Item Tab */}
           {activeTab === 'item' && (
             <div className="space-y-6 max-w-4xl mx-auto">
-              
-              <div className="grid grid-cols-2 gap-8">
-                {/* Left Col */}
+
+              <div className="grid grid-cols-1 gap-8">
+                {/* Form Fields */}
                 <div className="space-y-4">
-                  <Input
-                    label="Item Code*"
-                    {...register('itemCode', { required: 'Code is required' })}
-                    error={errors.itemCode?.message}
-                  />
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Code*</label>
+                    </div>
+                    <div className="flex items-center gap-2 relative">
+                      <Input
+                        {...register('itemCode', { required: 'Code is required' })}
+                        error={errors.itemCode?.message}
+                      />
+                      <OrderCodeSettingsIcon label="Item Code" value={watch('itemCode') || ''} onChange={(v) => setValue('itemCode', v)} />
+                    </div>
+                  </div>
                   <Input
                     label="Item Name*"
                     {...register('itemName', { required: 'Name is required' })}
@@ -242,33 +247,40 @@ export function ItemAdd({
                   <Input
                     label="Item Description"
                     {...register('description')}
-                    as="textarea"
-                    rows={3}
                   />
-                  
+
                   <div className="grid grid-cols-2 gap-4">
-                    <Select
+                    <HierarchicalCreatableSelect
                       label="Category*"
                       value={watch('itemCategoryId')?.toString() || ''}
                       onChange={(value) => setValue('itemCategoryId', value)}
                       options={categoryOptions}
-                      required
+                      placeholder="Select Category"
+                      createLabel="Add New Category"
+                      onCreate={createCategoryOption}
+                      nameField="categoryName"
+                      nameLabel="Category Name"
+                      parentLabel="Parent Category"
                     />
-                    <Select
+                    <HierarchicalCreatableSelect
                       label="Brand*"
                       value={watch('brandId')?.toString() || ''}
                       onChange={(value) => setValue('brandId', value)}
                       options={brandOptions}
-                      required
+                      placeholder="Select Brand"
+                      createLabel="Add New Brand"
+                      onCreate={createBrandOption}
+                      nameField="brandName"
+                      nameLabel="Brand Name"
+                      parentLabel="Parent Brand"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Select
-                      label="Item Group*"
+                    <ItemGroupSelect
+                      label="Item Group"
                       value={watch('itemGroupId')?.toString() || ''}
                       onChange={(value) => setValue('itemGroupId', value)}
-                      options={groupOptions}
                       required
                     />
                     <Input
@@ -276,7 +288,7 @@ export function ItemAdd({
                       {...register('itemBarcode')}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <Input
                       label="Item Weight (KG)"
@@ -290,7 +302,7 @@ export function ItemAdd({
                       {...register('itemShelfLife', { valueAsNumber: true })}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <Input
                       label="Volume (ltr)"
@@ -304,27 +316,39 @@ export function ItemAdd({
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Is Promotional*</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input type="radio" checked={watchIsPromotional === true} onChange={() => setValue('isPromotional', true)} className="text-primary-600 focus:ring-primary-500" /> Yes
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                        Is Promotional*
                       </label>
-                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input type="radio" checked={watchIsPromotional === false} onChange={() => setValue('isPromotional', false)} className="text-primary-600 focus:ring-primary-500" /> No
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={watchIsPromotional === true}
+                          onChange={(e) => setValue('isPromotional', e.target.checked)}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                        New Launch
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          {...register('isNewLaunch')}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
                       </label>
                     </div>
                   </div>
-
-                  <div className="space-y-2 pt-2">
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                      <input type="checkbox" {...register('isNewLaunch')} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                      New Launch
-                    </label>
-                  </div>
                 </div>
 
-                {/* Right Col */}
+                {/* Item Image Section */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Item Image</h3>
                   <div className="flex items-center justify-center w-full">
@@ -339,7 +363,7 @@ export function ItemAdd({
                         type="file"
                         className="hidden"
                         accept="image/*"
-                        onChange={(e) => handleImageChange(e, 'item')}
+                        onChange={handleImageChange}
                       />
                     </label>
                   </div>
@@ -361,14 +385,16 @@ export function ItemAdd({
           {/* UOM Tab */}
           {activeTab === 'uom' && (
             <div className="space-y-8 max-w-4xl mx-auto">
-              
+
               {/* Base UOM */}
               <div className="space-y-4">
+                <SectionLabel title="Base UOM" />
+
                 <div className="grid grid-cols-2 gap-4">
                   <Select
                     label="Base UOM*"
                     value={watch('itemUomId')?.toString() || ''}
-                    onChange={(value) => setValue('itemUomId', value)}
+                    onChange={(e) => setValue('itemUomId', e.target.value)}
                     options={uomOptions}
                     required
                   />
@@ -379,18 +405,6 @@ export function ItemAdd({
                     {...register('baseUomPurchasePrice', { valueAsNumber: true, required: 'Required' })}
                     error={errors.baseUomPurchasePrice?.message}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Is stock keeping unit ?</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <input type="radio" checked={watchIsBaseUomSku === true} onChange={() => setValue('isBaseUomSku', true)} className="text-primary-600 focus:ring-primary-500" /> Yes
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <input type="radio" checked={watchIsBaseUomSku === false} onChange={() => setValue('isBaseUomSku', false)} className="text-primary-600 focus:ring-primary-500" /> No
-                    </label>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -408,27 +422,49 @@ export function ItemAdd({
                     error={errors.baseUomPrice?.message}
                   />
                 </div>
-              </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 my-6"></div>
+                <div className="flex items-center justify-between pt-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Stock keeping unit</label>
+                  <TwoOptionToggle value={watchIsBaseUomSku === true} onChange={(v) => setValue('isBaseUomSku', v)} />
+                </div>
+              </div>
 
               {/* Secondary UOM */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Secondary UOM</h3>
-                
+                <SectionLabel
+                  title="Secondary UOM"
+                  action={
+                    <button
+                      type="button"
+                      onClick={addSecondaryUom}
+                      className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add UOM
+                    </button>
+                  }
+                />
+
+                {fields.length === 0 && (
+                  <p className="text-sm text-gray-400 dark:text-gray-500 py-2">No secondary UOMs added yet.</p>
+                )}
+
                 {fields.map((field, index) => (
-                  <div key={field.id} className="relative space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50">
-                    <div className="absolute top-2 right-2">
-                      <button type="button" onClick={() => remove(index)} className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+                  <div key={field.id} className="relative space-y-4 p-4 border border-gray-200 dark:border-gray-800 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                        UOM {index + 1}
+                      </span>
+                      <button type="button" onClick={() => remove(index)} className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 pr-8">
+                    <div className="grid grid-cols-2 gap-4">
                       <Select
                         label="UOM"
                         value={watch(`secondaryUoms.${index}.uomId`)?.toString() || ''}
-                        onChange={(value) => setValue(`secondaryUoms.${index}.uomId`, parseInt(value))}
+                        onChange={(e) => setValue(`secondaryUoms.${index}.uomId`, parseInt(e.target.value))}
                         options={uomOptions}
                       />
                       <Input
@@ -437,29 +473,14 @@ export function ItemAdd({
                         {...register(`secondaryUoms.${index}.upc`, { valueAsNumber: true })}
                       />
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 pr-8">
+
+                    <div className="grid grid-cols-2 gap-4">
                       <Input
                         label="Price"
                         type="number"
                         step="0.01"
                         {...register(`secondaryUoms.${index}.price`, { valueAsNumber: true })}
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Is stock keeping unit ?</label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                          <input type="radio" checked={watch(`secondaryUoms.${index}.isSku`) === true} onChange={() => setValue(`secondaryUoms.${index}.isSku`, true)} className="text-primary-600 focus:ring-primary-500" /> Yes
-                        </label>
-                        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                          <input type="radio" checked={watch(`secondaryUoms.${index}.isSku`) === false} onChange={() => setValue(`secondaryUoms.${index}.isSku`, false)} className="text-primary-600 focus:ring-primary-500" /> No
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 pr-8">
                       <Input
                         label="Purchase Price"
                         type="number"
@@ -468,17 +489,15 @@ export function ItemAdd({
                       />
                     </div>
 
+                    <div className="flex items-center justify-between pt-1">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Stock keeping unit</label>
+                      <TwoOptionToggle
+                        value={watch(`secondaryUoms.${index}.isSku`) === true}
+                        onChange={(v) => setValue(`secondaryUoms.${index}.isSku`, v)}
+                      />
+                    </div>
                   </div>
                 ))}
-                
-                <button
-                  type="button"
-                  onClick={addSecondaryUom}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 rounded-md transition-colors w-max mt-4"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add
-                </button>
               </div>
 
             </div>
@@ -487,62 +506,32 @@ export function ItemAdd({
           {/* Product Catalog Tab */}
           {activeTab === 'catalog' && (
             <div className="space-y-6 max-w-4xl mx-auto pb-8">
-              
-              <div className="space-y-2 mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Is Product Catalog*</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="radio" checked={watchIsProductCatalog === true} onChange={() => setValue('isProductCatalog', true)} className="text-primary-600 focus:ring-primary-500" /> Yes
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="radio" checked={watchIsProductCatalog === false} onChange={() => setValue('isProductCatalog', false)} className="text-primary-600 focus:ring-primary-500" /> No
-                  </label>
-                </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Is Product Catalog*</label>
+                <TwoOptionToggle value={watchIsProductCatalog === true} onChange={(v) => setValue('isProductCatalog', v)} />
               </div>
 
-              <div className="space-y-4 border-l-2 border-primary-200 dark:border-primary-800 pl-4 py-1">
-                <Input label="Net Weight:" {...register('netWeight')} />
-                <Input label="Flavor:" {...register('flavor')} />
-                <Input label="Shelf Life:" {...register('shelfLifeCatalog')} />
-                <Input label="Ingredients:" {...register('ingredients')} />
-                <Input label="Energy:" {...register('energy')} />
-                <Input label="Fat:" {...register('fat')} />
-                <Input label="Protein:" {...register('protein')} />
-                <Input label="Carbohydrate:" {...register('carbohydrate')} />
-                <Input label="Calcium:" {...register('calcium')} />
-                <Input label="Sodium:" {...register('sodium')} />
-                <Input label="Potassium:" {...register('potassium')} />
-                <Input label="Crude Fibre:" {...register('crudeFibre')} />
-                <Input label="Vitamin:" {...register('vitamin')} />
-              </div>
-
-              <div className="space-y-4 pt-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Image:</h3>
-                <div className="flex items-center justify-center w-full max-w-md">
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Choose file</span> No file chosen
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => handleImageChange(e, 'catalog')}
-                    />
-                  </label>
-                </div>
-                {catalogImagePreview && (
-                  <div className="mt-4">
-                    <img
-                      src={catalogImagePreview}
-                      alt="Catalog preview"
-                      className="h-24 w-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-                    />
+              {watchIsProductCatalog && (
+                <div className="space-y-4">
+                  <SectionLabel title="Nutritional Information" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input label="Net Weight" {...register('netWeight')} />
+                    <Input label="Flavor" {...register('flavor')} />
+                    <Input label="Shelf Life" {...register('shelfLifeCatalog')} />
+                    <Input label="Ingredients" {...register('ingredients')} />
+                    <Input label="Energy" {...register('energy')} />
+                    <Input label="Fat" {...register('fat')} />
+                    <Input label="Protein" {...register('protein')} />
+                    <Input label="Carbohydrate" {...register('carbohydrate')} />
+                    <Input label="Calcium" {...register('calcium')} />
+                    <Input label="Sodium" {...register('sodium')} />
+                    <Input label="Potassium" {...register('potassium')} />
+                    <Input label="Crude Fibre" {...register('crudeFibre')} />
+                    <Input label="Vitamin" {...register('vitamin')} />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
             </div>
           )}

@@ -119,8 +119,8 @@ export interface SalesmanLoginHistory {
 export interface SalesmanType {
   id: number;
   uuid: string;
+  code?: string;
   name: string;
-  description?: string;
   status: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -129,8 +129,8 @@ export interface SalesmanType {
 export interface SalesmanRole {
   id: number;
   uuid: string;
+  code?: string;
   name: string;
-  description?: string;
   status: boolean;
   createdAt?: string;
   updatedAt?: string;

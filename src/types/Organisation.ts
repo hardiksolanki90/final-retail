@@ -23,8 +23,29 @@ export interface Organisation {
   is_auto_approval_set?: boolean;
   org_status?: boolean;
   is_trial_period?: boolean;
+  is_complete?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  country?: {
+    id: number;
+    countryMasterId: number | null;
+    name: string;
+    countryCode: string;
+    dialCode?: string | null;
+    currency?: string | null;
+    currencyCode?: string | null;
+    currencySymbol?: string | null;
+    taxProfile: {
+      taxSystem: string;
+      taxName: string;
+      registrationNumberLabel: string | null;
+      components: string[];
+      jurisdictionLevel: string[];
+      calculationNotes: string | null;
+      taxStatus: string | null;
+      defaultRate: string | number | null;
+    } | null;
+  } | null;
 }
 
 export interface OrganisationFormData {
@@ -35,7 +56,7 @@ export interface OrganisationFormData {
   org_street2?: string;
   org_city?: string;
   org_state?: string;
-  org_country_id?: string;
+  country_master_id?: string;
   org_postal?: string;
   org_phone: string;
   org_contact_person?: string;
@@ -44,6 +65,5 @@ export interface OrganisationFormData {
   org_fasical_year?: string;
   is_batch_enabled?: boolean;
   is_credit_limit_enabled?: boolean;
-  gstin_number?: string;
   gst_reg_date?: string;
 }

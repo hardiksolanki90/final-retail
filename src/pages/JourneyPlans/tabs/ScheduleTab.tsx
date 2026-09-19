@@ -1,20 +1,21 @@
-import type {
-  UseFormRegister,
-  FieldErrors,
-  UseFormWatch,
-  UseFormSetValue,
-} from 'react-hook-form';
+import { Controller, type Control, type FieldErrors, type UseFormWatch, type UseFormSetValue } from 'react-hook-form';
 import type {
   JourneyPlanFullFormData,
   WeekNumber,
   DayOfWeek,
 } from '../../../types/JourneyPlan';
+import { Checkbox } from '../../../components/ui/Checkbox';
+import { TwoOptionToggle } from '../../../components/ui/TwoOptionToggle';
+import { SectionLabel } from '../../../components/ui/SectionLabel';
+import { Select } from '../../../components/ui/Select';
 
 interface Props {
-  register: UseFormRegister<JourneyPlanFullFormData>;
+  control: Control<JourneyPlanFullFormData>;
   errors: FieldErrors<JourneyPlanFullFormData>;
   watch: UseFormWatch<JourneyPlanFullFormData>;
   setValue: UseFormSetValue<JourneyPlanFullFormData>;
+  merchandisers: { value: string; label: string }[];
+  merchandisersLoading?: boolean;
 }
 
 const WEEKS: { key: WeekNumber; label: string }[] = [
@@ -25,28 +26,17 @@ const WEEKS: { key: WeekNumber; label: string }[] = [
   { key: 'week5', label: 'Week 5' },
 ];
 
-const DAYS: { key: DayOfWeek; label: string }[] = [
-  { key: 'monday', label: 'Monday' },
-  { key: 'tuesday', label: 'Tuesday' },
-  { key: 'wednesday', label: 'wednesday' },
-  { key: 'thursday', label: 'Thursday' },
-  { key: 'friday', label: 'Friday' },
-  { key: 'saturday', label: 'Saturday' },
-  { key: 'sunday', label: 'Sunday' },
+const DAYS: { key: DayOfWeek; label: string; short: string }[] = [
+  { key: 'monday', label: 'Monday', short: 'Mon' },
+  { key: 'tuesday', label: 'Tuesday', short: 'Tue' },
+  { key: 'wednesday', label: 'Wednesday', short: 'Wed' },
+  { key: 'thursday', label: 'Thursday', short: 'Thu' },
+  { key: 'friday', label: 'Friday', short: 'Fri' },
+  { key: 'saturday', label: 'Saturday', short: 'Sat' },
+  { key: 'sunday', label: 'Sunday', short: 'Sun' },
 ];
 
-// Sample merchandisers – replace with API call when available
-const MERCHANDISERS = [
-  { value: '1', label: 'Salesperson A' },
-  { value: '2', label: 'Salesperson B' },
-  { value: '3', label: 'Salesperson C' },
-];
-
-const sectionLabel = 'text-sm font-medium text-[var(--text-primary)] mb-3 block';
-const radioCircle =
-  'w-4 h-4 accent-gray-900 dark:accent-white cursor-pointer';
-
-export function ScheduleTab({ register, errors, watch, setValue }: Props) {
+export function ScheduleTab({ control, errors, watch, setValue, merchandisers, merchandisersLoading }: Props) {
   const journeyPlanBase = watch('journeyPlanBase');
   const selectedWeeks = watch('selectedWeeks') ?? [];
   const firstDayOfWeek = watch('firstDayOfWeek');
@@ -54,151 +44,96 @@ export function ScheduleTab({ register, errors, watch, setValue }: Props) {
 
   function toggleWeek(week: WeekNumber) {
     if (selectedWeeks.includes(week)) {
-      setValue(
-        'selectedWeeks',
-        selectedWeeks.filter((w) => w !== week)
-      );
+      setValue('selectedWeeks', selectedWeeks.filter((w) => w !== week));
     } else {
       setValue('selectedWeeks', [...selectedWeeks, week]);
     }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Journey Plan Base */}
-      <div>
-        <label className={sectionLabel}>Select Journey Plan Base</label>
-        <div className="flex gap-10">
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-primary)]">
-            <input
-              type="radio"
-              value="day_wise"
-              checked={journeyPlanBase === 'day_wise'}
-              onChange={() => setValue('journeyPlanBase', 'day_wise')}
-              className={radioCircle}
-            />
-            Day Wise
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-primary)]">
-            <input
-              type="radio"
-              value="week_wise"
-              checked={journeyPlanBase === 'week_wise'}
-              onChange={() => setValue('journeyPlanBase', 'week_wise')}
-              className={radioCircle}
-            />
-            Week Wise
-          </label>
-        </div>
+    <div className="max-w-2xl space-y-8">
+      {/* Recurrence base */}
+      <div className="space-y-3">
+        <SectionLabel title="Recurrence" />
+        <TwoOptionToggle
+          value={journeyPlanBase === 'day_wise'}
+          onChange={(v) => setValue('journeyPlanBase', v ? 'day_wise' : 'week_wise')}
+          trueLabel="Day Wise"
+          falseLabel="Week Wise"
+        />
       </div>
 
-      {/* Select weeks of a month — enabled only when Week Wise is selected */}
-      <div className={journeyPlanBase !== 'week_wise' ? 'opacity-40 pointer-events-none select-none' : ''}>
-        <label className={sectionLabel}>Select weeks of a month</label>
-        <div className="grid grid-cols-3 gap-y-3 gap-x-6">
+      {/* Weeks of month — only relevant for Week Wise */}
+      <div className={`space-y-3 transition-opacity ${journeyPlanBase !== 'week_wise' ? 'opacity-40 pointer-events-none' : ''}`}>
+        <SectionLabel title="Weeks of a Month" />
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
           {WEEKS.map(({ key, label }) => (
-            <label
+            <Checkbox
               key={key}
-              className={`flex items-center gap-2 text-sm text-[var(--text-primary)] ${
-                journeyPlanBase === 'week_wise' ? 'cursor-pointer' : 'cursor-not-allowed'
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={selectedWeeks.includes(key)}
-                onChange={() => toggleWeek(key)}
-                disabled={journeyPlanBase !== 'week_wise'}
-                className={`w-4 h-4 rounded ${
-                  journeyPlanBase === 'week_wise'
-                    ? 'accent-gray-900 dark:accent-white cursor-pointer'
-                    : 'cursor-not-allowed'
+              label={label}
+              checked={selectedWeeks.includes(key)}
+              onChange={() => toggleWeek(key)}
+              disabled={journeyPlanBase !== 'week_wise'}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* First day of week — chip selector */}
+      <div className="space-y-3">
+        <SectionLabel title="First Day of the Week" />
+        <div className="flex flex-wrap gap-2">
+          {DAYS.map(({ key, label, short }) => {
+            const isActive = firstDayOfWeek === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setValue('firstDayOfWeek', key)}
+                title={label}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-primary-600 border-primary-600 text-white'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary-400 hover:text-primary-600'
                 }`}
-              />
-              {label}
-            </label>
-          ))}
+              >
+                {short}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Select first day of a week */}
-      <div>
-        <label className={sectionLabel}>Select first day of a week</label>
-        <div className="grid grid-cols-3 gap-y-3 gap-x-6">
-          {DAYS.map(({ key, label }) => (
-            <label
-              key={key}
-              className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-primary)]"
-            >
-              <input
-                type="radio"
-                value={key}
-                checked={firstDayOfWeek === key}
-                onChange={() => setValue('firstDayOfWeek', key)}
-                className={radioCircle}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
+      {/* Enforce flag */}
+      <div className="space-y-3">
+        <SectionLabel title="Enforce Visit" />
+        <TwoOptionToggle
+          value={enforceFlag === true}
+          onChange={(v) => setValue('enforceFlag', v)}
+          trueLabel="Yes"
+          falseLabel="No"
+        />
       </div>
 
-      {/* Enforce Flag */}
-      <div>
-        <label className={sectionLabel}>Enforce Flag</label>
-        <div className="flex gap-10">
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-primary)]">
-            <input
-              type="radio"
-              checked={enforceFlag === true}
-              onChange={() => setValue('enforceFlag', true)}
-              className={radioCircle}
+      {/* Merchandiser */}
+      <div className="space-y-3">
+        <SectionLabel title="Assignment" />
+        <Controller
+          name="merchandiserId"
+          control={control}
+          rules={{ required: 'Merchandiser is required' }}
+          render={({ field }) => (
+            <Select
+              label="Select Merchandiser*"
+              value={field.value}
+              onChange={(e) => field.onChange(String(e.target.value))}
+              options={merchandisers}
+              placeholder="Select merchandiser"
+              isLoading={merchandisersLoading}
+              error={errors.merchandiserId?.message}
             />
-            Yes
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-primary)]">
-            <input
-              type="radio"
-              checked={enforceFlag === false}
-              onChange={() => setValue('enforceFlag', false)}
-              className={radioCircle}
-            />
-            No
-          </label>
-        </div>
-      </div>
-
-      {/* Select Merchandiser */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          Select Merchandiser <span className="text-red-500">*</span>
-        </label>
-        <div className="relative">
-          <select
-            {...register('merchandiserId', { required: 'Merchandiser is required' })}
-            className="block w-full px-3 py-2 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none pr-8 transition-colors"
-          >
-            <option value="">Select Options</option>
-            {MERCHANDISERS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          {/* Chevron icon */}
-          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-            <svg
-              className="w-4 h-4 text-[var(--text-muted)]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-        {errors.merchandiserId && (
-          <p className="text-red-500 text-xs mt-1">{errors.merchandiserId.message}</p>
-        )}
+          )}
+        />
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
-import type { CountryFormData } from '../../../types/Country';
-import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { CountryMasterSelect } from '../../../components/shared/CountryMasterSelect';
+import type { CountryFormData, CountryMaster } from '../../../types/Country';
+
 
 interface CountryAddProps {
   isOpen: boolean;
@@ -16,25 +17,34 @@ interface CountryAddProps {
 }
 
 const initialFormData: CountryFormData = {
-  code: '',
+  countryMasterId: '',
   name: '',
+  countryCode: '',
+  dialCode: '',
   currency: '',
-  phoneCode: '',
+  currencyCode: '',
+  currencySymbol: '',
+  status: true,
 };
 
 export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
-  
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setError
+    setError,
+    watch,
+    setValue,
+    control
   } = useForm<CountryFormData>({
     defaultValues: initialFormData
   });
+
+  const watchedStatus = watch('status');
 
   useEffect(() => {
     if (initialData) {
@@ -46,24 +56,51 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
 
   const onFormSubmit = async (formData: CountryFormData) => {
     try {
-      onEvent?.({
+      await onEvent?.({
         eventType: initialData ? 'CountryUpdated' : 'CountryCreated',
         country: formData,
       });
-      onClose();
     } catch (error: any) {
-      setError('root', { 
-        message: error.response?.data?.message || 'Error saving country' 
+      setError('root', {
+        message: error.response?.data?.message || 'Error saving country'
       });
     }
   };
 
+  const handleCountryChange = (master: CountryMaster | null) => {
+    if (!master) return;
+    setValue('name', master.name || '', { shouldValidate: true });
+    setValue('countryCode', master.countryCode || '', { shouldValidate: true });
+    setValue('dialCode', master.dialCode || '', { shouldValidate: true });
+    setValue('currency', master.currency || '', { shouldValidate: true });
+    setValue('currencyCode', master.currencyCode || '', { shouldValidate: true });
+    setValue('currencySymbol', master.currencySymbol || '', { shouldValidate: true });
+  };
+
   const footerContent = (
-    <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
-      <SaveButton type="submit" form="country-form" disabled={isSubmitting}>
-        {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
-      </SaveButton>
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+        <button
+          type="button"
+          onClick={() => setValue('status', !watchedStatus)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+            watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+              watchedStatus ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+      <div className="flex gap-3">
+        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+        <SaveButton type="submit" form="country-form" disabled={isLoading || isSubmitting}>
+          {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
+        </SaveButton>
+      </div>
     </div>
   );
 
@@ -85,58 +122,80 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-                  <OrderCodeSettingsIcon label="Code *" value="" onChange={() => {}} />
-          <input
-            {...register('code', {
-              required: 'Code is required',
-              validate: value => value.trim() !== '' || 'Code cannot be empty'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter country code"
+          <Controller
+            name="countryMasterId"
+            control={control}
+            rules={{ required: 'Country is required' }}
+            render={({ field }) => (
+              <CountryMasterSelect
+                label="Country Master *"
+                value={field.value}
+                onChange={(master) => {
+                  field.onChange(master?.id ?? '');
+                  handleCountryChange(master);
+                }}
+                error={errors.countryMasterId?.message}
+              />
+            )}
           />
-          {errors.code && (
-            <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
-          )}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-          <input
-            {...register('name', {
-              required: 'Name is required',
-              validate: value => value.trim() !== '' || 'Name cannot be empty'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter country name"
-          />
-          {errors.name && (
-            <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>
-          )}
-        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <input
+              {...register('name', { required: 'Name is required' })}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. India"
+            />
+            {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-          <input
-            {...register('currency')}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter currency"
-          />
-          {errors.currency && (
-            <p className="text-red-600 text-xs mt-1">{errors.currency.message}</p>
-          )}
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country Code *</label>
+            <input
+              {...register('countryCode', { required: 'Country Code is required' })}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. IN"
+            />
+            {errors.countryCode && <p className="text-red-600 text-xs mt-1">{errors.countryCode.message}</p>}
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone Code</label>
-          <input
-            {...register('phoneCode')}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="+971"
-          />
-          {errors.phoneCode && (
-            <p className="text-red-600 text-xs mt-1">{errors.phoneCode.message}</p>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Dial Code</label>
+            <input
+              {...register('dialCode')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. +91"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <input
+              {...register('currency')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. Indian rupee"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency Code</label>
+            <input
+              {...register('currencyCode')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. INR"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
+            <input
+              {...register('currencySymbol')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. ₹"
+            />
+          </div>
         </div>
 
       </form>

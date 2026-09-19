@@ -1,5 +1,8 @@
 import type { UseFormRegister, FieldErrors, UseFormWatch, UseFormSetValue } from 'react-hook-form';
 import type { JourneyPlanFullFormData } from '../../../types/JourneyPlan';
+import { Input } from '../../../components/ui/Input';
+import { Checkbox } from '../../../components/ui/Checkbox';
+import { SectionLabel } from '../../../components/ui/SectionLabel';
 
 interface Props {
   register: UseFormRegister<JourneyPlanFullFormData>;
@@ -8,106 +11,82 @@ interface Props {
   setValue: UseFormSetValue<JourneyPlanFullFormData>;
 }
 
-const inputCls =
-  'block w-full px-3 py-2 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors';
-
-const labelCls = 'block text-sm font-medium text-[var(--text-primary)] mb-1';
+const textareaCls =
+  'block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm';
 
 export function OverviewTab({ register, errors, watch, setValue }: Props) {
   const noEnd = watch('noEnd');
 
   return (
-    <div className="space-y-5">
-      {/* Journey Name */}
-      <div>
-        <label className={labelCls}>Journey Name</label>
-        <input
+    <div className="max-w-2xl space-y-8">
+      {/* Identity */}
+      <div className="space-y-4">
+        <SectionLabel title="Journey Identity" />
+
+        <Input
+          label="Journey Name"
           {...register('journeyName', { required: 'Journey Name is required' })}
-          className={inputCls}
-          placeholder=""
+          error={errors.journeyName?.message}
         />
-        {errors.journeyName && (
-          <p className="text-red-500 text-xs mt-1">{errors.journeyName.message}</p>
-        )}
-      </div>
 
-      {/* Description */}
-      <div>
-        <label className={labelCls}>Description</label>
-        <textarea
-          {...register('description')}
-          rows={3}
-          className={`${inputCls} resize-none`}
-          placeholder=""
-        />
-      </div>
-
-      {/* Start Date | No End | End Date */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
-        {/* Start Date */}
         <div>
-          <label className={labelCls}>Start Date</label>
-          <input
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Description
+          </label>
+          <textarea
+            {...register('description')}
+            rows={3}
+            className={textareaCls}
+            placeholder="Optional notes about this journey plan..."
+          />
+        </div>
+      </div>
+
+      {/* Duration */}
+      <div className="space-y-4">
+        <SectionLabel title="Schedule Window" />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
             type="date"
+            label="Start Date"
             {...register('startDate', { required: 'Start Date is required' })}
-            className={inputCls}
+            error={errors.startDate?.message}
           />
-          {errors.startDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.startDate.message}</p>
-          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className={`text-sm font-medium ${noEnd ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                End Date
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <Checkbox
+                  checked={noEnd}
+                  onChange={(e) => {
+                    setValue('noEnd', e.target.checked);
+                    if (e.target.checked) setValue('endDate', '');
+                  }}
+                />
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">No End</span>
+              </label>
+            </div>
+            <Input
+              type="date"
+              {...register('endDate', {
+                validate: (val) => {
+                  if (!noEnd && !val) return 'End Date is required';
+                  return true;
+                },
+              })}
+              disabled={noEnd}
+              error={errors.endDate?.message}
+            />
+          </div>
         </div>
 
-        {/* No End checkbox */}
-        <div className="flex flex-col items-center gap-1 pb-2">
-          <label className="text-sm font-medium text-[var(--text-primary)]">No End</label>
-          <input
-            type="checkbox"
-            {...register('noEnd')}
-            onChange={(e) => {
-              setValue('noEnd', e.target.checked);
-              if (e.target.checked) setValue('endDate', '');
-            }}
-            className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-          />
-        </div>
-
-        {/* End Date */}
-        <div>
-          <label className={`${labelCls} ${noEnd ? 'opacity-40' : ''}`}>End Date</label>
-          <input
-            type="date"
-            {...register('endDate', {
-              validate: (val) => {
-                if (!noEnd && !val) return 'End Date is required';
-                return true;
-              },
-            })}
-            disabled={noEnd}
-            className={`${inputCls} ${noEnd ? 'opacity-40 cursor-not-allowed' : ''}`}
-          />
-          {errors.endDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.endDate.message}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Start Time | End Time */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>Start Time</label>
-          <input
-            type="time"
-            {...register('startTime')}
-            className={inputCls}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>End Time</label>
-          <input
-            type="time"
-            {...register('endTime')}
-            className={inputCls}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input type="time" label="Start Time" {...register('startTime')} />
+          <Input type="time" label="End Time" {...register('endTime')} />
         </div>
       </div>
     </div>

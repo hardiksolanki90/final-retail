@@ -1,5 +1,6 @@
 import axiosInstance from '../lib/axios';
-import type { 
+import { unwrapPaginated } from '../lib/paginatedResponse';
+import type {
   Item, 
   ItemFormData, 
   ItemListResponse, 
@@ -44,7 +45,7 @@ export const getItemList = async (
   }
 
   const response = await axiosInstance.get(`/item/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'items', perPage) as ItemListResponse;
 };
 
 export const getAllItems = async (filters?: ItemFilters): Promise<ItemSelectOption[]> => {
@@ -96,7 +97,7 @@ export const searchItems = async (
   }
 
   const response = await axiosInstance.post('/item/search', Object.fromEntries(params));
-  return response.data;
+  return unwrapPaginated(response.data, 'items', perPage) as ItemListResponse;
 };
 
 export const getItemDetails = async (uuid: string): Promise<Item> => {
@@ -123,6 +124,19 @@ export const bulkActionItems = async (bulkAction: ItemBulkAction): Promise<void>
 };
 
 // Item Categories API
+export const getItemCategoryList = async (
+  page: number = 1,
+  perPage: number = 15,
+  searchTerm?: string
+): Promise<any> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+  if (searchTerm) params.append('search', searchTerm);
+  const response = await axiosInstance.get(`/item-category/list?${params.toString()}`);
+  return unwrapPaginated(response.data, 'itemCategories', perPage);
+};
+
 export const getItemCategories = async (): Promise<ItemCategory[]> => {
   const response = await axiosInstance.get('/item-category/all');
   return response.data.data || response.data;
@@ -148,6 +162,19 @@ export const deleteItemCategory = async (uuid: string): Promise<void> => {
 };
 
 // Brands API
+export const getBrandList = async (
+  page: number = 1,
+  perPage: number = 15,
+  searchTerm?: string
+): Promise<any> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+  if (searchTerm) params.append('search', searchTerm);
+  const response = await axiosInstance.get(`/brand/list?${params.toString()}`);
+  return unwrapPaginated(response.data, 'brands', perPage);
+};
+
 export const getBrands = async (): Promise<Brand[]> => {
   const response = await axiosInstance.get('/brand/all');
   return response.data.data || response.data;

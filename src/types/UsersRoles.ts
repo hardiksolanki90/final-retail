@@ -5,6 +5,7 @@ export interface UserRole {
   name: string;
   permissions?: string[];
   description?: string;
+  status?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -14,6 +15,13 @@ export interface UserRoleFormData {
   name: string;
   permissions?: string[];
   description?: string;
+  status?: boolean;
+}
+
+export interface PermissionOption {
+  value: string;
+  label: string;
+  module: string;
 }
 
 export interface UserRoleListResponse {

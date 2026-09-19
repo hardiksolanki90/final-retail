@@ -29,6 +29,7 @@ import {
   GitBranch,
   Flag,
   Settings,
+  SlidersHorizontal,
   BarChart2,
   X,
   Target,
@@ -59,6 +60,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { sidebarMenu } from '../../data/menuData';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -98,6 +100,7 @@ const iconMap: Record<string, LucideIcon> = {
   'git-branch': GitBranch,
   flag: Flag,
   settings: Settings,
+  sliders: SlidersHorizontal,
   'bar-chart-2': BarChart2,
   // Sales Operations icons
   target: Target,
@@ -131,6 +134,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) {
   const location = useLocation();
+  const { hasPermission } = useAuth();
 
   const getIcon = (iconName: string) => {
     const IconComponent = iconMap[iconName];
@@ -197,7 +201,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
 
               {/* Section Items */}
               <ul className="space-y-1 px-2">
-                {section.items.map((item) => (
+                {section.items.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => (
                   <li key={item.path}>
                     <Link
                       to={item.path}

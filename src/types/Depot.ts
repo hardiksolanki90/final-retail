@@ -1,27 +1,28 @@
 export interface Depot {
-  id?: string;
+  id?: number;
   uuid?: string;
-  code: string;
-  name: string;
-  address: string;
-  city?: string;
-  region?: string;
-  contactPerson?: string;
-  phone?: string;
-  email?: string;
+  userId?: number | null;
+  regionId: number;
+  areaId?: number | null;
+  depotCode: string;
+  depotName: string;
+  depotManager: string;
+  depotManagerContact?: string;
+  status: boolean;
+  region?: { id: number; uuid: string; name: string } | null;
+  area?: { id: number; uuid: string; name: string } | null;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface DepotFormData {
-  code: string;
-  name: string;
-  address: string;
-  city?: string;
-  region?: string;
-  contactPerson?: string;
-  phone?: string;
-  email?: string;
+  regionId: number | '';
+  areaId?: number | '';
+  depotCode: string;
+  depotName: string;
+  depotManager: string;
+  depotManagerContact?: string;
+  status: boolean;
 }
 
 export interface DepotListResponse {

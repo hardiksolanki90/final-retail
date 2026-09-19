@@ -48,6 +48,8 @@ export function SensorySurveyAdd({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SensorySurveyFormData>({ defaultValues });
 
@@ -71,13 +73,20 @@ export function SensorySurveyAdd({
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Survey Code"
-            {...register('surveyCode', { required: 'Survey Code is required' })}
-            error={errors.surveyCode?.message}
-            placeholder="Enter survey code"
-            required
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Survey Code</label>
+            </div>
+            <div className="flex items-center gap-2 relative">
+              <Input
+                {...register('surveyCode', { required: 'Survey Code is required' })}
+                error={errors.surveyCode?.message}
+                placeholder="Enter survey code"
+                required
+              />
+              <OrderCodeSettingsIcon label="Survey Code" value={watch('surveyCode') || ''} onChange={(v) => setValue('surveyCode', v)} />
+            </div>
+          </div>
           <Input
             label="Survey Name"
             {...register('surveyName', { required: 'Survey Name is required' })}
@@ -91,7 +100,6 @@ export function SensorySurveyAdd({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Product <span className="text-red-500">*</span>
           </label>
-                  <OrderCodeSettingsIcon label="Comments" value="" onChange={() => {}} />
           <select {...register('productId', { required: 'Product is required' })} className={selectClass}>
             <option value="">Select product</option>
             {products.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

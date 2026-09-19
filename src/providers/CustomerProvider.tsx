@@ -3,18 +3,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getCustomerList,
   getAllCustomers,
-  searchCustomers,
   deleteCustomer,
   createCustomer,
   updateCustomer,
-  getCustomerDetails,
   getCustomerSales,
   getCustomersBySalesman,
   bulkActionCustomers,
   getCustomerTypes,
   getCustomerCategories,
+  createCustomerCategory,
   getCustomerGroups,
+  createCustomerGroup,
   getChannels,
+  createChannel,
+  getSalesOrganisations,
+  createSalesOrganisation,
   getPaymentTerms,
   getRoutes,
 } from '../api/CustomerApi';
@@ -32,7 +35,9 @@ import type {
   Route,
   CustomerFilters,
   CustomerBulkAction,
+  SalesOrganisation,
 } from '../types/Customer';
+import type { SelectOption } from '../components/ui/Select';
 
 interface CustomerContextType {
   // Data
@@ -84,7 +89,14 @@ interface CustomerContextType {
   customerCategories: CustomerCategory[];
   customerGroups: CustomerGroup[];
   channels: Channel[];
+  salesOrganisations: SalesOrganisation[];
   paymentTerms: PaymentTerm[];
+
+  // Inline "add new" for Category/Group/Channel dropdowns
+  createCustomerCategoryOption: (values: Record<string, any>) => Promise<SelectOption>;
+  createCustomerGroupOption: (values: Record<string, any>) => Promise<SelectOption>;
+  createChannelOption: (values: Record<string, any>) => Promise<SelectOption>;
+  createSalesOrganisationOption: (values: Record<string, any>) => Promise<SelectOption>;
   routes: Route[];
   isLoadingRelatedData: boolean;
 
@@ -186,6 +198,13 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     enabled: isCustomerModalVisible,
   });
 
+  const { data: salesOrganisations = [], isLoading: isLoadingSalesOrganisations } = useQuery({
+    queryKey: ['sales-organisations'],
+    queryFn: getSalesOrganisations,
+    staleTime: 10 * 60 * 1000,
+    enabled: isCustomerModalVisible,
+  });
+
   const { data: paymentTerms = [], isLoading: isLoadingPaymentTerms } = useQuery({
     queryKey: ['payment-terms'],
     queryFn: getPaymentTerms,
@@ -267,6 +286,75 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     },
   });
 
+  // Inline "add new" mutations for the Category/Group/Channel dropdowns'
+  // quick-create modals — field set per entity matches its own migration
+  // (customer_categories has a code + self-referencing parent; customer_groups
+  // has a code + free-text type, no hierarchy; channels has a self-referencing
+  // parent, no code). Each invalidates the same query key its list query above
+  // uses, so the new option shows up everywhere, not just this form.
+  const createCategoryMutation = useMutation({
+    mutationFn: (values: Record<string, any>) =>
+      createCustomerCategory({
+        categoryName: values.name,
+        customerCategoryCode: values.code || undefined,
+        parentId: values.parentId ? Number(values.parentId) : undefined,
+        nodeLevel: values.nodeLevel ? Number(values.nodeLevel) : undefined,
+        status: values.status ?? true,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-categories'] }),
+  });
+
+  const createGroupMutation = useMutation({
+    mutationFn: (values: Record<string, any>) =>
+      createCustomerGroup({
+        groupName: values.name,
+        groupCode: values.code || undefined,
+        type: values.type || undefined,
+        status: values.status ?? true,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-groups'] }),
+  });
+
+  const createChannelMutation = useMutation({
+    mutationFn: (values: Record<string, any>) =>
+      createChannel({
+        channelName: values.name,
+        parentId: values.parentId ? Number(values.parentId) : undefined,
+        status: values.status ?? true,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels'] }),
+  });
+
+  const createSalesOrganisationMutation = useMutation({
+    mutationFn: (values: Record<string, any>) =>
+      createSalesOrganisation({
+        name: values.name,
+        parentId: values.parentId ? Number(values.parentId) : undefined,
+        status: values.status ?? true,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sales-organisations'] }),
+  });
+
+  const createCustomerCategoryOption = async (values: Record<string, any>): Promise<SelectOption> => {
+    const created = await createCategoryMutation.mutateAsync(values);
+    return { value: String(created.id ?? ''), label: created.categoryName };
+  };
+
+  const createCustomerGroupOption = async (values: Record<string, any>): Promise<SelectOption> => {
+    const created = await createGroupMutation.mutateAsync(values);
+    return { value: String(created.id ?? ''), label: created.groupName };
+  };
+
+  const createChannelOption = async (values: Record<string, any>): Promise<SelectOption> => {
+    const created = await createChannelMutation.mutateAsync(values);
+    return { value: String(created.id ?? ''), label: created.channelName };
+  };
+
+  const createSalesOrganisationOption = async (values: Record<string, any>): Promise<SelectOption> => {
+    const created = await createSalesOrganisationMutation.mutateAsync(values);
+    return { value: String(created.id ?? ''), label: created.name };
+  };
+
   // Handlers
   const openCustomerDrawer = (customer: Customer) => {
     setSelectedCustomerForDrawer(customer);
@@ -325,6 +413,7 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     isLoadingCategories ||
     isLoadingGroups ||
     isLoadingChannels ||
+    isLoadingSalesOrganisations ||
     isLoadingPaymentTerms ||
     isLoadingRoutes;
 
@@ -366,9 +455,14 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     customerCategories,
     customerGroups,
     channels,
+    salesOrganisations,
     paymentTerms,
     routes,
     isLoadingRelatedData,
+    createCustomerCategoryOption,
+    createCustomerGroupOption,
+    createChannelOption,
+    createSalesOrganisationOption,
     allCustomers,
     customersBySalesman,
     refetchCustomers: () => refetchCustomers(),

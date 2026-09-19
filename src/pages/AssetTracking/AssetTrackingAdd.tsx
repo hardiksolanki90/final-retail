@@ -61,6 +61,7 @@ export function AssetTrackingAdd({
     formState: { errors, isSubmitting },
     reset,
     setError,
+    watch,
     setValue
   } = useForm<AssetTrackingFormData>({
     defaultValues: initialFormData
@@ -138,25 +139,29 @@ export function AssetTrackingAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Asset Code <span className="text-red-500">*</span>
-          </label>
-                  <OrderCodeSettingsIcon label="Image" value="" onChange={() => {}} />
-          <input
-            {...register('assetCode', {
-              required: 'Asset Code is required',
-              validate: value => value?.trim() ? true : 'Asset Code is required'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border transition-colors
-              bg-white dark:bg-gray-800
-              text-gray-900 dark:text-gray-100
-              border-gray-300 dark:border-gray-600
-              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="Enter asset code"
-          />
-          {errors.assetCode && (
-            <p className="text-red-600 text-xs mt-1">{errors.assetCode.message}</p>
-          )}
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Asset Code <span className="text-red-500">*</span>
+            </label>
+          </div>
+          <div className="flex items-center gap-2 relative">
+            <input
+              {...register('assetCode', {
+                required: 'Asset Code is required',
+                validate: value => value?.trim() ? true : 'Asset Code is required'
+              })}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors
+                bg-white dark:bg-gray-800
+                text-gray-900 dark:text-gray-100
+                border-gray-300 dark:border-gray-600
+                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter asset code"
+            />
+            <OrderCodeSettingsIcon label="Asset Code" value={watch('assetCode') || ''} onChange={(v) => setValue('assetCode', v)} />
+            {errors.assetCode && (
+              <p className="text-red-600 text-xs mt-1">{errors.assetCode.message}</p>
+            )}
+          </div>
         </div>
 
         <div className="w-full">
@@ -215,153 +220,221 @@ export function AssetTrackingAdd({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="From Date"
-            type="date"
-            value={formData.fromDate}
-            onChange={(e) => handleChange('fromDate', e.target.value)}
-            error={errors.fromDate}
-            required
-          />
-          <Input
-            label="To Date"
-            type="date"
-            value={formData.toDate}
-            onChange={(e) => handleChange('toDate', e.target.value)}
-            error={errors.toDate}
-            required
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              From Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              {...register('fromDate', { required: 'From Date is required' })}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+            {errors.fromDate && (
+              <p className="text-red-600 text-xs mt-1">{errors.fromDate.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              To Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              {...register('toDate', { required: 'To Date is required' })}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+            {errors.toDate && (
+              <p className="text-red-600 text-xs mt-1">{errors.toDate.message}</p>
+            )}
+          </div>
         </div>
 
-        <Input
-          label="Model Name"
-          value={formData.modelName}
-          onChange={(e) => handleChange('modelName', e.target.value)}
-          error={errors.modelName}
-          placeholder="Enter model name"
-          required
-        />
-
-        <Input
-          label="Barcode"
-          value={formData.barcode}
-          onChange={(e) => handleChange('barcode', e.target.value)}
-          error={errors.barcode}
-          placeholder="Enter barcode"
-          required
-        />
-
-        <Select
-          label="Category"
-          value={formData.category}
-          onChange={handleSelectChange('category')}
-          options={defaultCategories}
-          placeholder="Select category"
-          required
-        />
-
-        <Input
-          label="Location"
-          value={formData.location}
-          onChange={(e) => handleChange('location', e.target.value)}
-          error={errors.location}
-          placeholder="Enter location"
-          required
-        />
-
-        <Input
-          label="Area"
-          value={formData.area}
-          onChange={(e) => handleChange('area', e.target.value)}
-          error={errors.area}
-          placeholder="Enter area"
-          required
-        />
-
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Worker"
-            value={formData.worker || ''}
-            onChange={(e) => handleChange('worker', e.target.value)}
-            placeholder="Enter worker name"
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Model Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            {...register('modelName', { required: 'Model Name is required' })}
+            className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Enter model name"
           />
-          <Input
-            label="Additional Worker"
-            value={formData.additionalWorker || ''}
-            onChange={(e) => handleChange('additionalWorker', e.target.value)}
-            placeholder="Enter additional worker"
-          />
+          {errors.modelName && (
+            <p className="text-red-600 text-xs mt-1">{errors.modelName.message}</p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Team"
-            value={formData.team || ''}
-            onChange={(e) => handleChange('team', e.target.value)}
-            placeholder="Enter team name"
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Barcode <span className="text-red-500">*</span>
+          </label>
+          <input
+            {...register('barcode', { required: 'Barcode is required' })}
+            className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Enter barcode"
           />
-          <Input
-            label="Vendors"
-            value={formData.vendors || ''}
-            onChange={(e) => handleChange('vendors', e.target.value)}
-            placeholder="Enter vendor name"
-          />
+          {errors.barcode && (
+            <p className="text-red-600 text-xs mt-1">{errors.barcode.message}</p>
+          )}
         </div>
 
-        <Select
-          label="Customer"
-          value={formData.customerId}
-          onChange={handleSelectChange('customerId')}
-          options={customers}
-          placeholder="Select customer"
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Category <span className="text-red-500">*</span>
+          </label>
+          <select
+            {...register('category', { required: 'Category is required' })}
+            className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="">Select category</option>
+            {defaultCategories.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          {errors.category && (
+            <p className="text-red-600 text-xs mt-1">{errors.category.message}</p>
+          )}
+        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Purchase Date"
-            type="date"
-            value={formData.purchaseDate || ''}
-            onChange={(e) => handleChange('purchaseDate', e.target.value)}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Location <span className="text-red-500">*</span>
+          </label>
+          <input
+            {...register('location', { required: 'Location is required' })}
+            className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Enter location"
           />
-          <Input
-            label="Placed In Service"
-            type="date"
-            value={formData.placedInService || ''}
-            onChange={(e) => handleChange('placedInService', e.target.value)}
+          {errors.location && (
+            <p className="text-red-600 text-xs mt-1">{errors.location.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Area <span className="text-red-500">*</span>
+          </label>
+          <input
+            {...register('area', { required: 'Area is required' })}
+            className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Enter area"
           />
+          {errors.area && (
+            <p className="text-red-600 text-xs mt-1">{errors.area.message}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Purchase Price"
-            type="number"
-            value={formData.purchasePrice?.toString() || '0'}
-            onChange={(e) => handleChange('purchasePrice', parseFloat(e.target.value) || 0)}
-            placeholder="Enter purchase price"
-          />
-          <Input
-            label="Residual Price"
-            type="number"
-            value={formData.residualPrice?.toString() || '0'}
-            onChange={(e) => handleChange('residualPrice', parseFloat(e.target.value) || 0)}
-            placeholder="Enter residual price"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Worker</label>
+            <input
+              {...register('worker')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter worker name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Additional Worker</label>
+            <input
+              {...register('additionalWorker')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter additional worker"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Warranty Expiration"
-            type="date"
-            value={formData.warrantyExpiration || ''}
-            onChange={(e) => handleChange('warrantyExpiration', e.target.value)}
-          />
-          <Input
-            label="Useful Life"
-            value={formData.usefulLife || ''}
-            onChange={(e) => handleChange('usefulLife', e.target.value)}
-            placeholder="Enter useful life"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
+            <input
+              {...register('team')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter team name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vendors</label>
+            <input
+              {...register('vendors')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter vendor name"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Customer <span className="text-red-500">*</span>
+          </label>
+          <select
+            {...register('customerId', { required: 'Customer is required' })}
+            className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="">Select customer</option>
+            {customers.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          {errors.customerId && (
+            <p className="text-red-600 text-xs mt-1">{errors.customerId.message}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Purchase Date</label>
+            <input
+              type="date"
+              {...register('purchaseDate')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Placed In Service</label>
+            <input
+              type="date"
+              {...register('placedInService')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Purchase Price</label>
+            <input
+              type="number"
+              {...register('purchasePrice', { valueAsNumber: true })}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter purchase price"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Residual Price</label>
+            <input
+              type="number"
+              {...register('residualPrice', { valueAsNumber: true })}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter residual price"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Warranty Expiration</label>
+            <input
+              type="date"
+              {...register('warrantyExpiration')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Useful Life</label>
+            <input
+              {...register('usefulLife')}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter useful life"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -369,8 +442,7 @@ export function AssetTrackingAdd({
             Additional Information
           </label>
           <textarea
-            value={formData.additionalInformation || ''}
-            onChange={(e) => handleChange('additionalInformation', e.target.value)}
+            {...register('additionalInformation')}
             placeholder="Enter additional information"
             rows={4}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -378,10 +450,10 @@ export function AssetTrackingAdd({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isSubmitting}>
+          <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>
             Cancel
           </CancelButton>
-          <SaveButton type="submit" disabled={isSubmitting}>
+          <SaveButton type="submit" disabled={isSubmitting || isLoading}>
             {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>
         </div>

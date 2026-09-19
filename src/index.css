@@ -73,6 +73,10 @@
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 70px;
   --header-height: 64px;
+
+  /* Display / Mono type pairing (Auth screens) */
+  --font-display: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono-ui: 'IBM Plex Mono', 'SFMono-Regular', ui-monospace, monospace;
 }
 
 /* Base Styles */
@@ -180,10 +184,83 @@ body {
   to { transform: translateX(0); }
 }
 
-/* Focus States */
-:focus-visible {
-  outline: 2px solid var(--color-primary-500);
-  outline-offset: 2px;
+/* Auth screens: staggered entrance + hazard-stripe seam */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  opacity: 0;
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.auth-stripe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--stripe-color, #ff5a1f) 0,
+    var(--stripe-color, #ff5a1f) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+.auth-dot-grid {
+  background-image: radial-gradient(rgba(245, 243, 237, 0.16) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* react-flags-select ships its own CSS module with a hardcoded text color
+ * (#4d4d4d) on the label/value spans that our selectButtonClassName override
+ * can't reach (they're separate elements, not the button itself). The open
+ * dropdown panel (.selectOptions) is a hardcoded white background regardless
+ * of app theme, and reuses the SAME .label/.selectValue class names for each
+ * option row — so this must stay scoped to inside the closed button only,
+ * or dark mode whites out the option list text on its own white panel. */
+.dark [class*="ReactFlagsSelect-module_selectBtn"] {
+  color: #f5f3ed !important;
+}
+
+.dark [class*="ReactFlagsSelect-module_selectBtn"] [class*="ReactFlagsSelect-module_label"],
+.dark [class*="ReactFlagsSelect-module_selectBtn"] [class*="ReactFlagsSelect-module_selectValue"] {
+  color: #f5f3ed !important;
+}
+
+/* The open options panel is ALSO a hardcoded-white surface in both themes,
+ * but it has no color rule of its own — so in dark mode it was silently
+ * inheriting our global `.dark body { color: light }` text color, putting
+ * near-white text on that white panel. Pin it back to dark text. */
+.dark [class*="ReactFlagsSelect-module_selectOptions"] {
+  color: #0b0d0a !important;
+}
+
+.dark [class*="ReactFlagsSelect-module_filterBox"] input {
+  color: #0b0d0a !important;
+}
+
+/* react-phone-number-input ships almost no styling of its own (by design —
+ * it's meant to be themed) except layout, so the number input needs an
+ * explicit transparent/inherited look or it falls back to the browser's
+ * default input surface in both themes. */
+.phone-input-field {
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+}
+
+/* react-phone-number-input's own default country-select (flag + dial-code
+ * arrow) already inherits our text color via `currentColor` — this just
+ * gives it a divider against the number input, in both themes. */
+.PhoneInputCountry {
+  padding-right: 0.75rem;
+  border-right: 2px solid rgba(11, 13, 10, 0.15);
+}
+
+.dark .PhoneInputCountry {
+  border-right-color: rgba(245, 243, 237, 0.2);
 }
 
 /* Selection */

@@ -5,20 +5,22 @@ import {
   Plus, Shield, Columns3, Download, Upload, ChevronDown, Check, X, Menu
 } from 'lucide-react';
 import { UsersRolesAdd } from './UsersRolesAdd';
+import { UserAdd } from './UserAdd';
+import { UsersList } from './UsersList';
+import { Pagination } from '../../../components/ui/Pagination';
+import { Tabs } from '../../../components/ui/Tabs';
+import { useRoles, useRoleMutations } from '../../../hooks/UsersRoles/useRoles';
+import type { UserRoleFormData } from '../../../types/UsersRoles';
 
 interface Column { key: string; label: string; visible: boolean; }
 
-// Sample user role data
-const userRolesData = [
-  { id: 1, code: 'ADMIN', name: 'Administrator', description: 'Full system access' },
-  { id: 2, code: 'SALES', name: 'Sales Person', description: 'Sales operations access' },
-];
-
 export function UsersRolesList() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [activeTab, setActiveTab] = useState('users');
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
+  const [userAddDrawerOpen, setUserAddDrawerOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -54,23 +56,30 @@ export function UsersRolesList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(userRolesData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
+  const { roles, total, isLoading } = useRoles(currentPage);
+  const { createMutation } = useRoleMutations();
+
+  const roleData = roles.map((r) => ({
+    id: r.uuid ?? '',
+    code: r.code,
+    name: r.name,
+    description: r.description ?? '—',
+  }));
+
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
 
   // Apply filters
-  const filteredData = userRolesData.filter(c =>
+  const currentData = roleData.filter(c =>
     (!appliedFilter.code || String(c.code ?? '').toLowerCase().includes(appliedFilter.code.toLowerCase())) &&
     (!appliedFilter.name || String(c.name ?? '').toLowerCase().includes(appliedFilter.name.toLowerCase())) &&
     (!appliedFilter.description || String(c.description ?? '').toLowerCase().includes(appliedFilter.description.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
   const handleSelectAll = () => {
     setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
   };
 
-  const handleSelectRow = (id: number) => {
+  const handleSelectRow = (id: string) => {
     setSelectedRows((prev) =>
       prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
     );
@@ -110,17 +119,19 @@ export function UsersRolesList() {
         <div className="flex items-center gap-3">
           <Shield className="w-6 h-6 text-[var(--text-primary)]" />
           <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Users Roles</h1>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Users & Roles</h1>
             <p className="text-[var(--text-secondary)] mt-1">
-              Manage user roles
+              Manage users & roles
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Filter Button */}
-          <button
+          {activeTab === 'roles' && (
+            <>
+              {/* Filter Button */}
+              <button
             onClick={() => setFilterOpen(prev => !prev)}
             className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
               filterOpen || Object.values(appliedFilter).some(Boolean)
@@ -200,13 +211,40 @@ export function UsersRolesList() {
               </div>
             )}
           </div>
+            </>
+          )}
+          {activeTab === 'users' && (
+            <button
+              onClick={() => setUserAddDrawerOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create User
+            </button>
+          )}
         </div>
       </div>
 
-            {/* Filter Accordion */}
-      {filterOpen && (
-        <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
-          <div className="flex flex-wrap items-end gap-3">
+      <div className="px-6">
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          tabs={[
+            {
+              key: 'users',
+              label: 'Users',
+              content: <UsersList />
+            },
+            {
+              key: 'roles',
+              label: 'Roles',
+              content: (
+                <div className="mt-6 space-y-6">
+
+          {/* Filter Accordion */}
+          {filterOpen && (
+            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
+              <div className="flex flex-wrap items-end gap-3">
             {([
               { key: 'code', label: 'Code' },
               { key: 'name', label: 'Name' },
@@ -246,9 +284,9 @@ export function UsersRolesList() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
-        <div className="overflow-x-auto">
+          {/* Table */}
+          <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
+            <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
@@ -271,7 +309,11 @@ export function UsersRolesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((role) => (
+              {isLoading ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading roles…</td></tr>
+              ) : currentData.length === 0 ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No roles yet.</td></tr>
+              ) : currentData.map((role) => (
                 <tr
                   key={role.id}
                   className={`hover:bg-[var(--bg-secondary)] transition-colors ${
@@ -295,62 +337,14 @@ export function UsersRolesList() {
               ))}
             </tbody>
           </table>
-        </div>
-        {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="ml-4">
-              {startIndex + 1}-{Math.min(endIndex, userRolesData.length)} of {userRolesData.length}
-            </span>
+            </div>
+            <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Prev
-            </button>
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Last
-            </button>
-          </div>
-        </div>
+                </div>
+              )
+            }
+          ]}
+        />
       </div>
 
       {exportModalOpen && (
@@ -461,10 +455,18 @@ export function UsersRolesList() {
       <UsersRolesAdd
         isOpen={addDrawerOpen}
         onClose={() => setAddDrawerOpen(false)}
-        onSubmit={(data) => {
-          console.log('User role data submitted:', data);
-          setAddDrawerOpen(false);
+        onSubmit={async (data: UserRoleFormData) => {
+          await createMutation.mutateAsync(data);
         }}
+      />
+
+      <UserAdd
+        isOpen={userAddDrawerOpen}
+        onClose={() => setUserAddDrawerOpen(false)}
+        onSubmit={async (data) => {
+          console.log('Creating user...', data);
+        }}
+        rolesOptions={roles.map(r => ({ value: r.id ?? '', label: r.name }))}
       />
     </div>
   );

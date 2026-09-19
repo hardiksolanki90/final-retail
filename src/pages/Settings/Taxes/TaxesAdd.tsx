@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { TaxFormData } from '../../../types/Taxes';
-import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { getTaxTypes } from '../../../api/TaxApi';
 
 interface TaxesAddProps {
   isOpen: boolean;
@@ -14,9 +14,8 @@ interface TaxesAddProps {
 }
 
 const initialFormData: TaxFormData = {
-  code: '',
   name: '',
-  rate: 0,
+  rate: '',
   type: '',
   description: '',
 };
@@ -38,6 +37,14 @@ export function TaxesAdd({
     defaultValues: initialFormData
   });
 
+  const [typeOptions, setTypeOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      getTaxTypes().then(setTypeOptions).catch(() => setTypeOptions([]));
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (initialData) {
       reset(initialData);
@@ -51,16 +58,16 @@ export function TaxesAdd({
       await onSubmit(data);
       onClose();
     } catch (error: any) {
-      setError('root', { 
-        message: error.response?.data?.message || 'Error saving tax' 
+      setError('root', {
+        message: error.response?.data?.message || 'Error saving tax'
       });
     }
   };
 
   const footerContent = (
     <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
-      <SaveButton type="submit" form="tax-form" disabled={isSubmitting}>
+      <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>Cancel</CancelButton>
+      <SaveButton type="submit" form="tax-form" disabled={isSubmitting || isLoading}>
         {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
       </SaveButton>
     </div>
@@ -84,22 +91,6 @@ export function TaxesAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-                  <OrderCodeSettingsIcon label="Code *" value="" onChange={() => {}} />
-          <input
-            {...register('code', {
-              required: 'Code is required',
-              validate: value => value.trim() !== '' || 'Code cannot be empty'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter tax code"
-          />
-          {errors.code && (
-            <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
-          )}
-        </div>
-
-        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
           <input
             {...register('name', {
@@ -120,10 +111,12 @@ export function TaxesAdd({
             {...register('rate', {
               required: 'Rate is required',
               valueAsNumber: true,
-              min: { value: 0, message: 'Rate must be 0 or greater' }
+              min: { value: 1, message: 'Rate must be greater than 0' }
             })}
             type="number"
-            step="0.01"
+            step="1"
+            min="0"
+            onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter tax rate"
           />
@@ -134,11 +127,23 @@ export function TaxesAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-          <input
-            {...register('type')}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter tax type"
-          />
+          {typeOptions.length > 0 ? (
+            <select
+              {...register('type')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select type</option>
+              {typeOptions.map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              {...register('type')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter tax type"
+            />
+          )}
           {errors.type && (
             <p className="text-red-600 text-xs mt-1">{errors.type.message}</p>
           )}
@@ -156,8 +161,6 @@ export function TaxesAdd({
             <p className="text-red-600 text-xs mt-1">{errors.description.message}</p>
           )}
         </div>
-
-
       </form>
     </Drawer>
   );

@@ -31,6 +31,7 @@ export function CampaignAdd({
     formState: { errors, isSubmitting },
     reset,
     setError,
+    watch,
     setValue
   } = useForm<CampaignFormData>({
     defaultValues: {
@@ -105,7 +106,6 @@ export function CampaignAdd({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Date <span className="text-red-500">*</span>
           </label>
-                  <OrderCodeSettingsIcon label="Image Upload" value="" onChange={() => {}} />
           <input
             type="datetime-local"
             {...register('date', { required: 'Date is required' })}
@@ -121,24 +121,29 @@ export function CampaignAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Campaign Code <span className="text-red-500">*</span>
-          </label>
-          <input
-            {...register('campaignCode', {
-              required: 'Campaign Code is required',
-              validate: value => value?.trim() ? true : 'Campaign Code is required'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border transition-colors
-              bg-white dark:bg-gray-800
-              text-gray-900 dark:text-gray-100
-              border-gray-300 dark:border-gray-600
-              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="Enter campaign code"
-          />
-          {errors.campaignCode && (
-            <p className="text-red-600 text-xs mt-1">{errors.campaignCode.message}</p>
-          )}
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Campaign Code <span className="text-red-500">*</span>
+            </label>
+          </div>
+          <div className="flex items-center gap-2 relative">
+            <input
+              {...register('campaignCode', {
+                required: 'Campaign Code is required',
+                validate: value => value?.trim() ? true : 'Campaign Code is required'
+              })}
+              className="block w-full px-3 py-2 rounded-lg border transition-colors
+                bg-white dark:bg-gray-800
+                text-gray-900 dark:text-gray-100
+                border-gray-300 dark:border-gray-600
+                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter campaign code"
+            />
+            <OrderCodeSettingsIcon label="Campaign Code" value={watch('campaignCode') || ''} onChange={(v) => setValue('campaignCode', v)} />
+            {errors.campaignCode && (
+              <p className="text-red-600 text-xs mt-1">{errors.campaignCode.message}</p>
+            )}
+          </div>
         </div>
 
         <div>
@@ -217,10 +222,10 @@ export function CampaignAdd({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isSubmitting}>
+          <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>
             Cancel
           </CancelButton>
-          <SaveButton type="submit" disabled={isSubmitting}>
+          <SaveButton type="submit" disabled={isSubmitting || isLoading}>
             {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>
         </div>

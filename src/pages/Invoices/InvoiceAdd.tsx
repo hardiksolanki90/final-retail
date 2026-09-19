@@ -5,7 +5,6 @@ import { Input } from '../../components/ui/Input';
 import { Button, SaveButton, CancelButton } from '../../components/ui/Button';
 import { Plus, Trash2, FileText, ChevronLeft } from 'lucide-react';
 import type { SelectOption } from '../../components/ui/Select';
-import type { InvoiceFormData } from '../../types/Invoice';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
 
 type InvoiceItem = {
@@ -34,7 +33,6 @@ const defaultValues: InvoiceFormFields = {
 
 export function InvoiceAdd() {
   const data: any = {};
-  const onEvent: ((e: any) => void) | undefined = undefined;
   const customers = (data?.customers || []) as SelectOption[];
   const customerLobs = (data?.customerLobs || []) as SelectOption[];
   const salesmen = (data?.salesmen || []) as SelectOption[];
@@ -103,15 +101,8 @@ export function InvoiceAdd() {
 
   useEffect(() => { calculateTotals(); }, [calculateTotals]);
 
-  const onSubmit = (formData: InvoiceFormFields) => {
-    const invoiceData: InvoiceFormData = {
-      orderId: '', deliveryId: '', customerId: formData.customerId,
-      invoiceDate: formData.invoiceDate, dueDate: formData.dueDate,
-      notes: formData.customerNote, terms: formData.paymentTerms,
-      paymentMethod: '', invoiceItems: [],
-    };
-    if (onEvent) { onEvent({ eventType: 'InvoiceCreated', invoice: invoiceData }); }
-    else { navigate('/invoice'); }
+  const onSubmit = () => {
+    navigate('/invoice');
   };
 
   const selectClass = 'w-full px-2 py-1 border rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500';

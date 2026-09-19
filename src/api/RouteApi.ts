@@ -1,19 +1,24 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface RouteListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
-}
+export type RouteListResponse = NormalizedListResponse<any>;
 
-export const getRouteList = async (page = 1, perPage = 15, searchTerm?: string): Promise<RouteListResponse> => {
+export const getRouteList = async (
+  page = 1,
+  perPage = 15,
+  searchTerm?: string,
+  areaId?: number | string,
+  depotId?: number | string
+): Promise<RouteListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
   if (searchTerm) params.append('search', searchTerm);
+  if (areaId) params.append('area_id', areaId.toString());
+  if (depotId) params.append('depot_id', depotId.toString());
   const response = await axiosInstance.get(`/route/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'routes', perPage);
 };
 
 export const createRoute = async (data: Record<string, any>) => {
@@ -33,10 +38,17 @@ export const deleteRoute = async (uuid: string) => {
   showToast.success('Route deleted successfully');
 };
 
-export const getRouteOptions = async (): Promise<{ value: number; label: string }[]> => {
-  const response = await axiosInstance.get('/route/all');
-  return (response.data?.data ?? []).map((r: { id: number; code?: string; name?: string }) => ({
+export const getRouteOptions = async (
+  areaId?: number | string,
+  depotId?: number | string
+): Promise<{ value: number; label: string }[]> => {
+  const params = new URLSearchParams();
+  params.append('per_page', '50');
+  if (areaId) params.append('area_id', areaId.toString());
+  if (depotId) params.append('depot_id', depotId.toString());
+  const response = await axiosInstance.get(`/route/all?${params.toString()}`);
+  return (response.data?.routes ?? []).map((r: { id: number; code?: string; routeName?: string }) => ({
     value: r.id,
-    label: r.code ? `${r.code} - ${r.name ?? ''}` : (r.name ?? String(r.id)),
+    label: r.code ? `${r.code} - ${r.routeName ?? ''}` : (r.routeName ?? String(r.id)),
   }));
 };

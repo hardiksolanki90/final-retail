@@ -1,19 +1,17 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface ReasonListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
-}
+export type ReasonListResponse = NormalizedListResponse<any>;
 
-export const getReasonList = async (page = 1, perPage = 15, searchTerm?: string): Promise<ReasonListResponse> => {
+export const getReasonList = async (page = 1, perPage = 15, searchTerm?: string, typeFilter?: string): Promise<ReasonListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
   if (searchTerm) params.append('search', searchTerm);
+  if (typeFilter) params.append('type', typeFilter);
   const response = await axiosInstance.get(`/reason-type/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'reasonTypes', perPage);
 };
 
 export const createReason = async (data: Record<string, any>) => {
@@ -36,7 +34,7 @@ export const deleteReason = async (uuid: string) => {
 export interface ReasonOption { value: number; label: string; }
 
 export const getReasonOptions = async (): Promise<ReasonOption[]> => {
-  const response = await axiosInstance.get('/reason-type/all');
-  const data = response.data.data || response.data || [];
+  const response = await axiosInstance.get('/reason-type/all?per_page=50');
+  const data = response.data?.reasonTypes ?? [];
   return data.map((r: { id: number; name?: string }) => ({ value: r.id, label: r.name || '' }));
 };

@@ -39,6 +39,23 @@ export interface PalletListResponse {
   lastPage: number;
 }
 
+/** One row of PalletList.tsx's per-salesman summary table. */
+export interface PalletSummaryRow {
+  salesmanCode: string | null;
+  salesman: string | null;
+  totalPalletAllocated: number;
+  totalReturn: number;
+  pending: number;
+}
+
+export interface PalletSummaryListResponse {
+  data: PalletSummaryRow[];
+  total: number;
+  currentPage: number;
+  perPage: number;
+  lastPage: number;
+}
+
 export interface AddPalletFormData {
   date: string;
   salesmanId: string;

@@ -1,11 +1,13 @@
 export interface Route {
-  id?: string;
+  id?: number;
   uuid?: string;
   code: string;
   name: string;
-  regionId?: string;
-  areaId?: string;
-  description?: string;
+  areaId: number;
+  depotId: number;
+  status: boolean;
+  area?: { id: number; uuid: string; code?: string; name: string } | null;
+  depot?: { id: number; uuid: string; depotName: string } | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -13,9 +15,9 @@ export interface Route {
 export interface RouteFormData {
   code: string;
   name: string;
-  regionId?: string;
-  areaId?: string;
-  description?: string;
+  areaId: number | '';
+  depotId: number | '';
+  status: boolean;
 }
 
 export interface RouteListResponse {

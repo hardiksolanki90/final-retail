@@ -1,104 +1,163 @@
-# CLAUDE.md — Retail App React (Frontend)
+# CLAUDE.md — Retail Distribution Management System (Frontend)
 
-## Project Overview
+## Product Overview
 
-React frontend for the Retail Distribution Management System. Provides a web interface for managing orders, deliveries, invoices, customers, salesman operations, settings, and more.
+**Final Retail** is a B2B Retail Distribution Management System (RDMS) for FMCG/CPG distributors.
+It covers field sales, salesman operations, customer management, merchandising, inventory, promotions, and reporting.
+
+- **Frontend**: React 19 SPA (this repo)
+- **Backend**: Laravel API (`final-retail-laravel`) at `/api` (proxied)
+- **Database**: MySQL — `prod_nfpc` (canonical schema: `docs/DATABASE_STRUCTURE.md`)
+- **Auth**: Laravel Sanctum (cookie-based, CSRF token flow)
+
+---
 
 ## Tech Stack
 
-- **Framework**: React 19 + TypeScript
-- **Build Tool**: Vite 7
-- **Styling**: TailwindCSS v4 (via `@tailwindcss/vite` plugin)
-- **State/Data**: TanStack React Query v5
-- **Forms**: React Hook Form v7
-- **Routing**: React Router DOM v7
-- **HTTP Client**: Axios
-- **Icons**: Lucide React
-- **Notifications**: React Hot Toast
-- **Utilities**: clsx, react-number-format, react-phone-input-2
+| Concern | Library | Version |
+|---|---|---|
+| Framework | React + TypeScript | 19 / 5.x |
+| Build | Vite | 7 |
+| Styling | TailwindCSS | v4 (via `@tailwindcss/vite`) |
+| Server state | TanStack React Query | v5 |
+| Forms | React Hook Form | v7 |
+| Routing | React Router DOM | v7 |
+| HTTP | Axios | 1.x |
+| Icons | Lucide React | latest |
+| Notifications | React Hot Toast | 2.x |
+| Utilities | clsx, react-number-format, react-phone-input-2 | — |
+
+---
 
 ## Project Structure
 
 ```
 src/
-├── api/              # API class modules (AuthApi, CustomerApi, OrderApi, etc.)
-├── assets/           # Static assets (images, fonts)
+├── api/              # Module-specific API classes (EntityApi.ts pattern)
+├── assets/           # Static assets
 ├── components/
-│   ├── layout/       # Layout components (Sidebar, Header, etc.)
+│   ├── layout/       # Sidebar, Header, Layout wrapper
 │   ├── shared/       # Shared/reusable components
-│   └── ui/           # Base UI components
-├── context/          # React Context providers
-├── data/             # Static data/constants
-├── hooks/            # Custom hooks (per module: Customer/, Order/, Settings/, etc.)
-├── lib/              # Utility libraries (axios instance)
-├── pages/            # Page components organized by module (39 modules)
+│   └── ui/           # Base UI primitives
+├── context/          # React Context providers (auth, org, theme)
+├── data/             # Static data / constants
+├── hooks/            # Custom hooks — one folder per module
+├── lib/              # Utility libraries (axios instance wrapper)
+├── pages/            # 40 page modules (see Module Inventory below)
 ├── providers/        # App-level providers
-├── router/           # Route definitions (index.tsx)
-├── services/         # API service layer (api.js — axios instance + interceptors)
+├── router/           # Centralized route definitions (index.tsx)
+├── services/         # api.js — Axios base instance + interceptors
 ├── types/            # TypeScript type definitions
 └── utils/            # Utility functions
 ```
 
-## Key Commands
+---
 
-```bash
-# Start development server
-npm run dev
+## Module Inventory (40 Modules)
 
-# Build for production
-tsc -b && vite build
+| Category | Modules |
+|---|---|
+| Field Sales | Orders, Deliveries, Invoices, CreditNotes, DebitNotes, Returns |
+| Salesman Ops | Salesman, SalesmanLoad, SalesmanUnload, JourneyPlans, Beats |
+| Customer | Customers, Registration, ComplaintFeedbacks |
+| Merchandising | Planogram, ShareOfShelf, ShelfDisplay, StockInStores, PricingCheck |
+| Promotions | Promotion, MarketPromotion, Discount, Pricings, Campaign |
+| Inventory | GRN, Pallet, Items, ItemUom |
+| Master / Settings | Settings (Bank, Country, Currency, Tax, Region, Zone, Route, etc.) |
+| Tracking & Reports | AssetTracking, Reports, PortfolioManagements, RouteItemGroupings |
+| Competitor Intel | CompetitorInfos |
+| Survey | Surveys |
+| Auth & Org | Authentication, Organisation |
 
-# Lint
-npm run lint
-
-# Preview production build
-npm run preview
-```
+---
 
 ## Architecture Patterns
 
 ### API Layer
-- `src/services/api.js` — Base Axios instance with interceptors (CSRF, 401/419 handling)
-- `src/api/*.ts` — Module-specific API classes (e.g., `CustomerApi.ts`, `OrderApi.ts`)
-- Base URL: `/api` (proxied to Laravel backend via Vite config)
+- `src/services/api.js` — Axios base instance (`withCredentials`, CSRF token, 401/419 interceptors)
+- `src/api/*.ts` — Module API classes. **Never call `axios.get()` directly in components.**
+
+```typescript
+// Pattern: src/api/EntityApi.ts
+const EntityApi = {
+  list: async (params?) => (await api.get('/entity/list', { params })).data,
+  listAll: async () => (await api.get('/entity/all')).data,
+  add: async (data) => (await api.post('/entity/add', data)).data,
+  getByUuid: async (uuid) => (await api.get(`/entity/edit/${uuid}`)).data,
+  update: async (uuid, data) => (await api.post(`/entity/edit/${uuid}`, data)).data,
+  delete: async (uuid) => (await api.delete(`/entity/delete/${uuid}`)).data,
+};
+```
 
 ### Hooks Pattern
-- Custom hooks per module in `src/hooks/{ModuleName}/`
-- Use React Query for server state management
-- Hooks encapsulate API calls, caching, and mutations
+- One folder per module: `src/hooks/{Module}/`
+- Use React Query (`useQuery` / `useMutation`) for all server state
+- Hooks return data + mutation functions; pages do NOT call APIs directly
 
-### Page Organization
-- One directory per module in `src/pages/`
-- Typical module structure: `{Module}List.tsx`, `{Module}Add.tsx`, `{Module}View.tsx`
-- Pages use hooks for data fetching and mutations
-
-### Modal | Hook Pattern
-- Every modal component has **exactly 4 props**: `isOpen`, `onClose`, `data`, `onEvent`
-- Hook file (`useMyModal.tsx`) manages state and returns `open()` (Promise-based) + `ModalView`
-- Consumer calls `const result = await open(data)` and renders `<ModalView />` in its JSX
-- **Use Modal|Hook** for single-component modals; **use Zustand** for globally accessible or multi-caller modals
-- See `.claude/rules/frontend/modal-hook-pattern.md` for full implementation guide
+### Modal | Hook Pattern (4-prop rule)
+- Every modal: exactly 4 props — `isOpen`, `onClose`, `data`, `onEvent`
+- Hook (`useMyModal.tsx`) exposes `open()` (Promise-based) + `ModalView`
+- Consumer: `const result = await open(data)` + renders `<ModalView />` in JSX
+- Use **Zustand** for globally accessible or multi-caller modals
+- Full guide: `.claude/rules/frontend/modal-hook-pattern.md`
 
 ### Routing
-- Centralized in `src/router/index.tsx`
-- Protected routes via `ProtectedRoute` component
-- Organisation guard via `OrganisationGuard` component
+- Centralized: `src/router/index.tsx`
+- `<ProtectedRoute />` — requires authentication
+- `<OrganisationGuard />` — requires active organisation
 
-## Important Conventions
+### Module Scaffolding Template
+```
+pages/{Module}/
+├── {Module}List.tsx     ← Table + search + filters + bulk actions + pagination
+├── {Module}Add.tsx      ← Create/edit form (React Hook Form)
+└── {Module}View.tsx     ← Detail view or drawer (optional)
 
-1. **TypeScript**: All new files must be `.tsx`/`.ts`, define proper types
-2. **API calls**: Use the API classes in `src/api/`, never call Axios directly in components
-3. **State management**: Use React Query for server state, React Context for app state
-4. **Forms**: Use React Hook Form for all forms
-5. **Styling**: Use TailwindCSS utility classes
-6. **Notifications**: Use `react-hot-toast` for user feedback
-7. **UUID**: All entity references use UUID, never internal DB IDs
-8. **Database**: Use `docs/DATABASE_STRUCTURE.md` as the canonical backend schema reference (`prod_nfpc`)
+hooks/{Module}/
+├── use{Module}.ts       ← React Query data hook
+└── use{Module}Form.ts   ← Form hook (optional)
+
+api/{Module}Api.ts       ← API class
+```
+
+---
+
+## Non-Negotiable Conventions
+
+1. **TypeScript**: All files `.tsx`/`.ts`, proper types — NO `any`
+2. **API calls**: Only via `src/api/` classes — never inline Axios in components or hooks
+3. **Forms**: Always React Hook Form — no uncontrolled or manual state forms
+4. **Styling**: TailwindCSS only — NO Ant Design, NO custom CSS except CSS variables
+5. **Notifications**: `toast.success()` / `toast.error()` from `react-hot-toast`
+6. **IDs**: UUID only — never expose internal DB integer IDs
+7. **Naming**: Components PascalCase, hooks `useCamelCase`, API classes `PascalCaseApi`
+8. **CSS Variables**: Use `--text-primary`, `--text-secondary`, `--bg-card`, `--border-color` for theming
+9. **Dark mode**: Always add `dark:` prefix variants when styling
+10. **Style guide**: Airbnb React/TypeScript
+
+---
+
+## Key Commands
+
+```bash
+npm run dev       # Start Vite dev server → http://localhost:5173
+npm run build     # tsc -b && vite build
+npm run lint      # ESLint
+npm run preview   # Preview production build
+```
+
+---
 
 ## See Also
 
-- `docs/DATABASE_STRUCTURE.md` — Backend database structure (tables, columns, FKs, domains)
+- `docs/DATABASE_STRUCTURE.md` — Canonical backend DB schema (`prod_nfpc`)
+- `docs/project_context.md` — project context for the frontend
+- `docs/design-brief.md` — Design brief for the frontend
+- `docs/architecture.md` — System architecture diagram
+- `docs/security-gap.md` — Security gap analysis for the frontend
+- `docs/onboarding.md` — Dev setup guide
 - `.claude/rules/frontend/react.md` — React component standards
 - `.claude/rules/frontend/styling.md` — TailwindCSS conventions
 - `.claude/rules/frontend/api.md` — API integration patterns
-- `.claude/rules/frontend/modal-hook-pattern.md` — Modal | Hook pattern (4-prop rule, Promise-based open, Zustand alternative)
+- `.claude/rules/frontend/modal-hook-pattern.md` — Modal | Hook pattern (4-prop rule)
+- `PROJECT_STRUCTURE.md` — Full coding standards reference

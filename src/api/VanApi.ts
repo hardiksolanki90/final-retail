@@ -1,11 +1,8 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface VanListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
-}
+export type VanListResponse = NormalizedListResponse<any>;
 
 export const getVanList = async (page = 1, perPage = 15, searchTerm?: string): Promise<VanListResponse> => {
   const params = new URLSearchParams();
@@ -13,7 +10,7 @@ export const getVanList = async (page = 1, perPage = 15, searchTerm?: string): P
   params.append('per_page', perPage.toString());
   if (searchTerm) params.append('search', searchTerm);
   const response = await axiosInstance.get(`/van/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'vans', perPage);
 };
 
 export const createVan = async (data: Record<string, any>) => {
@@ -36,10 +33,40 @@ export const deleteVan = async (uuid: string) => {
 export interface VanOption { value: number; label: string; }
 
 export const getVanOptions = async (): Promise<VanOption[]> => {
-  const response = await axiosInstance.get('/van/all');
-  const data = response.data.data || response.data || [];
+  const response = await axiosInstance.get('/van/all?per_page=50');
+  const data = response.data?.vans ?? [];
   return data.map((v: { id: number; vanCode?: string; plateNumber?: string }) => ({
     value: v.id,
     label: `${v.vanCode || ''} - ${v.plateNumber || ''}`.replace(/^ - | - $/g, ''),
   }));
+};
+
+export interface VanTypeOption { value: number; label: string; }
+
+// Van Master is a compound entity (vans + van_types + van_categories) —
+// these feed the Van Add form's relationship dropdowns.
+export const getVanTypeOptions = async (): Promise<VanTypeOption[]> => {
+  const response = await axiosInstance.get('/van-type/all?per_page=50');
+  const data = response.data?.vanTypes ?? [];
+  return data.map((t: { id: number; name?: string }) => ({ value: t.id, label: t.name ?? String(t.id) }));
+};
+
+export const createVanType = async (data: Record<string, any>) => {
+  const response = await axiosInstance.post('/van-type/add', data);
+  showToast.success('Van type created successfully');
+  return response.data;
+};
+
+export interface VanCategoryOption { value: number; label: string; }
+
+export const getVanCategoryOptions = async (): Promise<VanCategoryOption[]> => {
+  const response = await axiosInstance.get('/van-category/all?per_page=50');
+  const data = response.data?.vanCategories ?? [];
+  return data.map((c: { id: number; name?: string }) => ({ value: c.id, label: c.name ?? String(c.id) }));
+};
+
+export const createVanCategory = async (data: Record<string, any>) => {
+  const response = await axiosInstance.post('/van-category/add', data);
+  showToast.success('Van category created successfully');
+  return response.data;
 };

@@ -1,19 +1,19 @@
 export interface Region {
-  id?: string;
+  id?: number;
   uuid?: string;
-  code: string;
-  name: string;
-  countryId?: string;
-  description?: string;
+  countryId: number;
+  regionCode: string;
+  regionName: string;
+  status: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface RegionFormData {
-  code: string;
-  name: string;
-  countryId?: string;
-  description?: string;
+  countryId: number | '';
+  regionCode: string;
+  regionName: string;
+  status: boolean;
 }
 
 export interface RegionListResponse {

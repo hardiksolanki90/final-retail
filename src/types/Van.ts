@@ -1,23 +1,27 @@
 export interface Van {
-  id?: string;
+  id?: number;
   uuid?: string;
-  code: string;
-  name: string;
-  registrationNumber: string;
-  capacity?: number;
-  driverId?: string;
-  status?: 'active' | 'inactive' | 'maintenance';
+  vanCode: string;
+  plateNumber: string;
+  description: string;
+  capacity?: number | null;
+  vanTypeId: number;
+  vanCategoryId?: number | null;
+  status: boolean;
+  vanType?: { id: number; uuid: string; name: string } | null;
+  vanCategory?: { id: number; uuid: string; name: string } | null;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface VanFormData {
-  code: string;
-  name: string;
-  registrationNumber: string;
-  capacity?: number;
-  driverId?: string;
-  status?: 'active' | 'inactive' | 'maintenance';
+  vanCode: string;
+  plateNumber: string;
+  description: string;
+  capacity: number | '';
+  vanTypeId: number | '';
+  vanCategoryId?: number | '';
+  status: boolean;
 }
 
 export interface VanListResponse {

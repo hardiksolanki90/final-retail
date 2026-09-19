@@ -1,6 +1,7 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
 import type { WarehouseListResponse, WarehouseFormData } from '../types/Warehouse';
+import { unwrapPaginated } from '../lib/paginatedResponse';
 
 export const getWarehouseList = async (
   page = 1,
@@ -18,7 +19,7 @@ export const getWarehouseList = async (
   if (routeId) params.append('route_id', routeId.toString());
   if (status !== undefined) params.append('status', status ? '1' : '0');
   const response = await axiosInstance.get(`/warehouse/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'warehouses', perPage) as WarehouseListResponse;
 };
 
 export const getWarehouseAll = async () => {

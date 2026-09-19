@@ -84,10 +84,10 @@ export function PalletAdd({
         {/* Status placeholder if needed, matching CustomerAdd style */}
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isSubmitting}>
+        <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>
           Cancel
         </CancelButton>
-        <SaveButton type="submit" form="add-pallet-form" disabled={isSubmitting}>
+        <SaveButton type="submit" form="add-pallet-form" disabled={isSubmitting || isLoading}>
           {isSubmitting ? 'Saving...' : 'Save Pallet'}
         </SaveButton>
       </div>

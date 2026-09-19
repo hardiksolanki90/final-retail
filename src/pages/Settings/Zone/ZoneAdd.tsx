@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { ZoneFormData } from '../../../types/Zone';
+import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 
 interface ZoneAddProps {
   isOpen: boolean;
@@ -15,9 +16,9 @@ interface ZoneAddProps {
 }
 
 const initialFormData: ZoneFormData = {
+  zoneCode: '',
   name: '',
-  noTruck: '',
-  status: 'active',
+  status: true,
 };
 
 export function ZoneAdd({
@@ -34,10 +35,14 @@ export function ZoneAdd({
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setError
+    setError,
+    watch,
+    setValue
   } = useForm<ZoneFormData>({
     defaultValues: initialFormData
   });
+
+  const watchedStatus = watch('status');
 
   useEffect(() => {
     if (initialData) {
@@ -49,11 +54,10 @@ export function ZoneAdd({
 
   const onFormSubmit = async (formData: ZoneFormData) => {
     try {
-      onEvent?.({
+      await onEvent?.({
         eventType: initialData ? 'ZoneUpdated' : 'ZoneCreated',
         zone: formData,
       });
-      onClose();
     } catch (error: any) {
       setError('root', {
         message: error.response?.data?.message || 'Error saving zone'
@@ -62,11 +66,29 @@ export function ZoneAdd({
   };
 
   const footerContent = (
-    <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
-      <SaveButton type="submit" form="zone-form" disabled={isSubmitting}>
-        {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
-      </SaveButton>
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+        <button
+          type="button"
+          onClick={() => setValue('status', !watchedStatus)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+            watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+              watchedStatus ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+      <div className="flex gap-3">
+        <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>Cancel</CancelButton>
+        <SaveButton type="submit" form="zone-form" disabled={isSubmitting || isLoading}>
+          {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
+        </SaveButton>
+      </div>
     </div>
   );
 
@@ -87,6 +109,26 @@ export function ZoneAdd({
         )}
 
         <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700">Zone Code *</label>
+          </div>
+          <div className="flex items-center gap-2 relative">
+            <input
+              {...register('zoneCode', {
+                required: 'Zone code is required',
+                validate: value => value.trim() !== '' || 'Zone code cannot be empty'
+              })}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. ZN01"
+            />
+            <OrderCodeSettingsIcon label="Zone Code" value={watch('zoneCode') || ''} onChange={(v) => setValue('zoneCode', v)} />
+            {errors.zoneCode && (
+              <p className="text-red-600 text-xs mt-1">{errors.zoneCode.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
           <input
             {...register('name', {
@@ -98,35 +140,6 @@ export function ZoneAdd({
           />
           {errors.name && (
             <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">No. of Trucks *</label>
-          <input
-            {...register('noTruck', {
-              required: 'Number of trucks is required',
-              validate: value => value.trim() !== '' || 'Number of trucks cannot be empty'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter number of trucks"
-          />
-          {errors.noTruck && (
-            <p className="text-red-600 text-xs mt-1">{errors.noTruck.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-          <select
-            {...register('status', { required: 'Status is required' })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          {errors.status && (
-            <p className="text-red-600 text-xs mt-1">{errors.status.message}</p>
           )}
         </div>
 

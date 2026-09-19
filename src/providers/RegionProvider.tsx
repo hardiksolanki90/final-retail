@@ -12,6 +12,9 @@ interface RegionContextType {
   addDrawerOpen: boolean; setAddDrawerOpen: (open: boolean) => void;
   editingItem: any; setEditingItem: (item: any) => void;
   handleDeleteWithConfirmation: (uuid: string) => void; refetch: () => void;
+  createRegionData: (data: Record<string, any>) => Promise<any>;
+  updateRegionData: (uuid: string, data: Record<string, any>) => Promise<any>;
+  isSaving: boolean;
 }
 
 export const RegionContext = createContext<RegionContextType | undefined>(undefined);
@@ -34,25 +37,35 @@ export default function RegionProvider({ children }: { children: ReactNode }) {
   const deleteMutation = useMutation({
     mutationFn: deleteRegion,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['region-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to delete', 'error'); },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
     if (window.confirm('Are you sure you want to delete this region?')) deleteMutation.mutate(uuid);
   };
 
-  const items = Array.isArray(responseData?.data)
-    ? responseData.data
-    : (Array.isArray(responseData?.data?.items) 
-       ? responseData.data.items 
-       : (Array.isArray(responseData?.data?.data) ? responseData.data.data : []));
-  const meta = responseData?.meta ?? responseData?.data ?? (responseData ? { current_page: responseData.current_page, per_page: responseData.per_page, total: responseData.total, last_page: responseData.last_page } : null);
+  const createMutation = useMutation({
+    mutationFn: (data: Record<string, any>) => createRegion(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['region-list'] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, any> }) => updateRegion(uuid, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['region-list'] }),
+  });
+
+  const createRegionData = (data: Record<string, any>) => createMutation.mutateAsync(data);
+  const updateRegionData = (uuid: string, data: Record<string, any>) => updateMutation.mutateAsync({ uuid, data });
+
+  const items = responseData?.data ?? [];
+  const meta = responseData?.meta ?? null;
 
   const value: RegionContextType = {
     data: items, meta, isLoading, error: error as Error | null,
     searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
     selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
     editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
+    createRegionData, updateRegionData, isSaving: createMutation.isPending || updateMutation.isPending,
   };
 
   return <RegionContext.Provider value={value}>{children}</RegionContext.Provider>;

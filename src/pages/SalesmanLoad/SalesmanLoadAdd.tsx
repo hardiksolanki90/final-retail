@@ -43,6 +43,8 @@ export function SalesmanLoadAdd({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SalesmanLoadFormData>({ defaultValues });
 
@@ -65,19 +67,25 @@ export function SalesmanLoadAdd({
       width="w-[600px]"
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-        <Input
-          label="Load Code"
-          {...register('loadCode', { required: 'Load Code is required' })}
-          error={errors.loadCode?.message}
-          placeholder="Enter load code"
-          required
-        />
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Load Code</label>
+          </div>
+          <div className="flex items-center gap-2 relative">
+            <Input
+              {...register('loadCode', { required: 'Load Code is required' })}
+              error={errors.loadCode?.message}
+              placeholder="Enter load code"
+              required
+            />
+            <OrderCodeSettingsIcon label="Load Code" value={watch('loadCode') || ''} onChange={(v) => setValue('loadCode', v)} />
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Salesman <span className="text-red-500">*</span>
           </label>
-                  <OrderCodeSettingsIcon label="Status" value="" onChange={() => {}} />
           <select {...register('salesmanId', { required: 'Salesman is required' })} className={selectClass}>
             <option value="">Select salesman</option>
             {salesmen.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
-import { MultiSelect, SelectOption } from '../../components/ui/MultiSelect';
+import { MultiSelect, type SelectOption } from '../../components/ui/MultiSelect';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 

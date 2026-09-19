@@ -1,7 +1,6 @@
 export interface Tax {
   id?: string;
   uuid?: string;
-  code: string;
   name: string;
   rate: number;
   type?: string;
@@ -11,9 +10,8 @@ export interface Tax {
 }
 
 export interface TaxFormData {
-  code: string;
   name: string;
-  rate: number;
+  rate: number | '';
   type?: string;
   description?: string;
 }

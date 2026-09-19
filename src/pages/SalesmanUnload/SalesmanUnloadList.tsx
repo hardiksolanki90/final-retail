@@ -1,5 +1,5 @@
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Filter,
   Plus,
@@ -14,17 +14,8 @@ import {
   X,
   Menu,
 } from 'lucide-react';
-
-const salesmanUnloadData = [
-  { id: 1, date: '2024-01-15', trip: 'TRIP001', branchPlant: 'BP-MAIN', salesman: 'John Smith', salesmanCode: 'SM001', route: 'Route A', routeCode: 'RA001', unloadNo: 'UNL-001', unloadType: 'Full', status: 'Completed' },
-  { id: 2, date: '2024-01-15', trip: 'TRIP002', branchPlant: 'BP-EAST', salesman: 'Sarah Johnson', salesmanCode: 'SM002', route: 'Route B', routeCode: 'RB001', unloadNo: 'UNL-002', unloadType: 'Partial', status: 'Pending' },
-  { id: 3, date: '2024-01-16', trip: 'TRIP003', branchPlant: 'BP-WEST', salesman: 'Mike Brown', salesmanCode: 'SM003', route: 'Route C', routeCode: 'RC001', unloadNo: 'UNL-003', unloadType: 'Full', status: 'Completed' },
-  { id: 4, date: '2024-01-16', trip: 'TRIP004', branchPlant: 'BP-MAIN', salesman: 'Emily Davis', salesmanCode: 'SM004', route: 'Route D', routeCode: 'RD001', unloadNo: 'UNL-004', unloadType: 'Return', status: 'In Progress' },
-  { id: 5, date: '2024-01-17', trip: 'TRIP005', branchPlant: 'BP-EAST', salesman: 'John Smith', salesmanCode: 'SM001', route: 'Route A', routeCode: 'RA001', unloadNo: 'UNL-005', unloadType: 'Full', status: 'Completed' },
-  { id: 6, date: '2024-01-17', trip: 'TRIP006', branchPlant: 'BP-WEST', salesman: 'Sarah Johnson', salesmanCode: 'SM002', route: 'Route B', routeCode: 'RB001', unloadNo: 'UNL-006', unloadType: 'Partial', status: 'Pending' },
-  { id: 7, date: '2024-01-18', trip: 'TRIP007', branchPlant: 'BP-MAIN', salesman: 'Mike Brown', salesmanCode: 'SM003', route: 'Route C', routeCode: 'RC001', unloadNo: 'UNL-007', unloadType: 'Full', status: 'Completed' },
-  { id: 8, date: '2024-01-18', trip: 'TRIP008', branchPlant: 'BP-EAST', salesman: 'Emily Davis', salesmanCode: 'SM004', route: 'Route D', routeCode: 'RD001', unloadNo: 'UNL-008', unloadType: 'Return', status: 'In Progress' },
-];
+import { Pagination } from '../../components/ui/Pagination';
+import { useSalesmanUnloads } from '../../hooks/SalesmanUnload/useSalesmanUnload';
 
 interface Column {
   key: string;
@@ -33,7 +24,7 @@ interface Column {
 }
 
 export function SalesmanUnloadList() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
@@ -49,23 +40,36 @@ export function SalesmanUnloadList() {
   const [exportToDate, setExportToDate] = useState('');
   const [exportFormat, setExportFormat] = useState<'csv' | 'xls' | ''>('');
 
+  const { unloads, total, isLoading, bulkAction } = useSalesmanUnloads(currentPage);
+
+  const unloadData = useMemo(
+    () =>
+      unloads.map((u) => ({
+        id: u.uuid ?? '',
+        unloadNumber: u.unloadNumber,
+        transactionDate: u.transactionDate,
+        salesman: u.salesmanName ?? '—',
+        route: u.routeName ?? '—',
+        van: u.vanCode ?? '—',
+        warehouse: u.warehouseName ?? '—',
+        status: u.status ? 'Active' : 'Inactive',
+      })),
+    [unloads],
+  );
+
   const [columns, setColumns] = useState<Column[]>([
-    { key: 'date', label: 'Date', visible: true },
-    { key: 'trip', label: 'Trip', visible: true },
-    { key: 'branchPlant', label: 'Branch Plant', visible: true },
+    { key: 'unloadNumber', label: 'Unload No.', visible: true },
+    { key: 'transactionDate', label: 'Date', visible: true },
     { key: 'salesman', label: 'Salesman', visible: true },
-    { key: 'salesmanCode', label: 'Salesman Code', visible: true },
     { key: 'route', label: 'Route', visible: true },
-    { key: 'routeCode', label: 'Route Code', visible: true },
-    { key: 'unloadNo', label: 'Unload No.', visible: true },
-    { key: 'unloadType', label: 'Unload Type', visible: true },
+    { key: 'van', label: 'Van', visible: true },
+    { key: 'warehouse', label: 'Warehouse', visible: true },
     { key: 'status', label: 'Status', visible: true },
   ]);
 
-  // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDraft, setFilterDraft] = useState({ date: '', trip: '', branchPlant: '', salesman: '', salesmanCode: '', route: '' });
-  const [appliedFilter, setAppliedFilter] = useState({ date: '', trip: '', branchPlant: '', salesman: '', salesmanCode: '', route: '' });
+  const [filterDraft, setFilterDraft] = useState({ unloadNumber: '', salesman: '', route: '' });
+  const [appliedFilter, setAppliedFilter] = useState({ unloadNumber: '', salesman: '', route: '' });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -83,26 +87,18 @@ export function SalesmanUnloadList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(salesmanUnloadData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  // Apply filters
-  const filteredData = salesmanUnloadData.filter(c =>
-    (!appliedFilter.date || String(c.date ?? '').toLowerCase().includes(appliedFilter.date.toLowerCase())) &&
-    (!appliedFilter.trip || String(c.trip ?? '').toLowerCase().includes(appliedFilter.trip.toLowerCase())) &&
-    (!appliedFilter.branchPlant || String(c.branchPlant ?? '').toLowerCase().includes(appliedFilter.branchPlant.toLowerCase())) &&
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+  const currentData = unloadData.filter(c =>
+    (!appliedFilter.unloadNumber || String(c.unloadNumber ?? '').toLowerCase().includes(appliedFilter.unloadNumber.toLowerCase())) &&
     (!appliedFilter.salesman || String(c.salesman ?? '').toLowerCase().includes(appliedFilter.salesman.toLowerCase())) &&
-    (!appliedFilter.salesmanCode || String(c.salesmanCode ?? '').toLowerCase().includes(appliedFilter.salesmanCode.toLowerCase())) &&
     (!appliedFilter.route || String(c.route ?? '').toLowerCase().includes(appliedFilter.route.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
   const handleSelectAll = () => {
     setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
   };
 
-  const handleSelectRow = (id: number) => {
+  const handleSelectRow = (id: string) => {
     setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
@@ -129,20 +125,18 @@ export function SalesmanUnloadList() {
   };
 
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => console.log('Delete', selectedRows) },
-    { label: 'Archive Selected', icon: Archive, action: () => console.log('Archive', selectedRows) },
-    { label: 'Update Status', icon: Tag, action: () => console.log('Update Status', selectedRows) },
+    { label: 'Activate Selected', icon: Tag, action: () => { bulkAction({ uuids: selectedRows, action: 'activate' }); setSelectedRows([]); } },
+    { label: 'Deactivate Selected', icon: Archive, action: () => { bulkAction({ uuids: selectedRows, action: 'deactivate' }); setSelectedRows([]); } },
+    { label: 'Delete Selected', icon: Trash2, action: () => { bulkAction({ uuids: selectedRows, action: 'delete' }); setSelectedRows([]); } },
   ];
 
   const getStatusBadge = (status: string) => {
     const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
     switch (status) {
-      case 'Completed':
+      case 'Active':
         return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400`;
-      case 'Pending':
-        return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400`;
-      case 'In Progress':
-        return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400`;
+      case 'Inactive':
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
       default:
         return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
     }
@@ -191,7 +185,6 @@ export function SalesmanUnloadList() {
             </div>
           )}
 
-          {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
             className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
@@ -218,7 +211,7 @@ export function SalesmanUnloadList() {
               <ChevronDown className="w-4 h-4" />
             </button>
             {columnsDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
                 <div className="py-1">
                   {columns.map((column) => (
                     <button
@@ -234,6 +227,14 @@ export function SalesmanUnloadList() {
               </div>
             )}
           </div>
+
+          <Link
+            to="/salesman-unload/add"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Create
+          </Link>
 
           <div className="relative" ref={moreActionsRef}>
             <button
@@ -257,10 +258,7 @@ export function SalesmanUnloadList() {
                     Export
                   </button>
                   <button
-                    onClick={() => {
-                      console.log('Import');
-                      setMoreActionsOpen(false);
-                    }}
+                    onClick={() => setMoreActionsOpen(false)}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
                     <Upload className="w-4 h-4" />
@@ -273,16 +271,12 @@ export function SalesmanUnloadList() {
         </div>
       </div>
 
-            {/* Filter Accordion */}
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
             {([
-              { key: 'date', label: 'Date' },
-              { key: 'trip', label: 'Trip' },
-              { key: 'branchPlant', label: 'Branch Plant' },
+              { key: 'unloadNumber', label: 'Unload No.' },
               { key: 'salesman', label: 'Salesman' },
-              { key: 'salesmanCode', label: 'Salesman Code' },
               { key: 'route', label: 'Route' },
             ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
@@ -305,7 +299,7 @@ export function SalesmanUnloadList() {
               </button>
               <button
                 onClick={() => {
-                  const empty = { date: '', trip: '', branchPlant: '', salesman: '', salesmanCode: '', route: '' };
+                  const empty = { unloadNumber: '', salesman: '', route: '' };
                   setFilterDraft(empty);
                   setAppliedFilter(empty);
                   setFilterOpen(false);
@@ -343,7 +337,11 @@ export function SalesmanUnloadList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
+              {isLoading ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading salesman unloads…</td></tr>
+              ) : currentData.length === 0 ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No salesman unloads yet.</td></tr>
+              ) : currentData.map((item) => (
                 <tr
                   key={item.id}
                   className={`hover:bg-[var(--bg-secondary)] transition-colors ${
@@ -373,61 +371,7 @@ export function SalesmanUnloadList() {
           </table>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="ml-4">
-              {startIndex + 1}-{Math.min(endIndex, salesmanUnloadData.length)} of {salesmanUnloadData.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Prev
-            </button>
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Last
-            </button>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} perPageOptions={[5, 10, 25, 50]} />
       </div>
 
       {exportModalOpen && (
@@ -444,23 +388,11 @@ export function SalesmanUnloadList() {
               <p className="text-[var(--text-secondary)]">Export salesman unload data in CSV or XLS format.</p>
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportType"
-                    checked={exportType === 'all'}
-                    onChange={() => setExportType('all')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportType" checked={exportType === 'all'} onChange={() => setExportType('all')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)] font-medium">All Records</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportType"
-                    checked={exportType === 'specific'}
-                    onChange={() => setExportType('specific')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportType" checked={exportType === 'specific'} onChange={() => setExportType('specific')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)] font-medium">Specific Date Range</span>
                 </label>
               </div>
@@ -468,61 +400,29 @@ export function SalesmanUnloadList() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">From</label>
-                    <input
-                      type="date"
-                      value={exportFromDate}
-                      onChange={(e) => setExportFromDate(e.target.value)}
-                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
+                    <input type="date" value={exportFromDate} onChange={(e) => setExportFromDate(e.target.value)} className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">To</label>
-                    <input
-                      type="date"
-                      value={exportToDate}
-                      onChange={(e) => setExportToDate(e.target.value)}
-                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
+                    <input type="date" value={exportToDate} onChange={(e) => setExportToDate(e.target.value)} className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
                   </div>
                 </div>
               )}
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As :</label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportFormat"
-                    checked={exportFormat === 'csv'}
-                    onChange={() => setExportFormat('csv')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportFormat" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)]">CSV (Comma Separated Value)</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportFormat"
-                    checked={exportFormat === 'xls'}
-                    onChange={() => setExportFormat('xls')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportFormat" checked={exportFormat === 'xls'} onChange={() => setExportFormat('xls')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)]">XLS (Microsoft Excel Compatible)</span>
                 </label>
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
-              <button
-                onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
-              >
-                Export
-              </button>
-              <button
-                onClick={handleExportCancel}
-                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
-              >
-                Cancel
-              </button>
+              <button onClick={handleExportSubmit} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">Export</button>
+              <button onClick={handleExportCancel} className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors">Cancel</button>
             </div>
           </div>
         </div>

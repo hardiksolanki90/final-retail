@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Palette, Eye, EyeOff } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
-import { Select, type SelectOption } from '../../components/ui/Select';
 
 export function LoginForm() {
   const [formData, setFormData] = useState({
@@ -10,14 +9,7 @@ export function LoginForm() {
     rememberMe: false
   });
 
-  const [language, setLanguage] = useState('En');
   const [showPassword, setShowPassword] = useState(false);
-
-  const languageOptions: SelectOption[] = [
-    { value: 'En', label: 'En' },
-    { value: 'Id', label: 'Id' },
-    { value: 'Es', label: 'Es' },
-  ];
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));

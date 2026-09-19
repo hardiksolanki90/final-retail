@@ -8,6 +8,7 @@ type AuthUser = {
   permissions?: string[];
   organisationId?: string;
   organisationName?: string;
+  organisation?: any;
   status: 'Active' | 'Inactive';
   emailVerifiedAt?: string;
   createdAt?: string;

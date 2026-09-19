@@ -41,10 +41,19 @@ export function useOrders(): UseOrdersReturn {
 
     try {
       const response = await OrderApi.getOrderList(page, search);
-      setOrders(response.data || []);
-      setCurrentPage(response.meta?.currentPage || page);
-      setTotalPages(response.meta?.lastPage || 1);
-      setTotal(response.meta?.total || 0);
+      const mappedOrders = (response.data || []).map((o: any) => ({
+        id: o.id?.toString() || o.uuid || '',
+        orderNumber: o.orderNumber || '',
+        customer: o.customerId || 'Unknown',
+        date: o.orderDate || '',
+        items: o.items?.length || 0,
+        amount: o.totalAmount || o.subtotal || 0,
+        status: o.status || 'pending'
+      }));
+      setOrders(mappedOrders);
+      setCurrentPage(response.currentPage || page);
+      setTotalPages(response.lastPage || 1);
+      setTotal(response.total || 0);
     } catch (err) {
       setError('Failed to fetch orders');
       console.error('Error fetching orders:', err);
@@ -77,7 +86,7 @@ export function useOrders(): UseOrdersReturn {
 
   const updateOrderStatus = useCallback(async (id: string, status: string): Promise<boolean> => {
     try {
-      await OrderApi.updateOrderStatus(id, status);
+      await OrderApi.updateOrderStatus(id, status as any);
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, status } : o))
       );

@@ -78,8 +78,8 @@ export function ReturnAdd({
 
   const footerContent = (
     <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
-      <SaveButton type="submit" form="return-form" disabled={isSubmitting}>
+      <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>Cancel</CancelButton>
+      <SaveButton type="submit" form="return-form" disabled={isSubmitting || isLoading}>
         {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
       </SaveButton>
     </div>

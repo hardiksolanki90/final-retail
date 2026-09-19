@@ -4,7 +4,7 @@ import axiosInstance from '../lib/axios';
 // Must be called before the first state-changing request (i.e. login/register).
 // It makes Laravel set the XSRF-TOKEN cookie which axios then picks up.
 
-const SANCTUM_URL = (import.meta.env.VITE_APP_URL || 'http://localhost:8000') + '/api/sanctum/csrf-cookie';
+const SANCTUM_URL = (import.meta.env.VITE_APP_URL || 'http://api.retail-chain.test') + '/sanctum/csrf-cookie';
 
 export const getCsrfCookie = (): Promise<void> =>
   axiosInstance.get(SANCTUM_URL, { baseURL: '' }).then(() => undefined);
@@ -18,6 +18,7 @@ export const getCsrfCookie = (): Promise<void> =>
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   await getCsrfCookie();
   const response = await axiosInstance.post('/auth/login', credentials);
+  console.log(response);
   return response.data.data ?? response.data;
 };
 

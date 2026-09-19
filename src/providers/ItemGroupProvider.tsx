@@ -12,6 +12,9 @@ interface ItemGroupContextType {
   addDrawerOpen: boolean; setAddDrawerOpen: (open: boolean) => void;
   editingItem: any; setEditingItem: (item: any) => void;
   handleDeleteWithConfirmation: (uuid: string) => void; refetch: () => void;
+  createItemGroupData: (data: Record<string, any>) => Promise<any>;
+  updateItemGroupData: (uuid: string, data: Record<string, any>) => Promise<any>;
+  isSaving: boolean;
 }
 
 export const ItemGroupContext = createContext<ItemGroupContextType | undefined>(undefined);
@@ -34,25 +37,35 @@ export default function ItemGroupProvider({ children }: { children: ReactNode })
   const deleteMutation = useMutation({
     mutationFn: deleteItemGroup,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['item-group-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to delete', 'error'); },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
     if (window.confirm('Are you sure you want to delete this item group?')) deleteMutation.mutate(uuid);
   };
 
-  const items = Array.isArray(responseData?.data)
-    ? responseData.data
-    : (Array.isArray(responseData?.data?.items) 
-       ? responseData.data.items 
-       : (Array.isArray(responseData?.data?.data) ? responseData.data.data : []));
-  const meta = responseData?.meta ?? responseData?.data ?? (responseData ? { current_page: responseData.current_page, per_page: responseData.per_page, total: responseData.total, last_page: responseData.last_page } : null);
+  const createMutation = useMutation({
+    mutationFn: (data: Record<string, any>) => createItemGroup(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['item-group-list'] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, any> }) => updateItemGroup(uuid, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['item-group-list'] }),
+  });
+
+  const createItemGroupData = (data: Record<string, any>) => createMutation.mutateAsync(data);
+  const updateItemGroupData = (uuid: string, data: Record<string, any>) => updateMutation.mutateAsync({ uuid, data });
+
+  const items = responseData?.data ?? [];
+  const meta = responseData?.meta ?? null;
 
   const value: ItemGroupContextType = {
     data: items, meta, isLoading, error: error as Error | null,
     searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
     selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
     editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
+    createItemGroupData, updateItemGroupData, isSaving: createMutation.isPending || updateMutation.isPending,
   };
 
   return <ItemGroupContext.Provider value={value}>{children}</ItemGroupContext.Provider>;

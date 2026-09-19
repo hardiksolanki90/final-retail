@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Layout } from "../components/layout/Layout";
 import ProtectedRoute from "../components/ProtectedRoute";
-import OrganisationGuard from "../components/OrganisationGuard";
+import RequirePermission from "../components/RequirePermission";
 import { CustomerList } from "../pages/Customers/customerList";
 import { CustomerAdd } from "../pages/Customers/customerAdd";
 import { ItemList } from "../pages/Items/ItemList";
@@ -42,6 +42,7 @@ import { SensorySurveyList } from "../pages/Surveys/sensorySurveyList";
 import { ConsumerSurveyList } from "../pages/Surveys/consumerSurveyList";
 import { SalesmanLoadList } from "../pages/SalesmanLoad/SalesmanLoadList";
 import { SalesmanUnloadList } from "../pages/SalesmanUnload/SalesmanUnloadList";
+import { SalesmanUnloadAdd } from "../pages/SalesmanUnload/SalesmanUnloadAdd";
 import { GRNList } from "../pages/GRN/GRNList";
 import { GRNAdd } from "../pages/GRN/GRNAdd";
 import { PalletList } from "../pages/Pallet/PalletList";
@@ -57,6 +58,9 @@ import { ReportsLayout } from "../pages/Reports/ReportsLayout";
 
 // Settings Imports
 import { UsersRolesList } from "../pages/Settings/UsersRoles/UsersRolesList";
+import { PreferencesPage } from "../pages/Settings/Preferences/PreferencesPage";
+import { WorkFlowApprovalList } from "../pages/Settings/Preferences/WorkFlowApprovalList";
+import { WorkFlowApprovalAdd } from "../pages/Settings/Preferences/WorkFlowApprovalAdd";
 import { TaxesList } from "../pages/Settings/Taxes/TaxesList";
 import { CurrencyList } from "../pages/Settings/Currency/CurrencyList";
 import { BankList } from "../pages/Settings/Bank/BankList";
@@ -68,12 +72,16 @@ import { VanList } from "../pages/Settings/Van/VanList";
 import { RouteList } from "../pages/Settings/Route/RouteList";
 import { OutletProductCodeList } from "../pages/Settings/OutletProductCode/OutletProductCodeList";
 import { ItemGroupList } from "../pages/Settings/ItemGroup/ItemGroupList";
+import { ItemCategoryList } from "../pages/Settings/ItemCategory/ItemCategoryList";
+import { BrandList } from "../pages/Settings/Brand/BrandList";
 import { ItemUomList } from "../pages/ItemUom/ItemUomList";
 import { ReasonList } from "../pages/Settings/Reason/ReasonList";
 import { ZoneList } from "../pages/Settings/Zone/ZoneList";
+import { CustomerCategoryList } from "../pages/Settings/CustomerCategory/CustomerCategoryList";
 import { MerchandiserReplacementList } from "../pages/Settings/MerchandiserReplacement/MerchandiserReplacementList";
 import { DriverReplacementList } from "../pages/Settings/DriverReplacement/DriverReplacementList";
-import { BeatList } from "../pages/Beats/BeatList";
+import { AreaList } from "../pages/Settings/Area/AreaList";
+import AreaProvider from "../providers/AreaProvider";
 import CreditLimitList from "../pages/Settings/CreditLimit/CreditLimitList";
 import TaxProvider from '../providers/TaxProvider';
 import CurrencyProvider from '../providers/CurrencyProvider';
@@ -84,8 +92,11 @@ import VanProvider from '../providers/VanProvider';
 import DepotProvider from '../providers/DepotProvider';
 import RouteProvider from '../providers/RouteProvider';
 import ItemGroupProvider from '../providers/ItemGroupProvider';
+import ItemCategoryProvider from '../providers/ItemCategoryProvider';
+import BrandProvider from '../providers/BrandProvider';
 import ReasonProvider from '../providers/ReasonProvider';
 import ZoneProvider from '../providers/ZoneProvider';
+import CustomerCategoryProvider from '../providers/CustomerCategoryProvider';
 import ItemUomProvider from '../providers/ItemUomProvider';
 import WarehouseProvider from '../providers/WarehouseProvider';
 import OutletProductCodeProvider from '../providers/OutletProductCodeProvider';
@@ -94,8 +105,13 @@ import DriverReplacementProvider from '../providers/DriverReplacementProvider';
 import CreditLimitProvider from '../providers/CreditLimitProvider';
 import Login from "../pages/Authentication/Login";
 import Register from "../pages/Authentication/Register";
+import ForgotPassword from "../pages/Authentication/ForgotPassword";
+import ResetPassword from "../pages/Authentication/ResetPassword";
 import { OrganisationAdd } from "../pages/Organisation/OrganisationAdd";
+import OrganisationAddGuard from "../components/OrganisationAddGuard";
 import { OrganisationView } from "../pages/Organisation/OrganisationView";
+import { OrganisationEdit } from "../pages/Organisation/OrganisationEdit";
+import BeatList from "../pages/Settings/Beats/BeatList";
 // import { OrderAdd } from "../pages/Orders/orderAdd";
 // import { OrderList } from "../pages/Orders/orderList";
 
@@ -107,11 +123,9 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: (
-      <OrganisationGuard>
-        <Layout>
-          <Dashboard />
-        </Layout>
-      </OrganisationGuard>
+      <Layout>
+        <Dashboard />
+      </Layout>
     ),
   },
   // Master
@@ -213,12 +227,12 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/beat",
+    path: "/area",
     element: (
       <Layout>
-        <BeatProvider>
-          <BeatList />
-        </BeatProvider>
+        <AreaProvider>
+          <AreaList />
+        </AreaProvider>
       </Layout>
     ),
   },
@@ -336,7 +350,9 @@ export const router = createBrowserRouter([
     path: "/credit-note",
     element: (
       <Layout>
-        <CreditNoteList />
+        <RequirePermission permission="credit-notes.view">
+          <CreditNoteList />
+        </RequirePermission>
       </Layout>
     ),
   },
@@ -344,7 +360,9 @@ export const router = createBrowserRouter([
     path: "/credit-note/add",
     element: (
       <Layout>
-        <CreditNoteAdd />
+        <RequirePermission permission="credit-notes.create">
+          <CreditNoteAdd />
+        </RequirePermission>
       </Layout>
     ),
   },
@@ -497,6 +515,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/salesman-unload/add",
+    element: (
+      <Layout>
+        <SalesmanUnloadAdd />
+      </Layout>
+    ),
+  },
+  {
     path: "/grn",
     element: (
       <Layout>
@@ -522,12 +548,54 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/settings/preferences",
+    element: (
+      <Layout>
+        <PreferencesPage />
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings/work-flow-approval",
+    element: (
+      <Layout>
+        <WorkFlowApprovalList />
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings/work-flow-approval/add",
+    element: (
+      <Layout>
+        <WorkFlowApprovalAdd />
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings/work-flow-approval/edit/:uuid",
+    element: (
+      <Layout>
+        <WorkFlowApprovalAdd />
+      </Layout>
+    ),
+  },
+  {
     path: "/settings/beat",
     element: (
       <Layout>
         <BeatProvider>
           <BeatList />
         </BeatProvider>
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings/area",
+    element: (
+      <Layout>
+        <AreaProvider>
+          <AreaList />
+        </AreaProvider>
       </Layout>
     ),
   },
@@ -592,6 +660,16 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/settings/depot",
+    element: (
+      <Layout>
+        <DepotProvider>
+          <DepotList />
+        </DepotProvider>
+      </Layout>
+    ),
+  },
+  {
     path: "/settings/branch-depot",
     element: (
       <Layout>
@@ -638,6 +716,26 @@ export const router = createBrowserRouter([
         <ItemGroupProvider>
           <ItemGroupList />
         </ItemGroupProvider>
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings/item-category",
+    element: (
+      <Layout>
+        <ItemCategoryProvider>
+          <ItemCategoryList />
+        </ItemCategoryProvider>
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings/brand",
+    element: (
+      <Layout>
+        <BrandProvider>
+          <BrandList />
+        </BrandProvider>
       </Layout>
     ),
   },
@@ -701,6 +799,16 @@ export const router = createBrowserRouter([
       </Layout>
     ),
   },
+  {
+    path: "/settings/customer-category",
+    element: (
+      <Layout>
+        <CustomerCategoryProvider>
+          <CustomerCategoryList />
+        </CustomerCategoryProvider>
+      </Layout>
+    ),
+  },
   // Logistics
   {
     path: "/pallet",
@@ -724,21 +832,63 @@ export const router = createBrowserRouter([
     path: "/register",
     element: <Register />,
   },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
+  },
   // Organisation Setup (Protected but no organisation completion check)
   {
     path: "/organisation/add",
     element: (
       <ProtectedRoute>
-        <OrganisationAdd />
+        <OrganisationAddGuard>
+          <OrganisationAdd />
+        </OrganisationAddGuard>
       </ProtectedRoute>
     ),
   },
   {
     path: "/organisation/view",
     element: (
-      <Layout>
-        <OrganisationView />
-      </Layout>
+      <ProtectedRoute>
+        <Layout>
+          <OrganisationView />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/organisation/edit/:uuid",
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <OrganisationEdit />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/settings/organisation",
+    element: (
+      <ProtectedRoute>
+        <Layout>
+          <OrganisationView />
+        </Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/settings/organisation/edit",
+    element: (
+      <ProtectedRoute>
+        <OrganisationAddGuard>
+          <OrganisationAdd />
+        </OrganisationAddGuard>
+      </ProtectedRoute>
     ),
   },
   // Placeholder routes

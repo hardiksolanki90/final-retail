@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getBeatList, createBeat, updateBeat, deleteBeat } from '../api/BeatApi';
+import { getBeatList, deleteBeat } from '../api/BeatApi';
 import { showToast } from '../lib/toast';
 
 interface BeatContextType {
@@ -10,6 +10,8 @@ interface BeatContextType {
   error: Error | null;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  areaFilter: string;
+  setAreaFilter: (areaId: string) => void;
   currentPage: number;
   setCurrentPage: (page: number) => void;
   perPage: number;
@@ -29,6 +31,7 @@ export const BeatContext = createContext<BeatContextType | undefined>(undefined)
 export default function BeatProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [areaFilter, setAreaFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -36,8 +39,8 @@ export default function BeatProvider({ children }: { children: ReactNode }) {
   const [editingItem, setEditingItem] = useState<any>(null);
 
   const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['beat-list', currentPage, perPage, searchTerm],
-    queryFn: () => getBeatList(currentPage, perPage, searchTerm),
+    queryKey: ['beat-list', currentPage, perPage, searchTerm, areaFilter],
+    queryFn: () => getBeatList(currentPage, perPage, searchTerm, areaFilter || undefined),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -47,35 +50,19 @@ export default function BeatProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ['beat-list'] });
     },
     onError: (err: Error) => {
-      showToast(err.message || 'Failed to delete', 'error');
+      showToast.error(err.message || 'Failed to delete');
     },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
-    if (window.confirm('Are you sure you want to delete this area?')) {
+    if (window.confirm('Are you sure you want to delete this beat?')) {
       deleteMutation.mutate(uuid);
     }
   };
 
   // Normalize response like RegionProvider
-  const items = Array.isArray(responseData?.data)
-    ? responseData.data
-    : Array.isArray(responseData?.data?.items)
-      ? responseData.data.items
-      : Array.isArray(responseData?.data?.data)
-        ? responseData.data.data
-        : [];
-  const meta =
-    responseData?.meta ??
-    responseData?.data ??
-    (responseData
-      ? {
-          current_page: responseData.current_page,
-          per_page: responseData.per_page,
-          total: responseData.total,
-          last_page: responseData.last_page,
-        }
-      : null);
+  const items = responseData?.data ?? [];
+  const meta = responseData?.meta ?? null;
 
   const value: BeatContextType = {
     data: items,
@@ -84,6 +71,8 @@ export default function BeatProvider({ children }: { children: ReactNode }) {
     error: error as Error | null,
     searchTerm,
     setSearchTerm,
+    areaFilter,
+    setAreaFilter,
     currentPage,
     setCurrentPage,
     perPage,

@@ -1,11 +1,8 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface BankListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
-}
+export type BankListResponse = NormalizedListResponse<any>;
 
 export const getBankList = async (page = 1, perPage = 15, searchTerm?: string): Promise<BankListResponse> => {
   const params = new URLSearchParams();
@@ -13,7 +10,7 @@ export const getBankList = async (page = 1, perPage = 15, searchTerm?: string): 
   params.append('per_page', perPage.toString());
   if (searchTerm) params.append('search', searchTerm);
   const response = await axiosInstance.get(`/bank/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'bankInformation', perPage);
 };
 
 export const createBank = async (data: Record<string, any>) => {
@@ -29,6 +26,6 @@ export const updateBank = async (uuid: string, data: Record<string, any>) => {
 };
 
 export const deleteBank = async (uuid: string) => {
-  await axiosInstance.post('/bank/delete', { id: uuid });
+  await axiosInstance.delete(`/bank/delete/${uuid}`);
   showToast.success('Bank deleted successfully');
 };

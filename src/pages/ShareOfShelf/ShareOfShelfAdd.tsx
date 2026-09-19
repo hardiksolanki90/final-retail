@@ -71,6 +71,7 @@ export function ShareOfShelfAdd({
     formState: { errors, isSubmitting },
   } = useForm<ShareOfShelfFormFields>({ defaultValues });
 
+  const watchedCode = useWatch({ control, name: 'code' });
   const totalShelfSpace = useWatch({ control, name: 'totalShelfSpace' });
   const ownShelfSpace = useWatch({ control, name: 'ownShelfSpace' });
 
@@ -113,17 +114,19 @@ export function ShareOfShelfAdd({
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code</label>
-                  <OrderCodeSettingsIcon label="Code" value="" onChange={() => {}} />
-                </div>
-                <Input
-            label="Code"
-            {...register('code', { required: 'Code is required' })}
-            error={errors.code?.message}
-            placeholder="Enter code"
-            required
-          />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code</label>
+            </div>
+            <div className="flex items-center gap-2 relative">
+              <Input
+                {...register('code', { required: 'Code is required' })}
+                error={errors.code?.message}
+                placeholder="Enter code"
+                required
+              />
+              <OrderCodeSettingsIcon label="Code" value={watchedCode || ''} onChange={(v) => setValue('code', v)} />
+            </div>
+          </div>
           <Input
             label="Date"
             type="date"
@@ -205,7 +208,6 @@ export function ShareOfShelfAdd({
               disabled
               step="0.01"
             />
-              </div>
             <Input
               label="Competitor Shelf Space"
               type="number"

@@ -3,11 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getSalesmanList,
   getAllSalesmen,
-  searchSalesmen,
   deleteSalesman,
   createSalesman,
   updateSalesman,
-  getSalesmanDetails,
   getSalesmanSales,
   getSalesmanLoginHistory,
   bulkActionSalesmen,

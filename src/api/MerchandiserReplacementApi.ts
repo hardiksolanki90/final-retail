@@ -1,12 +1,9 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
 import type { MerchandiserReplacement, MerchandiserReplacementFormData } from '../types/MerchandiserReplacement';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface MerchandiserReplacementListResponse {
-  data: MerchandiserReplacement[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; has_more_pages?: boolean; };
-  message?: string;
-}
+export type MerchandiserReplacementListResponse = NormalizedListResponse<MerchandiserReplacement>;
 
 export interface MerchandiserReplacementFilters {
   old_salesman_id?: number;
@@ -24,7 +21,7 @@ export const getMerchandiserReplacementList = async (
   if (filters?.old_salesman_id) params.append('old_salesman_id', filters.old_salesman_id.toString());
   if (filters?.new_salesman_id) params.append('new_salesman_id', filters.new_salesman_id.toString());
   const response = await axiosInstance.get(`/merchandiser-replacement/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'merchandiserReplacements', perPage);
 };
 
 export const createMerchandiserReplacement = async (data: MerchandiserReplacementFormData) => {

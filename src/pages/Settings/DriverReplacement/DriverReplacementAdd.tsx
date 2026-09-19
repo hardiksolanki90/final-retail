@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
+import { Select } from '../../../components/ui/Select';
 import type { DriverReplacementFormData } from '../../../types/DriverReplacement';
 
 interface DriverReplacementAddProps {
@@ -33,17 +34,32 @@ export function DriverReplacementAdd({
   reasonOptions,
 }: DriverReplacementAddProps) {
   const {
-    register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
     setError,
+    control,
+    register,
+    watch,
+    setValue,
+    getValues,
   } = useForm<DriverReplacementFormData>({ defaultValues: initialFormData });
+
+  const watchedOldVanId = watch('oldVanId');
+  const newVanOptions = watchedOldVanId
+    ? vanOptions.filter((o) => String(o.value) !== String(watchedOldVanId))
+    : vanOptions;
 
   useEffect(() => {
     if (initialData) reset(initialData);
     else reset(initialFormData);
   }, [initialData, isOpen, reset]);
+
+  useEffect(() => {
+    if (watchedOldVanId && String(getValues('newVanId')) === String(watchedOldVanId)) {
+      setValue('newVanId', '');
+    }
+  }, [watchedOldVanId, getValues, setValue]);
 
   const onFormSubmit = async (data: DriverReplacementFormData) => {
     const payload: DriverReplacementFormData = {
@@ -81,45 +97,95 @@ export function DriverReplacementAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Old Salesman *</label>
-          <select {...register('oldSalesmanId', { required: 'Old Salesman is required' })} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">Select salesman</option>
-            {salesmanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
-          {errors.oldSalesmanId && <p className="text-red-600 text-xs mt-1">{errors.oldSalesmanId.message}</p>}
+          <Controller
+            name="oldSalesmanId"
+            control={control}
+            rules={{ required: 'Old Salesman is required' }}
+            render={({ field }) => (
+              <Select
+                label="Old Salesman *"
+                placeholder="Select salesman"
+                searchable
+                options={salesmanOptions}
+                value={field.value ? String(field.value) : ''}
+                onChange={(e) => field.onChange(e.target.value)}
+                error={errors.oldSalesmanId?.message}
+              />
+            )}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">New Salesman *</label>
-          <select {...register('newSalesmanId', { required: 'New Salesman is required' })} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">Select salesman</option>
-            {salesmanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
-          {errors.newSalesmanId && <p className="text-red-600 text-xs mt-1">{errors.newSalesmanId.message}</p>}
+          <Controller
+            name="newSalesmanId"
+            control={control}
+            rules={{ required: 'New Salesman is required' }}
+            render={({ field }) => (
+              <Select
+                label="New Salesman *"
+                placeholder="Select salesman"
+                searchable
+                options={salesmanOptions}
+                value={field.value ? String(field.value) : ''}
+                onChange={(e) => field.onChange(e.target.value)}
+                error={errors.newSalesmanId?.message}
+              />
+            )}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Old Van</label>
-          <select {...register('oldVanId')} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">Select van (optional)</option>
-            {vanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
+          <Controller
+            name="oldVanId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="Old Van"
+                placeholder="Select van (optional)"
+                searchable
+                options={vanOptions}
+                value={field.value ? String(field.value) : ''}
+                onChange={(e) => field.onChange(e.target.value)}
+                error={errors.oldVanId?.message}
+              />
+            )}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">New Van</label>
-          <select {...register('newVanId')} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">Select van (optional)</option>
-            {vanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
+          <Controller
+            name="newVanId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="New Van"
+                placeholder="Select van (optional)"
+                searchable
+                options={newVanOptions}
+                value={field.value ? String(field.value) : ''}
+                onChange={(e) => field.onChange(e.target.value)}
+                error={errors.newVanId?.message}
+              />
+            )}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-          <select {...register('reasonId')} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">Select reason (optional)</option>
-            {reasonOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
+          <Controller
+            name="reasonId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="Reason"
+                placeholder="Select reason (optional)"
+                searchable
+                options={reasonOptions}
+                value={field.value ? String(field.value) : ''}
+                onChange={(e) => field.onChange(e.target.value)}
+                error={errors.reasonId?.message}
+              />
+            )}
+          />
         </div>
 
         <div>

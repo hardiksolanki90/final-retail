@@ -1,13 +1,14 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
 import type { CreditLimitFormData, CreditLimitListResponse } from '../types/CreditLimit';
+import { unwrapPaginated } from '../lib/paginatedResponse';
 
 export const getCreditLimitList = async (page = 1, perPage = 15): Promise<CreditLimitListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
   const response = await axiosInstance.get(`/user-credit-limit/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'userCreditLimits', perPage) as CreditLimitListResponse;
 };
 
 export const createCreditLimit = async (data: CreditLimitFormData) => {

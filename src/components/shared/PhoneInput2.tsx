@@ -6,6 +6,7 @@ import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import PhoneInput from 'react-phone-number-input'
 import { getCountryCallingCode } from 'react-phone-number-input/input'
+import { parsePhoneNumber } from 'libphonenumber-js'
 import 'react-phone-number-input/style.css'
 
 interface PhoneInput2Props {
@@ -67,8 +68,7 @@ const PhoneInput2 = ({
     if (onInput && phoneValue) {
       // Extract the national number (without country code)
       try {
-        const phoneNumber =
-          require('libphonenumber-js').parsePhoneNumber(phoneValue)
+        const phoneNumber = parsePhoneNumber(phoneValue)
         if (phoneNumber) {
           onInput(phoneNumber.nationalNumber)
         } else {
@@ -234,9 +234,7 @@ const PhoneInput2 = ({
       <PhoneInput
         value={transformedValue}
         placeholder={placeholder}
-        onChange={(value) => {
-          onChange(value)
-        }}
+        onChange={handlePhoneChange}
         onBlur={onBlur}
         defaultCountry="IN"
         disabled={disabled}
@@ -261,7 +259,7 @@ const PhoneInput2 = ({
         maxLength={14}
       />
 
-      <style jsx global>{`
+      <style>{`
         .react-phone-number-input {
           display: flex;
           align-items: stretch;

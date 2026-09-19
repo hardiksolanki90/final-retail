@@ -32,7 +32,9 @@ export function CompetitorInfoAdd({
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setError
+    setError,
+    watch,
+    setValue
   } = useForm<CompetitorInfoFormData>({
     defaultValues: {
       competitorName: '',
@@ -56,6 +58,8 @@ export function CompetitorInfoAdd({
       status: 'active'
     }
   });
+
+  const watchedStatus = watch('status');
 
   useEffect(() => {
     if (isOpen) {
@@ -115,11 +119,6 @@ export function CompetitorInfoAdd({
     { value: 'in_stock', label: 'In Stock' },
     { value: 'out_of_stock', label: 'Out of Stock' },
     { value: 'low_stock', label: 'Low Stock' },
-  ];
-
-  const statusOptions: SelectOption[] = [
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
   ];
 
   const displayTypeOptions: SelectOption[] = [
@@ -386,39 +385,21 @@ export function CompetitorInfoAdd({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Availability</label>
-            <select
-              {...register('stockAvailability')}
-              className="block w-full px-3 py-2 rounded-lg border transition-colors
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                border-gray-300 dark:border-gray-600
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select stock availability</option>
-              {stockAvailabilityOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-            <select
-              {...register('status')}
-              className="block w-full px-3 py-2 rounded-lg border transition-colors
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                border-gray-300 dark:border-gray-600
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select status</option>
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Availability</label>
+          <select
+            {...register('stockAvailability')}
+            className="block w-full px-3 py-2 rounded-lg border transition-colors
+              bg-white dark:bg-gray-800
+              text-gray-900 dark:text-gray-100
+              border-gray-300 dark:border-gray-600
+              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="">Select stock availability</option>
+            {stockAvailabilityOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -473,13 +454,31 @@ export function CompetitorInfoAdd({
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </CancelButton>
-          <SaveButton type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
-          </SaveButton>
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+            <button
+              type="button"
+              onClick={() => setValue('status', watchedStatus === 'active' ? 'inactive' : 'active')}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                  watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <div className="flex gap-3">
+            <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>
+              Cancel
+            </CancelButton>
+            <SaveButton type="submit" disabled={isSubmitting || isLoading}>
+              {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
+            </SaveButton>
+          </div>
         </div>
       </form>
     </Drawer>

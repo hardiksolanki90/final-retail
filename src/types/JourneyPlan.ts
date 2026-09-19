@@ -25,7 +25,7 @@ export interface JourneyPlanFormData {
   customers: string[];
   visitFrequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
   notes?: string;
-  status?: 'active' | 'inactive';
+  status?: boolean;
 }
 
 export interface JourneyPlanListResponse {
@@ -54,6 +54,7 @@ export type DayOfWeek =
 /** One customer row inside the Customers tab */
 export interface JourneyPlanCustomerRow {
   id: string;              // local unique id
+  customerId: string;      // real customer uuid — required for save
   sequence: number;
   code: string;
   customerName: string;
@@ -85,4 +86,16 @@ export interface JourneyPlanFullFormData {
 
   // Tab 3 – Customers (per-day lists)
   dayCustomers: DayCustomersMap;
+
+  uuid?: string;
+  merchandiserName?: string;
+  status?: boolean;
+}
+
+export interface JourneyPlanFullListResponse {
+  data: JourneyPlanFullFormData[];
+  total: number;
+  currentPage: number;
+  perPage: number;
+  lastPage: number;
 }

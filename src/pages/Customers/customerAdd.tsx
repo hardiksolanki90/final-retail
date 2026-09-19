@@ -1,494 +1,720 @@
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Drawer } from "../../components/ui/Drawer";
 import { Input } from "../../components/ui/Input";
 import { Select, type SelectOption } from "../../components/ui/Select";
+import { CreatableSelect } from "../../components/ui/CreatableSelect";
 import { SaveButton, CancelButton } from "../../components/ui/Button";
+import { OrderCodeSettingsIcon } from "../../components/ui/OrderCodeSettingsIcon";
+import { CountryPhoneInput } from "../../components/ui/CountryPhoneInput";
+import { getAllSalesmen } from "../../api/SalesmanApi";
+import { getAllCountries } from "../../api/CountryApi";
+import { getRegionOptions, createRegion } from "../../api/RegionApi";
+import { getAllCustomers } from "../../api/CustomerApi";
 import type {
-  CustomerFormData,
-  Customer,
+    CustomerFormData,
+    Customer,
 } from "../../types/Customer";
 import { useCustomer } from "../../providers/CustomerProvider";
+import { AlertCircle } from "lucide-react";
 
 interface CustomerAddProps {
-  isOpen: boolean;
-  onClose: () => void;
-  data?: Customer | null;
-  onEvent?: (data: any) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    data?: Customer | null;
+    onEvent?: (data: any) => void;
 }
 
 const initialFormData: CustomerFormData = {
-  code: "",
-  erpCode: "",
-  shopName: "",
-  firstName: "",
-  lastName: "",
-  email: "",
-  phoneNumber: "",
-  address: "",
-  city: "",
-  state: "",
-  zipcode: "",
-  latitude: 0,
-  longitude: 0,
-  balance: 0,
-  creditLimit: 0,
-  creditDays: 30,
-  trnNo: "",
-  image: "",
-  status: true,
-  routeId: "",
-  salesmanId: "",
-  customerTypeId: "",
-  customerCategoryId: "",
-  customerGroupId: "",
-  channelId: "",
-  paymentTermId: "",
+    code: "",
+    shopName: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    customerOfficeAddress: "",
+    customerOfficeCity: "",
+    customerOfficeState: "",
+    customerOfficeZipcode: "",
+    customerHomeAddress: "",
+    image: "",
+    status: true,
+    salesmanId: "",
+    salesOrganisationId: "",
+    countryId: "",
+    regionId: "",
+    shipToPartyId: "",
+    soldToPartyId: "",
+    payerId: "",
+    billToPartyId: "",
+    customerTypeId: "",
+    customerCategoryId: "",
+    channelId: "",
 };
 
+function FormFieldLabel({
+    label,
+    required = false,
+    colon = true,
+}: {
+    label: string;
+    required?: boolean;
+    colon?: boolean;
+}) {
+    return (
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {label}
+            {required && <span className="text-red-500 font-bold ml-0.5">*</span>}
+            {colon ? ':' : ''}
+        </label>
+    );
+}
+
 export function CustomerAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
+    isOpen,
+    onClose,
+    data,
+    onEvent,
 }: CustomerAddProps) {
-  const {
-    addCustomer,
-    updateCustomerData,
-    isAdding,
-    isUpdating,
-    routes,
-    customerTypes,
-    customerCategories,
-    customerGroups,
-    channels,
-    paymentTerms,
-  } = useCustomer();
+    const {
+        addCustomer,
+        updateCustomerData,
+        isAdding,
+        isUpdating,
+        customerData,
+        customerTypes,
+        customerCategories,
+        channels,
+        createCustomerCategoryOption,
+        createChannelOption,
+        createSalesOrganisationOption,
+        salesOrganisations,
+    } = useCustomer();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    setError,
-    watch,
-    setValue,
-  } = useForm<CustomerFormData>({
-    defaultValues: initialFormData,
-  });
+    const queryClient = useQueryClient();
 
-  const isEditing = !!data;
-  const watchedStatus = watch("status");
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        reset,
+        setError,
+        watch,
+        setValue,
+        control,
+    } = useForm<CustomerFormData>({
+        defaultValues: initialFormData,
+    });
 
-  useEffect(() => {
-    if (isOpen && data) {
-      reset({
-        code: data.code || '',
-        erpCode: data.erpCode || '',
-        shopName: data.shopName || '',
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        email: data.email || '',
-        phoneNumber: data.phoneNumber || '',
-        address: data.address || '',
-        city: data.city || '',
-        state: data.state || '',
-        zipcode: data.zipcode || '',
-        latitude: data.latitude || 0,
-        longitude: data.longitude || 0,
-        balance: data.balance || 0,
-        creditLimit: data.creditLimit || 0,
-        creditDays: data.creditDays || 30,
-        trnNo: data.trnNo || '',
-        image: data.image || '',
-        status: data.status ?? true,
-        routeId: data.route?.id?.toString() || '',
-        salesmanId: data.salesman?.id?.toString() || '',
-        customerTypeId: data.customerType?.id?.toString() || '',
-        customerCategoryId: data.customerCategory?.id?.toString() || '',
-        customerGroupId: data.customerGroup?.id?.toString() || '',
-        channelId: data.channel?.id?.toString() || '',
-        paymentTermId: data.paymentTerm?.id?.toString() || '',
-      });
-    } else if (isOpen) {
-      reset(initialFormData);
-    }
-  }, [isOpen, data, reset]);
+    const isEditing = !!data;
 
-  const onFormSubmit = async (formData: CustomerFormData) => {
-    try {
-      let result;
-      if (isEditing && data?.uuid) {
-        result = await updateCustomerData(data.uuid, formData);
-      } else {
-        result = await addCustomer(formData);
-      }
-      onEvent?.({ eventType: 'CustomerSaved', customer: result });
-      reset(initialFormData);
-      onClose();
-    } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Failed to save customer. Please try again.',
-      });
-    }
-  };
+    useEffect(() => {
+        if (isOpen && data) {
+            reset({
+                code: data.code || '',
+                shopName: data.shopName || '',
+                firstName: data.firstName || '',
+                lastName: data.lastName || '',
+                email: data.email || '',
+                phoneNumber: data.phoneNumber || '',
+                customerOfficeAddress: data.customerOfficeAddress || (data as any).address || '',
+                customerHomeAddress: data.customerHomeAddress || '',
+                customerOfficeState: data.customerOfficeState || (data as any).state || '',
+                customerOfficeCity: data.customerOfficeCity || (data as any).city || '',
+                customerOfficeZipcode: data.customerOfficeZipcode || (data as any).zipcode || '',
+                image: data.image || '',
+                status: data.status ?? true,
+                salesmanId: data.salesman?.id?.toString() || data.salesmanId?.toString() || data.merchandiserId?.toString() || '',
+                salesOrganisationId: data.salesOrganisationId?.toString() || data.salesOrganisation?.id?.toString() || '',
+                countryId: data.countryId?.toString() || (data as any).country?.id?.toString() || '',
+                regionId: data.regionId?.toString() || (data as any).region?.id?.toString() || '',
+                shipToPartyId: (data.shipToPartyId && data.id && String(data.shipToPartyId) === String(data.id))
+                    ? 'same_as_code'
+                    : (data.shipToPartyId?.toString() || ''),
+                soldToPartyId: (data.soldToPartyId && data.id && String(data.soldToPartyId) === String(data.id))
+                    ? 'same_as_code'
+                    : (data.soldToPartyId?.toString() || ''),
+                payerId: (data.payerId && data.id && String(data.payerId) === String(data.id))
+                    ? 'same_as_code'
+                    : (data.payerId?.toString() || ''),
+                billToPartyId: (data.billToPartyId && data.id && String(data.billToPartyId) === String(data.id))
+                    ? 'same_as_code'
+                    : (data.billToPartyId?.toString() || ''),
+                customerTypeId: data.customerType?.id?.toString() || data.customerTypeId?.toString() || '',
+                customerCategoryId: data.customerCategory?.id?.toString() || data.customerCategoryId?.toString() || '',
+                channelId: data.channel?.id?.toString() || data.channelId?.toString() || '',
+            });
+        } else if (isOpen) {
+            reset(initialFormData);
+        }
+    }, [isOpen, data, reset]);
 
-  const handleClose = () => {
-    reset(initialFormData);
-    onClose();
-  };
+    const onFormSubmit = async (formData: CustomerFormData) => {
+        try {
+            const computedShopName = formData.shopName?.trim() || `${formData.firstName} ${formData.lastName || ''}`.trim() || formData.firstName;
+            const payload: CustomerFormData = {
+                ...formData,
+                shopName: computedShopName,
+                customerOfficeAddress: formData.customerOfficeAddress || '',
+                merchandiserId: formData.salesmanId || '',
+                shipToPartyId: formData.shipToPartyId || undefined,
+                soldToPartyId: formData.soldToPartyId || undefined,
+                payerId: formData.payerId || undefined,
+                billToPartyId: formData.billToPartyId || undefined,
+            };
 
-  // Map related data to SelectOptions
-  const routeOptions: SelectOption[] = routes.map(route => ({
-    value: route.id?.toString() || '',
-    label: route.routeName || '',
-  }));
+            let result;
+            if (isEditing && data?.uuid) {
+                result = await updateCustomerData(data.uuid, payload);
+            } else {
+                result = await addCustomer(payload);
+            }
+            onEvent?.({ eventType: 'CustomerSaved', customer: result });
+            reset(initialFormData);
+            onClose();
+        } catch (error: any) {
+            setError('root', {
+                message: error.response?.data?.message || 'Failed to save customer. Please try again.',
+            });
+        }
+    };
 
-  const customerTypeOptions: SelectOption[] = customerTypes.map(type => ({
-    value: type.id?.toString() || '',
-    label: type.name || '',
-  }));
+    const handleClose = () => {
+        reset(initialFormData);
+        onClose();
+    };
 
-  const customerCategoryOptions: SelectOption[] = customerCategories.map(cat => ({
-    value: cat.id?.toString() || '',
-    label: cat.categoryName || '',
-  }));
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setValue('image', reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
-  const customerGroupOptions: SelectOption[] = customerGroups.map(group => ({
-    value: group.id?.toString() || '',
-    label: group.groupName || '',
-  }));
+    // Salesmen Options
+    const { data: salesmen = [] } = useQuery({
+        queryKey: ['salesmen-all'],
+        queryFn: () => getAllSalesmen(),
+        enabled: isOpen,
+        staleTime: 10 * 60 * 1000,
+    });
 
-  const channelOptions: SelectOption[] = channels.map(channel => ({
-    value: channel.id?.toString() || '',
-    label: channel.channelName || '',
-  }));
+    const salesmanOptions: SelectOption[] = salesmen.map((s: any) => ({
+        value: s.id?.toString() || s.value?.toString() || '',
+        label: s.name ? `${s.salesmanCode ? s.salesmanCode + ' - ' : ''}${s.name}` : (s.label || s.salesmanCode || ''),
+    }));
 
-  const paymentTermOptions: SelectOption[] = paymentTerms.map(term => ({
-    value: term.id?.toString() || '',
-    label: term.name || '',
-  }));
+    // Countries
+    const { data: countries = [] } = useQuery({
+        queryKey: ['countries-all'],
+        queryFn: () => getAllCountries(),
+        enabled: isOpen,
+        staleTime: 10 * 60 * 1000,
+    });
 
-  const footerContent = (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
-        <button
-          type="button"
-          onClick={() => setValue('status', !watchedStatus)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-            watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-          }`}
+    const countryOptions: SelectOption[] = countries.map(c => ({
+        value: c.id?.toString() || '',
+        label: c.name || '',
+    }));
+
+    const watchedCountryId = watch('countryId');
+    const selectedCountryCode = countries.find(c => String(c.id) === String(watchedCountryId))?.countryCode;
+
+    // Regions
+    const { data: regionOpts = [] } = useQuery({
+        queryKey: ['regions-all'],
+        queryFn: () => getRegionOptions(),
+        enabled: isOpen,
+        staleTime: 10 * 60 * 1000,
+    });
+
+    const regionOptions: SelectOption[] = regionOpts.map(r => ({
+        value: r.value?.toString() || '',
+        label: r.label || '',
+    }));
+
+    const createRegionMutation = useMutation({
+        mutationFn: (values: Record<string, any>) =>
+            createRegion({
+                regionName: values.name,
+                countryId: values.countryId ? Number(values.countryId) : undefined,
+                status: values.status ?? true,
+            }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['regions-all'] }),
+    });
+
+    const createRegionOption = async (values: Record<string, any>): Promise<SelectOption> => {
+        const created = await createRegionMutation.mutateAsync(values);
+        return { value: String(created.id ?? ''), label: created.regionName || values.name };
+    };
+
+    // Customer types, categories, channels, sales organisations
+    const customerTypeOptions: SelectOption[] = customerTypes.map(type => ({
+        value: type.id?.toString() || '',
+        label: type.name || '',
+    }));
+
+    const customerCategoryOptions: SelectOption[] = customerCategories.map(cat => ({
+        value: cat.id?.toString() || '',
+        label: cat.categoryName || '',
+    }));
+
+    const channelOptions: SelectOption[] = channels.map(channel => ({
+        value: channel.id?.toString() || '',
+        label: channel.channelName || '',
+    }));
+
+    const salesOrganisationOptions: SelectOption[] = salesOrganisations.map(so => ({
+        value: so.id?.toString() || '',
+        label: so.name || '',
+    }));
+
+    // Partner function customer options with "Same as customer" as the default option
+    const { data: allCustomersList = [] } = useQuery({
+        queryKey: ['all-customers-select'],
+        queryFn: () => getAllCustomers(),
+        enabled: isOpen,
+        staleTime: 10 * 60 * 1000,
+    });
+
+    const watchedCode = watch('code');
+    const sameAsCodeLabel = watchedCode?.trim() ? `${watchedCode.trim()} (Same customer)` : 'Same customer';
+
+    const partnerCustomerOptions: SelectOption[] = [
+        { value: 'same_as_customer', label: sameAsCodeLabel },
+        ...(allCustomersList.length > 0
+            ? allCustomersList
+                .filter((c: any) => String(c.value ?? c.id ?? '') !== String(data?.id ?? ''))
+                .map((c: any) => ({
+                    value: String(c.value ?? c.id ?? ''),
+                    label: c.label || `${c.code || ''} - ${c.shopName || c.name || ''}`,
+                }))
+            : (customerData?.data
+                ?.filter(c => !data?.id || c.id !== data.id)
+                .map(c => ({
+                    value: c.id?.toString() || '',
+                    label: `${c.code} - ${c.shopName || `${c.firstName || ''} ${c.lastName || ''}`.trim()}`,
+                })) || []))
+    ];
+
+    const footerContent = (
+        <div className="flex items-center justify-end gap-3 w-full">
+            <CancelButton
+                onClick={handleClose}
+                disabled={isSubmitting || isAdding || isUpdating}
+            >
+                Cancel
+            </CancelButton>
+            <SaveButton
+                type="submit"
+                form="customer-form"
+                disabled={isSubmitting || isAdding || isUpdating}
+                className="bg-primary-700 hover:bg-primary-800 text-white min-w-[80px]"
+            >
+                {(isSubmitting || isAdding || isUpdating) ? 'Saving...' : 'Save'}
+            </SaveButton>
+        </div>
+    );
+
+    return (
+        <Drawer
+            isOpen={isOpen}
+            onClose={handleClose}
+            title={isEditing ? "Edit Customer" : "Add Customer"}
+            width="w-[800px]"
+            footer={footerContent}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
-        <span className={`text-sm font-medium ${
-          watchedStatus ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
-        }`}>
-          {watchedStatus ? 'Active' : 'Inactive'}
-        </span>
-      </div>
-      <div className="flex gap-3">
-        <CancelButton onClick={handleClose} disabled={isSubmitting || isAdding || isUpdating}>
-          Cancel
-        </CancelButton>
-        <SaveButton type="submit" form="customer-form" disabled={isSubmitting || isAdding || isUpdating}>
-          {(isSubmitting || isAdding || isUpdating) ? 'Saving...' : isEditing ? 'Update Customer' : 'Save Customer'}
-        </SaveButton>
-      </div>
-    </div>
-  );
+            <form
+                id="customer-form"
+                onSubmit={handleSubmit(onFormSubmit)}
+                className="p-6 space-y-5"
+            >
+                {/* Root errors */}
+                {errors.root && (
+                    <div className="flex items-start gap-2.5 border-l-2 border-red-500 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400 px-4 py-2.5 text-sm rounded">
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                        <span>{errors.root.message}</span>
+                    </div>
+                )}
 
-  return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={isEditing ? "Edit Customer" : "Add Customer"}
-      width="w-[800px]"
-      footer={footerContent}
-    >
-      <form
-        id="customer-form"
-        onSubmit={handleSubmit(onFormSubmit)}
-        className="p-6 space-y-4"
-      >
-        {/* Root errors */}
-        {errors.root && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {errors.root.message}
-          </div>
-        )}
+                {/* Customer Code */}
+                <div>
+                    <FormFieldLabel label="Customer Code" required />
+                    <div className="flex items-center gap-2">
+                        <Input
+                            {...register('code')}
+                            placeholder="Auto-generated if empty"
+                        />
+                        <OrderCodeSettingsIcon
+                            label="Customer Code"
+                            value={watch('code') || ''}
+                            onChange={(v) => setValue('code', v)}
+                        />
+                    </div>
+                </div>
 
-        {/* Basic Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+                {/* First Name & Last Name */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <FormFieldLabel label="First Name" required />
+                        <Input
+                            {...register('firstName', {
+                                required: 'First name is required',
+                                validate: (v) => v.trim() !== '' || 'First name cannot be empty',
+                            })}
+                            placeholder="Enter first name"
+                            error={errors.firstName?.message}
+                        />
+                    </div>
+                    <div>
+                        <FormFieldLabel label="Last Name" />
+                        <Input
+                            {...register('lastName')}
+                            placeholder="Enter last name"
+                        />
+                    </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Customer Code
-              </label>
-              <Input {...register('code')} placeholder="Auto-generated if empty" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                ERP Code
-              </label>
-              <Input {...register('erpCode')} placeholder="Enter ERP code" />
-            </div>
-          </div>
+                {/* Email */}
+                <div>
+                    <FormFieldLabel label="Email" required />
+                    <Input
+                        {...register('email', {
+                            required: 'Email is required',
+                            pattern: {
+                                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                message: 'Please enter a valid email address',
+                            },
+                        })}
+                        type="email"
+                        placeholder="Enter email address"
+                        error={errors.email?.message}
+                    />
+                </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Shop Name *
-            </label>
-            <Input
-              {...register('shopName', {
-                required: 'Shop name is required',
-                validate: value => value.trim() !== '' || 'Shop name cannot be empty',
-              })}
-              placeholder="Enter shop name"
-              error={errors.shopName?.message}
-            />
-          </div>
+                {/* Office Address & Home Address */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <FormFieldLabel label="Office Address" required />
+                        <Input
+                            {...register('customerOfficeAddress', {
+                                required: 'Office address is required',
+                            })}
+                            placeholder="Enter office address"
+                            error={errors.customerOfficeAddress?.message}
+                        />
+                    </div>
+                    <div>
+                        <FormFieldLabel label="Home Address" />
+                        <Input
+                            {...register('customerHomeAddress')}
+                            placeholder="Enter home address"
+                        />
+                    </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                First Name *
-              </label>
-              <Input
-                {...register('firstName', {
-                  required: 'First name is required',
-                  validate: value => value.trim() !== '' || 'First name cannot be empty',
-                })}
-                placeholder="Enter first name"
-                error={errors.firstName?.message}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Last Name
-              </label>
-              <Input {...register('lastName')} placeholder="Enter last name" />
-            </div>
-          </div>
+                {/* State & City (State on left, City on right per image) */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <FormFieldLabel label="State" />
+                        <Input
+                            {...register('customerOfficeState')}
+                            placeholder="Enter state"
+                        />
+                    </div>
+                    <div>
+                        <FormFieldLabel label="City" />
+                        <Input
+                            {...register('customerOfficeCity')}
+                            placeholder="Enter city"
+                        />
+                    </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email
-              </label>
-              <Input
-                {...register('email', {
-                  pattern: {
-                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: 'Please enter a valid email address',
-                  },
-                })}
-                type="email"
-                placeholder="Enter email address"
-                error={errors.email?.message}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Phone Number
-              </label>
-              <Input {...register('phoneNumber')} placeholder="Enter phone number" />
-            </div>
-          </div>
-        </div>
+                {/* Zipcode & Phone Number */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <FormFieldLabel label="Zipcode" />
+                        <Input
+                            {...register('customerOfficeZipcode')}
+                            placeholder="Enter zipcode"
+                        />
+                    </div>
+                    <div>
+                        <CountryPhoneInput
+                            name="phoneNumber"
+                            control={control}
+                            label="Phone Number"
+                            countryCode={selectedCountryCode}
+                        />
+                    </div>
+                </div>
 
-        {/* Address */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Address</h3>
+                {/* Grand Channel & Customer Type */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <FormFieldLabel label="Grand Channel" required />
+                        <Controller
+                            name="customerCategoryId"
+                            control={control}
+                            rules={{ required: 'Grand Channel is required' }}
+                            render={({ field }) => (
+                                <CreatableSelect
+                                    value={String(field.value ?? '')}
+                                    onChange={field.onChange}
+                                    options={customerCategoryOptions}
+                                    placeholder="Search a Customer Category"
+                                    createLabel="Add New Category"
+                                    onCreate={createCustomerCategoryOption}
+                                    fields={[
+                                        { type: 'text', name: 'name', label: 'Category Name', required: true },
+                                    ]}
+                                />
+                            )}
+                        />
+                        {errors.customerCategoryId && (
+                            <p className="mt-1 text-sm text-red-500">{errors.customerCategoryId.message}</p>
+                        )}
+                    </div>
+                    <div>
+                        <FormFieldLabel label="Customer Type" required />
+                        <Controller
+                            name="customerTypeId"
+                            control={control}
+                            rules={{ required: 'Customer Type is required' }}
+                            render={({ field }) => (
+                                <Select
+                                    value={String(field.value ?? '')}
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    options={customerTypeOptions}
+                                    placeholder="Select customer type"
+                                />
+                            )}
+                        />
+                        {errors.customerTypeId && (
+                            <p className="mt-1 text-sm text-red-500">{errors.customerTypeId.message}</p>
+                        )}
+                    </div>
+                </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Address *
-            </label>
-            <Input
-              {...register('address', { required: 'Address is required' })}
-              placeholder="Enter address"
-              error={errors.address?.message}
-            />
-          </div>
+                {/* Parent Channel & Sales Organisation */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <FormFieldLabel label="Parent Channel" required />
+                        <Controller
+                            name="channelId"
+                            control={control}
+                            rules={{ required: 'Parent Channel is required' }}
+                            render={({ field }) => (
+                                <CreatableSelect
+                                    value={String(field.value ?? '')}
+                                    onChange={field.onChange}
+                                    options={channelOptions}
+                                    placeholder="Search a channel"
+                                    createLabel="Add New Channel"
+                                    onCreate={createChannelOption}
+                                    fields={[
+                                        { type: 'text', name: 'name', label: 'Channel Name', required: true },
+                                        { type: 'select', name: 'parentId', label: 'Parent Channel', options: channelOptions, placeholder: 'None (top level)' },
+                                        { type: 'toggle', name: 'status', label: 'Active' },
+                                    ]}
+                                />
+                            )}
+                        />
+                        {errors.channelId && (
+                            <p className="mt-1 text-sm text-red-500">{errors.channelId.message}</p>
+                        )}
+                    </div>
+                    <div>
+                        <FormFieldLabel label="Sales Organisation" required />
+                        <Controller
+                            name="salesOrganisationId"
+                            control={control}
+                            rules={{ required: 'Sales Organisation is required' }}
+                            render={({ field }) => (
+                                <CreatableSelect
+                                    value={String(field.value ?? '')}
+                                    onChange={field.onChange}
+                                    options={salesOrganisationOptions}
+                                    placeholder="Search a Sales Organisation"
+                                    createLabel="Add New Sales Organisation"
+                                    onCreate={createSalesOrganisationOption}
+                                    fields={[
+                                        { type: 'text', name: 'name', label: 'Sales Organisation Name', required: true },
+                                        { type: 'select', name: 'parentId', label: 'Parent Organisation', options: salesOrganisationOptions, placeholder: 'None (top level)' },
+                                        { type: 'toggle', name: 'status', label: 'Active' },
+                                    ]}
+                                />
+                            )}
+                        />
+                        {errors.salesOrganisationId && (
+                            <p className="mt-1 text-sm text-red-500">{errors.salesOrganisationId.message}</p>
+                        )}
+                    </div>
+                </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                City
-              </label>
-              <Input {...register('city')} placeholder="Enter city" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                State
-              </label>
-              <Input {...register('state')} placeholder="Enter state" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Zipcode
-              </label>
-              <Input {...register('zipcode')} placeholder="Enter zipcode" />
-            </div>
-          </div>
+                {/* Country & Region */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <FormFieldLabel label="Country" />
+                        <Controller
+                            name="countryId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select
+                                    value={String(field.value ?? '')}
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    options={countryOptions}
+                                    placeholder="Search"
+                                />
+                            )}
+                        />
+                    </div>
+                    <div>
+                        <FormFieldLabel label="Region" />
+                        <Controller
+                            name="regionId"
+                            control={control}
+                            render={({ field }) => (
+                                <CreatableSelect
+                                    value={String(field.value ?? '')}
+                                    onChange={field.onChange}
+                                    options={regionOptions}
+                                    placeholder="Search"
+                                    createLabel="Add New Region"
+                                    onCreate={createRegionOption}
+                                    fields={[
+                                        { type: 'text', name: 'name', label: 'Region Name', required: true },
+                                        { type: 'select', name: 'countryId', label: 'Country', options: countryOptions, placeholder: 'Select Country' },
+                                        { type: 'toggle', name: 'status', label: 'Active' },
+                                    ]}
+                                />
+                            )}
+                        />
+                    </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Latitude
-              </label>
-              <Input
-                {...register('latitude', { valueAsNumber: true })}
-                type="number"
-                step="any"
-                placeholder="0.000000"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Longitude
-              </label>
-              <Input
-                {...register('longitude', { valueAsNumber: true })}
-                type="number"
-                step="any"
-                placeholder="0.000000"
-              />
-            </div>
-          </div>
-        </div>
+                {/* Salesman (formerly Merchandiser) */}
+                <div>
+                    <FormFieldLabel label="Salesman" />
+                    <Controller
+                        name="salesmanId"
+                        control={control}
+                        render={({ field }) => (
+                            <Select
+                                value={String(field.value ?? '')}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                options={salesmanOptions}
+                                placeholder="Select Options"
+                            />
+                        )}
+                    />
+                </div>
 
-        {/* Classification */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Classification</h3>
+                {/* Partner Function Section */}
+                <div className="pt-2">
+                    <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+                        <div className="inline-block border-b-2 border-primary-600 pb-2 px-1">
+                            <span className="text-xs sm:text-sm font-bold tracking-wider text-gray-900 dark:text-white uppercase">
+                                PATNER FUNCTION
+                            </span>
+                        </div>
+                    </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Customer Type
-              </label>
-              <Select
-                {...register('customerTypeId')}
-                options={customerTypeOptions}
-                placeholder="Select customer type"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Customer Category
-              </label>
-              <Select
-                {...register('customerCategoryId')}
-                options={customerCategoryOptions}
-                placeholder="Select category"
-              />
-            </div>
-          </div>
+                    <div className="space-y-4">
+                        <div>
+                            <FormFieldLabel label="SHIP TO PARTY" />
+                            <Controller
+                                name="shipToPartyId"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        value={String(field.value ?? '')}
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                        options={partnerCustomerOptions}
+                                        placeholder="Select customer"
+                                    />
+                                )}
+                            />
+                        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Customer Group
-              </label>
-              <Select
-                {...register('customerGroupId')}
-                options={customerGroupOptions}
-                placeholder="Select group"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Channel
-              </label>
-              <Select
-                {...register('channelId')}
-                options={channelOptions}
-                placeholder="Select channel"
-              />
-            </div>
-          </div>
+                        <div>
+                            <FormFieldLabel label="SOLD TO PARTY" />
+                            <Controller
+                                name="soldToPartyId"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        value={String(field.value ?? '')}
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                        options={partnerCustomerOptions}
+                                        placeholder="Select customer"
+                                    />
+                                )}
+                            />
+                        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Route
-              </label>
-              <Select
-                {...register('routeId')}
-                options={routeOptions}
-                placeholder="Select route"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Payment Term
-              </label>
-              <Select
-                {...register('paymentTermId')}
-                options={paymentTermOptions}
-                placeholder="Select payment term"
-              />
-            </div>
-          </div>
-        </div>
+                        <div>
+                            <FormFieldLabel label="PAYER " />
+                            <Controller
+                                name="payerId"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        value={String(field.value ?? '')}
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                        options={partnerCustomerOptions}
+                                        placeholder="Select customer"
+                                    />
+                                )}
+                            />
+                        </div>
 
-        {/* Financial */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Financial</h3>
+                        <div>
+                            <FormFieldLabel label="BILL TO PARTY" />
+                            <Controller
+                                name="billToPartyId"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        value={String(field.value ?? '')}
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                        options={partnerCustomerOptions}
+                                        placeholder="Select customer"
+                                    />
+                                )}
+                            />
+                        </div>
+                    </div>
+                </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Balance
-              </label>
-              <Input
-                {...register('balance', { valueAsNumber: true })}
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Credit Limit
-              </label>
-              <Input
-                {...register('creditLimit', { valueAsNumber: true })}
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Credit Days
-              </label>
-              <Input
-                {...register('creditDays', { valueAsNumber: true })}
-                type="number"
-                placeholder="30"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              TRN No
-            </label>
-            <Input {...register('trnNo')} placeholder="Enter TRN number" />
-          </div>
-        </div>
-      </form>
-    </Drawer>
-  );
+                {/* Profile Image */}
+                <div>
+                    <FormFieldLabel label="Profile Image" />
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600 file:text-sm file:font-medium file:bg-gray-50 dark:file:bg-gray-800 hover:file:bg-gray-100 dark:hover:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-200 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg p-1 bg-white dark:bg-gray-800"
+                        />
+                        {watch('image') && (
+                            <img
+                                src={watch('image')}
+                                alt="Profile Preview"
+                                className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0"
+                            />
+                        )}
+                    </div>
+                </div>
+            </form>
+        </Drawer>
+    );
 }
 
 export default CustomerAdd;

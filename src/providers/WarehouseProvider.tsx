@@ -50,7 +50,7 @@ export default function WarehouseProvider({ children }: { children: ReactNode })
       queryClient.invalidateQueries({ queryKey: ['warehouse-list'] });
     },
     onError: (err: Error) => {
-      showToast(err.message || 'Failed to delete', 'error');
+      showToast.error(err.message || 'Failed to delete');
     },
   });
 

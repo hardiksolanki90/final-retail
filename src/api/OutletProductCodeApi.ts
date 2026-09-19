@@ -1,11 +1,8 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface OutletProductCodeListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
-}
+export type OutletProductCodeListResponse = NormalizedListResponse<any>;
 
 export const getOutletProductCodeList = async (page = 1, perPage = 15, searchTerm?: string): Promise<OutletProductCodeListResponse> => {
   const params = new URLSearchParams();
@@ -13,7 +10,7 @@ export const getOutletProductCodeList = async (page = 1, perPage = 15, searchTer
   params.append('per_page', perPage.toString());
   if (searchTerm) params.append('search', searchTerm);
   const response = await axiosInstance.get(`/outlet-product-code/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'outletProductCodes', perPage);
 };
 
 export const createOutletProductCode = async (data: Record<string, any>) => {
@@ -29,6 +26,6 @@ export const updateOutletProductCode = async (uuid: string, data: Record<string,
 };
 
 export const deleteOutletProductCode = async (uuid: string) => {
-  await axiosInstance.post('/outlet-product-code/delete', { id: uuid });
+  await axiosInstance.delete(`/outlet-product-code/delete/${uuid}`);
   showToast.success('Outlet product code deleted successfully');
 };

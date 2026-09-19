@@ -1,19 +1,27 @@
-// Beat/Area entity - maps to backend `areas` table (hierarchical lookup)
+// Beat entity - maps to backend `beats` table
 export interface Beat {
   id?: number;
   uuid?: string;
-  areaName: string;
-  name?: string; // alias of areaName from backend
-  parentId?: string | null;
-  nodeLevel?: number;
+  beatCode?: string;
+  code?: string;
+  beatName: string;
+  name?: string; // alias of beatName from backend
+  areaId?: number | null;
+  area?: {
+    id: number;
+    uuid: string;
+    code?: string;
+    name?: string;
+  } | null;
   status: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface BeatFormData {
-  areaName: string;
-  parentId?: string | null;
+  beatCode?: string;
+  beatName: string;
+  areaId?: number | null;
   status?: boolean;
 }
 

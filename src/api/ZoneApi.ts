@@ -1,11 +1,8 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface ZoneListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
-}
+export type ZoneListResponse = NormalizedListResponse<any>;
 
 export const getZoneList = async (page = 1, perPage = 15, searchTerm?: string): Promise<ZoneListResponse> => {
   const params = new URLSearchParams();
@@ -13,7 +10,7 @@ export const getZoneList = async (page = 1, perPage = 15, searchTerm?: string): 
   params.append('per_page', perPage.toString());
   if (searchTerm) params.append('search', searchTerm);
   const response = await axiosInstance.get(`/zone/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'zones', perPage);
 };
 
 export const createZone = async (data: Record<string, any>) => {

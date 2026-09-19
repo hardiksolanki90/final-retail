@@ -52,7 +52,7 @@ export default function DriverReplacementProvider({ children }: { children: Reac
 
   const { data: salesmenRaw = [] } = useQuery({
     queryKey: ['salesmen-all'],
-    queryFn: getAllSalesmen,
+    queryFn: () => getAllSalesmen(),
     staleTime: 10 * 60 * 1000,
   });
 
@@ -68,24 +68,24 @@ export default function DriverReplacementProvider({ children }: { children: Reac
     staleTime: 10 * 60 * 1000,
   });
 
-  const salesmanOptions = salesmenRaw.map((s) => ({ value: s.id, label: s.name || s.salesmanCode || '' }));
+  const salesmanOptions = salesmenRaw.map((s: any) => ({ value: s.id?.toString() ?? '', label: s.name || s.salesmanCode || '' }));
 
   const deleteMutation = useMutation({
     mutationFn: deleteDriverReplacement,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['driver-replacement-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to delete', 'error'); },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
   });
 
   const createMutation = useMutation({
     mutationFn: createDriverReplacement,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['driver-replacement-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to create', 'error'); throw err; },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to create'); throw err; },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: DriverReplacementFormData }) => updateDriverReplacement(uuid, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['driver-replacement-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to update', 'error'); throw err; },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to update'); throw err; },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {

@@ -15,6 +15,7 @@ import {
   Menu,
   Image,
 } from 'lucide-react';
+import { Pagination } from '../../components/ui/Pagination';
 
 const marketPromotionData = [
   { id: 1, date: '2024-01-15', merchandiserName: 'John Smith', customerCode: 'CUST001', customerName: 'Acme Store', itemCode: 'ITM001', itemType: 'Beverage', qty: 100, validFrom: '2024-01-15', validTo: '2024-02-15', description: 'Buy 2 Get 1 Free', image: 'promo1.jpg' },
@@ -372,61 +373,7 @@ export function MarketPromotionList() {
           </table>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="ml-4">
-              {startIndex + 1}-{Math.min(endIndex, marketPromotionData.length)} of {marketPromotionData.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Prev
-            </button>
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Last
-            </button>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={marketPromotionData.length} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
       {exportModalOpen && (

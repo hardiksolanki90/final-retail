@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { Plus, Trash2, FileText, ChevronLeft } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
 import { Button, SaveButton, CancelButton } from '../../components/ui/Button';
-import { Plus, Trash2, FileText, ChevronLeft } from 'lucide-react';
 import type { SelectOption } from '../../components/ui/Select';
 import type { CreditNoteFormData, CreditNoteItem } from '../../types/CreditNote';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { useCreditNoteFormOptions, useCreditNoteMutations } from '../../hooks/CreditNotes/useCreditNotes';
 
 const initialItem: CreditNoteItem = {
   id: '', itemId: '', itemName: '', uom: '', reason: '',
@@ -20,41 +21,22 @@ const initialFormData: CreditNoteFormData = {
   grossTotal: 0, vat: 0, excise: 0, netTotal: 0, discount: 0, finalTotal: 0,
 };
 
-export function CreditNoteAdd() {
-  const data: any = {};
-  let onEvent: ((e: any) => void) | undefined = undefined;
-  const initialData = data?.initialData;
-  const customers = (data?.customers || []) as SelectOption[];
-  const invoices = (data?.invoices || []) as SelectOption[];
-  const reasons = (data?.reasons || []) as SelectOption[];
-  const items = (data?.items || []) as SelectOption[];
-  const uomOptions = (data?.uomOptions || []) as SelectOption[];
-  const navigate = useNavigate();
+const defaultUomOptions: SelectOption[] = [
+  { value: 'PCS', label: 'PCS' }, { value: 'KG', label: 'KG' },
+  { value: 'LTR', label: 'LTR' }, { value: 'BOX', label: 'BOX' }, { value: 'CTN', label: 'CTN' },
+];
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, control, setValue, getValues, setError } =
+export function CreditNoteAdd() {
+  const navigate = useNavigate();
+  const { customers, invoices, reasons, items, isLoading: optionsLoading } = useCreditNoteFormOptions();
+  const { createMutation } = useCreditNoteMutations();
+
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setValue, getValues, setError } =
     useForm<CreditNoteFormData>({ defaultValues: initialFormData });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchedItems = useWatch({ control, name: 'items' });
   const watchedTotals = useWatch({ control, name: ['grossTotal', 'vat', 'excise', 'netTotal', 'discount', 'finalTotal'] });
-
-  const defaultReasons: SelectOption[] = reasons.length > 0 ? reasons : [
-    { value: 'damaged', label: 'Damaged Product' },
-    { value: 'wrong-delivery', label: 'Wrong Delivery' },
-    { value: 'quality-issue', label: 'Quality Issue' },
-    { value: 'expired', label: 'Expired Product' },
-    { value: 'customer-return', label: 'Customer Return' },
-  ];
-
-  const defaultUomOptions: SelectOption[] = uomOptions.length > 0 ? uomOptions : [
-    { value: 'PCS', label: 'PCS' }, { value: 'KG', label: 'KG' },
-    { value: 'LTR', label: 'LTR' }, { value: 'BOX', label: 'BOX' }, { value: 'CTN', label: 'CTN' },
-  ];
-
-  useEffect(() => {
-    if (initialData) reset(initialData);
-    else reset(initialFormData);
-  }, [initialData, reset]);
 
   useEffect(() => {
     if (!watchedItems) return;
@@ -67,7 +49,7 @@ export function CreditNoteAdd() {
     });
     const netTotal = grossTotal - discount;
     const finalTotal = netTotal + vat + excise;
-    
+
     if (getValues('grossTotal') !== grossTotal) setValue('grossTotal', grossTotal);
     if (getValues('vat') !== vat) setValue('vat', vat);
     if (getValues('excise') !== excise) setValue('excise', excise);
@@ -80,11 +62,8 @@ export function CreditNoteAdd() {
 
   const onFormSubmit = async (formData: CreditNoteFormData) => {
     try {
-      if (onEvent) {
-        onEvent({ eventType: initialData ? 'CreditNoteUpdated' : 'CreditNoteCreated', creditNote: formData });
-      } else {
-        navigate('/credit-note');
-      }
+      await createMutation.mutateAsync(formData);
+      navigate('/credit-note');
     } catch (error: any) {
       setError('root', { message: error.response?.data?.message || 'Error saving credit note' });
     }
@@ -98,9 +77,7 @@ export function CreditNoteAdd() {
       <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {initialData ? 'Edit Credit Note' : 'Add Credit Note'}
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Credit Note</h2>
         </div>
         <button onClick={() => navigate('/credit-note')} className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
           <ChevronLeft className="w-4 h-4" /> Back
@@ -117,8 +94,8 @@ export function CreditNoteAdd() {
         <div className="bg-gray-200 dark:bg-gray-700 px-4 py-4">
           <div className="max-w-md">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer <span className="text-red-500">*</span></label>
-            <select {...register('customerId', { required: 'Customer is required' })} className={fieldClass}>
-              <option value="">Select Customer</option>
+            <select {...register('customerId', { required: 'Customer is required' })} className={fieldClass} disabled={optionsLoading}>
+              <option value="">{optionsLoading ? 'Loading…' : 'Select Customer'}</option>
               {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
@@ -130,8 +107,8 @@ export function CreditNoteAdd() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice <span className="text-red-500">*</span></label>
-                <select {...register('invoiceId', { required: 'Invoice is required' })} className={fieldClass}>
-                  <option value="">Select Invoice</option>
+                <select {...register('invoiceId', { required: 'Invoice is required' })} className={fieldClass} disabled={optionsLoading}>
+                  <option value="">{optionsLoading ? 'Loading…' : 'Select Invoice'}</option>
                   {invoices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
                 {errors.invoiceId && <p className="text-sm text-red-500 mt-1">{errors.invoiceId.message}</p>}
@@ -140,7 +117,7 @@ export function CreditNoteAdd() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason <span className="text-red-500">*</span></label>
                 <select {...register('reason', { required: 'Reason is required' })} className={fieldClass}>
                   <option value="">Select Reason</option>
-                  {defaultReasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
                 {errors.reason && <p className="text-sm text-red-500 mt-1">{errors.reason.message}</p>}
               </div>
@@ -175,7 +152,7 @@ export function CreditNoteAdd() {
                     <tr key={field.id} className="border-t border-gray-200 dark:border-gray-700">
                       <td className="px-3 py-2">{index + 1}</td>
                       <td className="px-3 py-2">
-                        <select {...register(`items.${index}.itemId`)} className={selectClass}>
+                        <select {...register(`items.${index}.itemId`)} className={selectClass} disabled={optionsLoading}>
                           <option value="">Select Item</option>
                           {items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
@@ -189,7 +166,7 @@ export function CreditNoteAdd() {
                       <td className="px-3 py-2">
                         <select {...register(`items.${index}.reason`)} className={selectClass}>
                           <option value="">Reason</option>
-                          {defaultReasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                       </td>
                       <td className="px-3 py-2"><input type="number" {...register(`items.${index}.quantity`, { valueAsNumber: true })} className="w-16 px-2 py-1 border rounded text-sm" min="0" /></td>
@@ -231,7 +208,7 @@ export function CreditNoteAdd() {
         <div className="bg-gray-200 dark:bg-gray-700 p-4 flex justify-end gap-3">
           <CancelButton onClick={() => navigate('/credit-note')} disabled={isSubmitting}>Cancel</CancelButton>
           <SaveButton type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : initialData ? 'Update Credit Note' : 'Save & Submit'}
+            {isSubmitting ? 'Saving...' : 'Save & Submit'}
           </SaveButton>
         </div>
       </form>

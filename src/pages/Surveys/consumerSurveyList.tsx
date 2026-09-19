@@ -1,5 +1,4 @@
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Filter,
   Plus,
@@ -14,17 +13,10 @@ import {
   X,
   Menu,
 } from 'lucide-react';
-
-const surveyData = [
-  { id: 1, date: '2024-01-10', surveyName: 'Customer Satisfaction Q1', fromDate: '2024-01-01', toDate: '2024-01-31' },
-  { id: 2, date: '2024-01-25', surveyName: 'Brand Awareness Study', fromDate: '2024-01-20', toDate: '2024-02-20' },
-  { id: 3, date: '2024-02-05', surveyName: 'Product Feedback Survey', fromDate: '2024-02-01', toDate: '2024-02-28' },
-  { id: 4, date: '2024-02-15', surveyName: 'Shopping Experience', fromDate: '2024-02-15', toDate: '2024-03-15' },
-  { id: 5, date: '2024-02-28', surveyName: 'Price Perception Study', fromDate: '2024-03-01', toDate: '2024-03-31' },
-  { id: 6, date: '2024-03-10', surveyName: 'Store Layout Feedback', fromDate: '2024-03-10', toDate: '2024-04-10' },
-  { id: 7, date: '2024-03-20', surveyName: 'Customer Loyalty Survey', fromDate: '2024-03-20', toDate: '2024-04-20' },
-  { id: 8, date: '2024-04-01', surveyName: 'New Product Interest', fromDate: '2024-04-01', toDate: '2024-04-30' },
-];
+import { ConsumerSurveyAdd } from './ConsumerSurveyAdd';
+import { Pagination } from '../../components/ui/Pagination';
+import { useConsumerSurveys, useSurveyFormOptions } from '../../hooks/Survey/useSurveys';
+import type { ConsumerSurveyFormData } from '../../types/Survey';
 
 interface Column {
   key: string;
@@ -33,13 +25,14 @@ interface Column {
 }
 
 export function ConsumerSurveyList() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const bulkActionRef = useRef<HTMLDivElement>(null);
   const columnsRef = useRef<HTMLDivElement>(null);
   const moreActionsRef = useRef<HTMLDivElement>(null);
@@ -49,17 +42,33 @@ export function ConsumerSurveyList() {
   const [exportToDate, setExportToDate] = useState('');
   const [exportFormat, setExportFormat] = useState<'csv' | 'xls' | ''>('');
 
+  const { surveys, total, isLoading, createMutation, bulkAction } = useConsumerSurveys(currentPage);
+  const { customers, merchandisers, isLoading: optionsLoading } = useSurveyFormOptions();
+
+  const surveyData = useMemo(
+    () =>
+      surveys.map((s) => ({
+        id: s.uuid ?? '',
+        surveyCode: s.surveyCode,
+        surveyName: s.surveyName,
+        merchandiser: s.merchandiserName ?? '—',
+        date: s.date,
+        status: s.status === 'completed' ? 'Completed' : 'Draft',
+      })),
+    [surveys],
+  );
+
   const [columns, setColumns] = useState<Column[]>([
-    { key: 'date', label: 'Date', visible: true },
+    { key: 'surveyCode', label: 'Code', visible: true },
     { key: 'surveyName', label: 'Survey Name', visible: true },
-    { key: 'fromDate', label: 'From Date', visible: true },
-    { key: 'toDate', label: 'To Date', visible: true },
+    { key: 'merchandiser', label: 'Merchandiser', visible: true },
+    { key: 'date', label: 'Date', visible: true },
+    { key: 'status', label: 'Status', visible: true },
   ]);
 
-  // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDraft, setFilterDraft] = useState({ date: '', surveyName: '', fromDate: '', toDate: '' });
-  const [appliedFilter, setAppliedFilter] = useState({ date: '', surveyName: '', fromDate: '', toDate: '' });
+  const [filterDraft, setFilterDraft] = useState({ surveyCode: '', surveyName: '', merchandiser: '' });
+  const [appliedFilter, setAppliedFilter] = useState({ surveyCode: '', surveyName: '', merchandiser: '' });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -77,24 +86,18 @@ export function ConsumerSurveyList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(surveyData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  // Apply filters
-  const filteredData = surveyData.filter(c =>
-    (!appliedFilter.date || String(c.date ?? '').toLowerCase().includes(appliedFilter.date.toLowerCase())) &&
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+  const currentData = surveyData.filter(c =>
+    (!appliedFilter.surveyCode || String(c.surveyCode ?? '').toLowerCase().includes(appliedFilter.surveyCode.toLowerCase())) &&
     (!appliedFilter.surveyName || String(c.surveyName ?? '').toLowerCase().includes(appliedFilter.surveyName.toLowerCase())) &&
-    (!appliedFilter.fromDate || String(c.fromDate ?? '').toLowerCase().includes(appliedFilter.fromDate.toLowerCase())) &&
-    (!appliedFilter.toDate || String(c.toDate ?? '').toLowerCase().includes(appliedFilter.toDate.toLowerCase()))
+    (!appliedFilter.merchandiser || String(c.merchandiser ?? '').toLowerCase().includes(appliedFilter.merchandiser.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
   const handleSelectAll = () => {
     setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
   };
 
-  const handleSelectRow = (id: number) => {
+  const handleSelectRow = (id: string) => {
     setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
@@ -120,11 +123,27 @@ export function ConsumerSurveyList() {
     setExportFormat('');
   };
 
+  const handleAddSubmit = async (data: ConsumerSurveyFormData) => {
+    await createMutation.mutateAsync(data);
+  };
+
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => console.log('Delete', selectedRows) },
-    { label: 'Archive Selected', icon: Archive, action: () => console.log('Archive', selectedRows) },
-    { label: 'Update Status', icon: Tag, action: () => console.log('Update Status', selectedRows) },
+    { label: 'Mark Completed', icon: Tag, action: () => { bulkAction({ uuids: selectedRows, action: 'activate' }); setSelectedRows([]); } },
+    { label: 'Mark Draft', icon: Archive, action: () => { bulkAction({ uuids: selectedRows, action: 'deactivate' }); setSelectedRows([]); } },
+    { label: 'Delete Selected', icon: Trash2, action: () => { bulkAction({ uuids: selectedRows, action: 'delete' }); setSelectedRows([]); } },
   ];
+
+  const getStatusBadge = (status: string) => {
+    const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
+    switch (status) {
+      case 'Completed':
+        return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400`;
+      case 'Draft':
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -169,7 +188,6 @@ export function ConsumerSurveyList() {
             </div>
           )}
 
-          {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
             className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
@@ -214,7 +232,7 @@ export function ConsumerSurveyList() {
           </div>
 
           <button
-            onClick={() => console.log('Create new survey')}
+            onClick={() => setAddOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -243,10 +261,7 @@ export function ConsumerSurveyList() {
                     Export
                   </button>
                   <button
-                    onClick={() => {
-                      console.log('Import');
-                      setMoreActionsOpen(false);
-                    }}
+                    onClick={() => setMoreActionsOpen(false)}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
                     <Upload className="w-4 h-4" />
@@ -259,15 +274,13 @@ export function ConsumerSurveyList() {
         </div>
       </div>
 
-            {/* Filter Accordion */}
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
             {([
-              { key: 'date', label: 'Date' },
+              { key: 'surveyCode', label: 'Code' },
               { key: 'surveyName', label: 'Survey Name' },
-              { key: 'fromDate', label: 'From Date' },
-              { key: 'toDate', label: 'To Date' },
+              { key: 'merchandiser', label: 'Merchandiser' },
             ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
@@ -289,7 +302,7 @@ export function ConsumerSurveyList() {
               </button>
               <button
                 onClick={() => {
-                  const empty = { date: '', surveyName: '', fromDate: '', toDate: '' };
+                  const empty = { surveyCode: '', surveyName: '', merchandiser: '' };
                   setFilterDraft(empty);
                   setAppliedFilter(empty);
                   setFilterOpen(false);
@@ -327,7 +340,11 @@ export function ConsumerSurveyList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
+              {isLoading ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading surveys…</td></tr>
+              ) : currentData.length === 0 ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No consumer surveys yet.</td></tr>
+              ) : currentData.map((item) => (
                 <tr
                   key={item.id}
                   className={`hover:bg-[var(--bg-secondary)] transition-colors ${
@@ -344,7 +361,11 @@ export function ConsumerSurveyList() {
                   </td>
                   {visibleColumns.map((column) => (
                     <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                      {item[column.key as keyof typeof item]}
+                      {column.key === 'status' ? (
+                        <span className={getStatusBadge(item.status)}>{item.status}</span>
+                      ) : (
+                        item[column.key as keyof typeof item]
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -353,61 +374,7 @@ export function ConsumerSurveyList() {
           </table>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="ml-4">
-              {startIndex + 1}-{Math.min(endIndex, surveyData.length)} of {surveyData.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Prev
-            </button>
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Last
-            </button>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
       {exportModalOpen && (
@@ -424,23 +391,11 @@ export function ConsumerSurveyList() {
               <p className="text-[var(--text-secondary)]">Export survey data in CSV or XLS format.</p>
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportType"
-                    checked={exportType === 'all'}
-                    onChange={() => setExportType('all')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportType" checked={exportType === 'all'} onChange={() => setExportType('all')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)] font-medium">All Records</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportType"
-                    checked={exportType === 'specific'}
-                    onChange={() => setExportType('specific')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportType" checked={exportType === 'specific'} onChange={() => setExportType('specific')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)] font-medium">Specific Date Range</span>
                 </label>
               </div>
@@ -448,65 +403,42 @@ export function ConsumerSurveyList() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">From</label>
-                    <input
-                      type="date"
-                      value={exportFromDate}
-                      onChange={(e) => setExportFromDate(e.target.value)}
-                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
+                    <input type="date" value={exportFromDate} onChange={(e) => setExportFromDate(e.target.value)} className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">To</label>
-                    <input
-                      type="date"
-                      value={exportToDate}
-                      onChange={(e) => setExportToDate(e.target.value)}
-                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
+                    <input type="date" value={exportToDate} onChange={(e) => setExportToDate(e.target.value)} className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
                   </div>
                 </div>
               )}
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As :</label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportFormat"
-                    checked={exportFormat === 'csv'}
-                    onChange={() => setExportFormat('csv')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportFormat" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)]">CSV (Comma Separated Value)</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="exportFormat"
-                    checked={exportFormat === 'xls'}
-                    onChange={() => setExportFormat('xls')}
-                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
-                  />
+                  <input type="radio" name="exportFormat" checked={exportFormat === 'xls'} onChange={() => setExportFormat('xls')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)]">XLS (Microsoft Excel Compatible)</span>
                 </label>
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
-              <button
-                onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
-              >
-                Export
-              </button>
-              <button
-                onClick={handleExportCancel}
-                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
-              >
-                Cancel
-              </button>
+              <button onClick={handleExportSubmit} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">Export</button>
+              <button onClick={handleExportCancel} className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors">Cancel</button>
             </div>
           </div>
         </div>
       )}
+
+      <ConsumerSurveyAdd
+        isOpen={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSubmit={handleAddSubmit}
+        isLoading={optionsLoading}
+        customers={customers}
+        merchandisers={merchandisers}
+      />
     </div>
   );
 }

@@ -1,10 +1,14 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
 import { Select, type SelectOption } from '../../components/ui/Select';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
-import { Upload } from 'lucide-react';
+import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { RouteSelect } from '../../components/shared/RouteSelect';
+import { SalesmanTypeSelect } from '../../components/ui/SalesmanTypeSelect';
+import { SalesmanRoleSelect } from '../../components/ui/SalesmanRoleSelect';
+import { Eye, EyeOff } from 'lucide-react';
 import type {
   SalesmanFormData,
   Salesman,
@@ -48,9 +52,7 @@ export function SalesmanAdd({
     updateSalesmanData,
     isAdding,
     isUpdating,
-    routes,
     salesmanTypes,
-    salesmanRoles,
     countries,
     supervisorOptions,
     isLoadingRelatedData,
@@ -63,13 +65,21 @@ export function SalesmanAdd({
     reset,
     setError,
     watch,
-    setValue
+    setValue,
+    control
   } = useForm<SalesmanFormData>({
     defaultValues: initialFormData
   });
 
   const isEditing = !!data;
   const watchedStatus = watch('status');
+  const watchedTypeId = watch('salesmanTypeId');
+  
+  const selectedType = salesmanTypes.find(t => t.id.toString() === watchedTypeId);
+  const isMerchandising = selectedType?.name?.toLowerCase().includes('merchandis');
+  const entityLabel = isMerchandising ? 'Merchandiser' : 'Salesman';
+
+  const [showPassword, setShowPassword] = useState(false);
 
 
   useEffect(() => {
@@ -126,21 +136,6 @@ export function SalesmanAdd({
   };
 
   // Convert related data to SelectOptions
-  const routeOptions: SelectOption[] = routes.map(route => ({
-    value: route.id.toString(),
-    label: route.routeName
-  }));
-
-  const salesmanTypeOptions: SelectOption[] = salesmanTypes.map(type => ({
-    value: type.id.toString(),
-    label: type.name
-  }));
-
-  const salesmanRoleOptions: SelectOption[] = salesmanRoles.map(role => ({
-    value: role.id.toString(),
-    label: role.name
-  }));
-
   const countryOptions: SelectOption[] = countries.map(country => ({
     value: country.id.toString(),
     label: country.name
@@ -152,285 +147,205 @@ export function SalesmanAdd({
   }));
 
   const footerContent = (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
-        <button
-          type="button"
-          onClick={() => setValue('status', !watchedStatus)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-            watchedStatus
-              ? 'bg-primary-600 dark:bg-primary-500'
-              : 'bg-gray-300 dark:bg-gray-600'
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
-        <span className={`text-sm font-medium ${
-          watchedStatus
-            ? 'text-green-600 dark:text-green-400'
-            : 'text-gray-500 dark:text-gray-400'
-        }`}>
-          {watchedStatus ? 'Active' : 'Inactive'}
-        </span>
-      </div>
-      <div className="flex gap-3">
-        <CancelButton onClick={handleClose} disabled={isSubmitting}>
-          Cancel
-        </CancelButton>
-        <SaveButton type="submit" form="salesman-form" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : isEditing ? 'Update Salesman' : 'Save Salesman'}
-        </SaveButton>
-      </div>
+    <div className="flex justify-end gap-3">
+      <CancelButton onClick={handleClose} disabled={isSubmitting || isAdding || isUpdating}>
+        Cancel
+      </CancelButton>
+      <SaveButton type="submit" form="salesman-form" disabled={isSubmitting || isAdding || isUpdating}>
+        {isSubmitting ? 'Saving...' : isEditing ? `Update ${entityLabel}` : `Save ${entityLabel}`}
+      </SaveButton>
     </div>
   );
-
 
   return (
     <Drawer
       isOpen={isOpen}
       onClose={handleClose}
-      title={isEditing ? 'Edit Salesman' : 'Add Salesman'}
+      title={isEditing ? `Edit ${entityLabel}` : `Add ${entityLabel}`}
       width="w-[800px]"
       footer={footerContent}
     >
-      <form id="salesman-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-6">
-        {/* Show root errors */}
+      <form id="salesman-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {errors.root.message}
           </div>
         )}
 
-        {/* Basic Information Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Employee Code
-              </label>
-              <Input
-                {...register('employeeCode')}
-                placeholder="Auto-generated if empty"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Salesman Code
-              </label>
-              <Input
-                {...register('salesmanCode')}
-                placeholder="Auto-generated if empty"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                First Name *
-              </label>
-              <Input
-                {...register('firstname', { 
-                  required: 'First name is required',
-                  validate: value => value.trim() !== '' || 'First name cannot be empty'
-                })}
-                placeholder="Enter first name"
-                error={errors.firstname?.message}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Last Name
-              </label>
-              <Input
-                {...register('lastname')}
-                placeholder="Enter last name"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email *
-              </label>
-              <Input
-                {...register('email', {
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: 'Please enter a valid email address'
-                  }
-                })}
-                type="email"
-                placeholder="Enter email address"
-                error={errors.email?.message}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Mobile Number
-              </label>
-              <Input
-                {...register('mobile')}
-                placeholder="Enter mobile number"
-              />
-            </div>
-          </div>
-
-          {!isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password *
-              </label>
-              <Input
-                {...register('password', { 
-                  required: 'Password is required',
-                  minLength: {
-                    value: 6,
-                    message: 'Password must be at least 6 characters'
-                  }
-                })}
-                type="password"
-                placeholder="Enter password"
-                error={errors.password?.message}
-              />
-            </div>
-          )}
-        </div>
-
-
-
-
-
-
-        {/* Assignment Information Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Assignment Information</h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Salesman Type
-              </label>
-              <Select
-                {...register('salesmanTypeId')}
-                options={salesmanTypeOptions}
-                placeholder="Select salesman type"
-                loading={isLoadingRelatedData}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Salesman Role
-              </label>
-              <Select
-                {...register('salesmanRoleId')}
-                options={salesmanRoleOptions}
-                placeholder="Select salesman role"
-                loading={isLoadingRelatedData}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Route
-              </label>
-              <Select
-                {...register('routeId')}
-                options={routeOptions}
-                placeholder="Select route"
-                loading={isLoadingRelatedData}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Supervisor
-              </label>
-              <Select
-                {...register('supervisorId')}
-                options={supervisorOptionsList}
-                placeholder="Select supervisor"
-                loading={isLoadingRelatedData}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Country
-              </label>
-              <Select
-                {...register('countryId')}
-                options={countryOptions}
-                placeholder="Select country"
-                loading={isLoadingRelatedData}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Designation
-              </label>
-              <Input
-                {...register('designation')}
-                placeholder="Enter designation"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Joining Date
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {entityLabel} Code*
             </label>
+          </div>
+          <div className="flex items-center gap-2 relative">
             <Input
-              {...register('joiningDate')}
-              type="date"
+              {...register('salesmanCode', { required: `${entityLabel} Code is required` })}
+              placeholder="Auto-generated if empty"
+              error={errors.salesmanCode?.message}
             />
+            <OrderCodeSettingsIcon label={`${entityLabel} Code`} value={watch('salesmanCode') || ''} onChange={(v) => setValue('salesmanCode', v)} />
           </div>
         </div>
 
-
-        {/* Additional Information Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Additional Information</h3>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Profile Image URL
-            </label>
-            <Input
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Profile Image:
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 border rounded-md p-1.5 bg-white dark:bg-gray-800 dark:border-gray-600 focus:outline-none"
+              accept="image/*"
               {...register('profileImage')}
-              placeholder="Enter profile image URL"
             />
           </div>
+        </div>
 
-          <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <Upload className="w-6 h-6 text-gray-400" />
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Profile Image Upload
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Click to upload or drag and drop your image here (Max 2MB)
-              </p>
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              First Name*
+            </label>
+            <Input
+              {...register('firstname', { 
+                required: 'First name is required',
+                validate: value => value.trim() !== '' || 'First name cannot be empty'
+              })}
+              error={errors.firstname?.message}
+            />
           </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Last Name*
+            </label>
+            <Input
+              {...register('lastname', { 
+                required: 'Last name is required',
+                validate: value => value.trim() !== '' || 'Last name cannot be empty'
+              })}
+              error={errors.lastname?.message}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Controller
+            name="salesmanTypeId"
+            control={control}
+            rules={{ required: `${entityLabel} Type is required` }}
+            render={({ field }) => (
+              <SalesmanTypeSelect
+                label={`${entityLabel} Type*`}
+                value={field.value}
+                onChange={(val) => field.onChange(String(val))}
+                isLoading={isLoadingRelatedData}
+                error={errors.salesmanTypeId?.message}
+              />
+            )}
+          />
+        </div>
+
+        <div>
+          <Controller
+            name="salesmanRoleId"
+            control={control}
+            rules={{ required: `${entityLabel} Role is required` }}
+            render={({ field }) => (
+              <SalesmanRoleSelect
+                label={`${entityLabel} Role*`}
+                value={field.value}
+                onChange={(val) => field.onChange(String(val))}
+                isLoading={isLoadingRelatedData}
+                error={errors.salesmanRoleId?.message}
+              />
+            )}
+          />
+        </div>
+
+        <div>
+          <RouteSelect
+            value={watch('routeId')?.toString() || ''}
+            onChange={(value) => setValue('routeId', value)}
+            required
+            isLoading={isLoadingRelatedData}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Email
+          </label>
+          <Input
+            {...register('email', {
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: 'Please enter a valid email address'
+              }
+            })}
+            type="email"
+            error={errors.email?.message}
+          />
+        </div>
+        
+        {!isEditing && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Password*
+            </label>
+            <Input
+              {...register('password', { 
+                required: 'Password is required',
+                minLength: {
+                  value: 6,
+                  message: 'Password must be at least 6 characters'
+                }
+              })}
+              type={showPassword ? 'text' : 'password'}
+              error={errors.password?.message}
+              rightIcon={
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="focus:outline-none">
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Salesman Supervisor
+          </label>
+          <Select
+            {...register('supervisorId')}
+            options={[{value: '', label: 'Select Options'}, ...supervisorOptionsList]}
+            isLoading={isLoadingRelatedData}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Mobile
+          </label>
+          <Input
+            {...register('mobile')}
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+            Is Block
+          </label>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={!watchedStatus}
+              onChange={(e) => setValue('status', !e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+          </label>
         </div>
 
       </form>

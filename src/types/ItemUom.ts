@@ -3,6 +3,7 @@ export interface ItemUom {
   uuid?: string;
   code: string;
   name: string;
+  status: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -10,6 +11,7 @@ export interface ItemUom {
 export interface ItemUomFormData {
   code: string;
   name: string;
+  status: boolean;
 }
 
 export interface ItemUomListResponse {

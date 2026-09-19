@@ -1,5 +1,4 @@
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Filter,
   Plus,
@@ -14,17 +13,9 @@ import {
   X,
   Menu,
 } from 'lucide-react';
-
-const grnData = [
-  { id: 1, date: '2024-01-15', grnNumber: 'GRN-001', branchPlant: 'BP-MAIN', customerGrvNo: 'GRV-001', customer: 'Acme Store', serviceChannel: 'Direct', customerCode: 'CUST001', salesman: 'John Smith', salesmanCode: 'SM001', route: 'Route A', routeCode: 'RA001', approvalStatus: 'Approved' },
-  { id: 2, date: '2024-01-15', grnNumber: 'GRN-002', branchPlant: 'BP-EAST', customerGrvNo: 'GRV-002', customer: 'Metro Mart', serviceChannel: 'Wholesale', customerCode: 'CUST002', salesman: 'Sarah Johnson', salesmanCode: 'SM002', route: 'Route B', routeCode: 'RB001', approvalStatus: 'Pending' },
-  { id: 3, date: '2024-01-16', grnNumber: 'GRN-003', branchPlant: 'BP-WEST', customerGrvNo: 'GRV-003', customer: 'Quick Shop', serviceChannel: 'Retail', customerCode: 'CUST003', salesman: 'Mike Brown', salesmanCode: 'SM003', route: 'Route C', routeCode: 'RC001', approvalStatus: 'Approved' },
-  { id: 4, date: '2024-01-16', grnNumber: 'GRN-004', branchPlant: 'BP-MAIN', customerGrvNo: 'GRV-004', customer: 'Super Store', serviceChannel: 'Direct', customerCode: 'CUST004', salesman: 'Emily Davis', salesmanCode: 'SM004', route: 'Route D', routeCode: 'RD001', approvalStatus: 'Rejected' },
-  { id: 5, date: '2024-01-17', grnNumber: 'GRN-005', branchPlant: 'BP-EAST', customerGrvNo: 'GRV-005', customer: 'City Market', serviceChannel: 'Wholesale', customerCode: 'CUST005', salesman: 'John Smith', salesmanCode: 'SM001', route: 'Route A', routeCode: 'RA001', approvalStatus: 'Approved' },
-  { id: 6, date: '2024-01-17', grnNumber: 'GRN-006', branchPlant: 'BP-WEST', customerGrvNo: 'GRV-006', customer: 'Fresh Foods', serviceChannel: 'Retail', customerCode: 'CUST006', salesman: 'Sarah Johnson', salesmanCode: 'SM002', route: 'Route B', routeCode: 'RB001', approvalStatus: 'Pending' },
-  { id: 7, date: '2024-01-18', grnNumber: 'GRN-007', branchPlant: 'BP-MAIN', customerGrvNo: 'GRV-007', customer: 'Daily Needs', serviceChannel: 'Direct', customerCode: 'CUST007', salesman: 'Mike Brown', salesmanCode: 'SM003', route: 'Route C', routeCode: 'RC001', approvalStatus: 'Approved' },
-  { id: 8, date: '2024-01-18', grnNumber: 'GRN-008', branchPlant: 'BP-EAST', customerGrvNo: 'GRV-008', customer: 'Corner Shop', serviceChannel: 'Retail', customerCode: 'CUST008', salesman: 'Emily Davis', salesmanCode: 'SM004', route: 'Route D', routeCode: 'RD001', approvalStatus: 'Pending' },
-];
+import { Link } from 'react-router-dom';
+import { useGRN } from '../../hooks/GRN/useGRN';
+import { Pagination } from '../../components/ui/Pagination';
 
 interface Column {
   key: string;
@@ -33,7 +24,7 @@ interface Column {
 }
 
 export function GRNList() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
@@ -49,25 +40,35 @@ export function GRNList() {
   const [exportToDate, setExportToDate] = useState('');
   const [exportFormat, setExportFormat] = useState<'csv' | 'xls' | ''>('');
 
+  const { grns, total, isLoading, bulkAction } = useGRN(currentPage);
+
+  const grnData = useMemo(
+    () =>
+      grns.map((g) => ({
+        id: g.uuid ?? '',
+        grnNumber: g.grnNumber,
+        grnDate: g.grnDate,
+        sourceWarehouse: g.sourceWarehouseName ?? '—',
+        destinationWarehouse: g.destinationWarehouseName ?? '—',
+        remark: g.remark || '—',
+        status: g.status ? 'Active' : 'Inactive',
+      })),
+    [grns],
+  );
+
   const [columns, setColumns] = useState<Column[]>([
-    { key: 'date', label: 'Date', visible: true },
     { key: 'grnNumber', label: 'GRN Number', visible: true },
-    { key: 'branchPlant', label: 'Branch Plant', visible: true },
-    { key: 'customerGrvNo', label: 'Customer GRV No', visible: true },
-    { key: 'customer', label: 'Customer', visible: true },
-    { key: 'serviceChannel', label: 'Service Channel', visible: true },
-    { key: 'customerCode', label: 'Customer Code', visible: true },
-    { key: 'salesman', label: 'Salesman', visible: true },
-    { key: 'salesmanCode', label: 'Salesman Code', visible: true },
-    { key: 'route', label: 'Route', visible: true },
-    { key: 'routeCode', label: 'Route Code', visible: true },
-    { key: 'approvalStatus', label: 'Approval Status', visible: true },
+    { key: 'grnDate', label: 'Date', visible: true },
+    { key: 'sourceWarehouse', label: 'Source Warehouse', visible: true },
+    { key: 'destinationWarehouse', label: 'Destination Warehouse', visible: true },
+    { key: 'remark', label: 'Remark', visible: true },
+    { key: 'status', label: 'Status', visible: true },
   ]);
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDraft, setFilterDraft] = useState({ date: '', grnNumber: '', branchPlant: '', customerGrvNo: '', customer: '', serviceChannel: '' });
-  const [appliedFilter, setAppliedFilter] = useState({ date: '', grnNumber: '', branchPlant: '', customerGrvNo: '', customer: '', serviceChannel: '' });
+  const [filterDraft, setFilterDraft] = useState({ grnNumber: '', grnDate: '', sourceWarehouse: '', destinationWarehouse: '' });
+  const [appliedFilter, setAppliedFilter] = useState({ grnNumber: '', grnDate: '', sourceWarehouse: '', destinationWarehouse: '' });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -85,26 +86,21 @@ export function GRNList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(grnData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  // Apply filters
-  const filteredData = grnData.filter(c =>
-    (!appliedFilter.date || String(c.date ?? '').toLowerCase().includes(appliedFilter.date.toLowerCase())) &&
+  // Server already paginates by currentPage — client-side filter applies
+  // only within the current page's rows.
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+  const currentData = grnData.filter(c =>
     (!appliedFilter.grnNumber || String(c.grnNumber ?? '').toLowerCase().includes(appliedFilter.grnNumber.toLowerCase())) &&
-    (!appliedFilter.branchPlant || String(c.branchPlant ?? '').toLowerCase().includes(appliedFilter.branchPlant.toLowerCase())) &&
-    (!appliedFilter.customerGrvNo || String(c.customerGrvNo ?? '').toLowerCase().includes(appliedFilter.customerGrvNo.toLowerCase())) &&
-    (!appliedFilter.customer || String(c.customer ?? '').toLowerCase().includes(appliedFilter.customer.toLowerCase())) &&
-    (!appliedFilter.serviceChannel || String(c.serviceChannel ?? '').toLowerCase().includes(appliedFilter.serviceChannel.toLowerCase()))
+    (!appliedFilter.grnDate || String(c.grnDate ?? '').toLowerCase().includes(appliedFilter.grnDate.toLowerCase())) &&
+    (!appliedFilter.sourceWarehouse || String(c.sourceWarehouse ?? '').toLowerCase().includes(appliedFilter.sourceWarehouse.toLowerCase())) &&
+    (!appliedFilter.destinationWarehouse || String(c.destinationWarehouse ?? '').toLowerCase().includes(appliedFilter.destinationWarehouse.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
   const handleSelectAll = () => {
     setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
   };
 
-  const handleSelectRow = (id: number) => {
+  const handleSelectRow = (id: string) => {
     setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
@@ -131,20 +127,18 @@ export function GRNList() {
   };
 
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => console.log('Delete', selectedRows) },
-    { label: 'Archive Selected', icon: Archive, action: () => console.log('Archive', selectedRows) },
-    { label: 'Update Status', icon: Tag, action: () => console.log('Update Status', selectedRows) },
+    { label: 'Activate Selected', icon: Tag, action: () => { bulkAction({ uuids: selectedRows, action: 'activate' }); setSelectedRows([]); } },
+    { label: 'Deactivate Selected', icon: Archive, action: () => { bulkAction({ uuids: selectedRows, action: 'deactivate' }); setSelectedRows([]); } },
+    { label: 'Delete Selected', icon: Trash2, action: () => { bulkAction({ uuids: selectedRows, action: 'delete' }); setSelectedRows([]); } },
   ];
 
   const getStatusBadge = (status: string) => {
     const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
     switch (status) {
-      case 'Approved':
+      case 'Active':
         return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400`;
-      case 'Pending':
-        return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400`;
-      case 'Rejected':
-        return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400`;
+      case 'Inactive':
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
       default:
         return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
     }
@@ -237,13 +231,13 @@ export function GRNList() {
             )}
           </div>
 
-          <button
-            onClick={() => console.log('Create new GRN')}
+          <Link
+            to="/grn/add"
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Create
-          </button>
+          </Link>
 
           <div className="relative" ref={moreActionsRef}>
             <button
@@ -267,10 +261,7 @@ export function GRNList() {
                     Export
                   </button>
                   <button
-                    onClick={() => {
-                      console.log('Import');
-                      setMoreActionsOpen(false);
-                    }}
+                    onClick={() => setMoreActionsOpen(false)}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
                     <Upload className="w-4 h-4" />
@@ -283,17 +274,15 @@ export function GRNList() {
         </div>
       </div>
 
-            {/* Filter Accordion */}
+      {/* Filter Accordion */}
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
             {([
-              { key: 'date', label: 'Date' },
-              { key: 'grnNumber', label: 'Grn Number' },
-              { key: 'branchPlant', label: 'Branch Plant' },
-              { key: 'customerGrvNo', label: 'Customer Grv No' },
-              { key: 'customer', label: 'Customer' },
-              { key: 'serviceChannel', label: 'Service Channel' },
+              { key: 'grnNumber', label: 'GRN Number' },
+              { key: 'grnDate', label: 'Date' },
+              { key: 'sourceWarehouse', label: 'Source Warehouse' },
+              { key: 'destinationWarehouse', label: 'Destination Warehouse' },
             ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
@@ -315,7 +304,7 @@ export function GRNList() {
               </button>
               <button
                 onClick={() => {
-                  const empty = { date: '', grnNumber: '', branchPlant: '', customerGrvNo: '', customer: '', serviceChannel: '' };
+                  const empty = { grnNumber: '', grnDate: '', sourceWarehouse: '', destinationWarehouse: '' };
                   setFilterDraft(empty);
                   setAppliedFilter(empty);
                   setFilterOpen(false);
@@ -353,7 +342,11 @@ export function GRNList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
+              {isLoading ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading GRNs…</td></tr>
+              ) : currentData.length === 0 ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No GRNs yet.</td></tr>
+              ) : currentData.map((item) => (
                 <tr
                   key={item.id}
                   className={`hover:bg-[var(--bg-secondary)] transition-colors ${
@@ -370,8 +363,8 @@ export function GRNList() {
                   </td>
                   {visibleColumns.map((column) => (
                     <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)] whitespace-nowrap">
-                      {column.key === 'approvalStatus' ? (
-                        <span className={getStatusBadge(item.approvalStatus)}>{item.approvalStatus}</span>
+                      {column.key === 'status' ? (
+                        <span className={getStatusBadge(item.status)}>{item.status}</span>
                       ) : (
                         item[column.key as keyof typeof item]
                       )}
@@ -383,61 +376,7 @@ export function GRNList() {
           </table>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="ml-4">
-              {startIndex + 1}-{Math.min(endIndex, grnData.length)} of {grnData.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Prev
-            </button>
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Last
-            </button>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
       {exportModalOpen && (

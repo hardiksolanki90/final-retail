@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Filter, Plus, RefreshCw, Columns3, ChevronDown, Check, Menu, Download, Upload, Pencil, Trash2 } from 'lucide-react';
 import { MerchandiserReplacementAdd } from './MerchandiserReplacementAdd';
+import { Pagination } from '../../../components/ui/Pagination';
 import { useMerchandiserReplacement } from '../../../providers/MerchandiserReplacementProvider';
 import { createMerchandiserReplacement, updateMerchandiserReplacement } from '../../../api/MerchandiserReplacementApi';
 import type { MerchandiserReplacementFormData } from '../../../types/MerchandiserReplacement';
@@ -74,9 +75,8 @@ export function MerchandiserReplacementList() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              filterOpen ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${filterOpen ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
           >
             <Filter className="w-4 h-4" />Filter
           </button>
@@ -123,7 +123,7 @@ export function MerchandiserReplacementList() {
       )}
 
       {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[400px] mx-6">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[200px] mx-6">
         {isLoading && (
           <div className="absolute inset-0 z-10 bg-white/50 dark:bg-black/20 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
@@ -180,28 +180,7 @@ export function MerchandiserReplacementList() {
           </table>
         </div>
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setCurrentPage(1); }} className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500">
-              {[10, 15, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-            {meta && <span className="ml-4">{((currentPage - 1) * perPage) + 1}-{Math.min(currentPage * perPage, total)} of {total}</span>}
-          </div>
-          <div className="flex items-center gap-1">
-            {(['First', 'Prev', 'Next', 'Last'] as const).map(label => {
-              const disabled = label === 'First' || label === 'Prev' ? currentPage === 1 : currentPage === totalPages || totalPages === 0;
-              const onClick = () => {
-                if (label === 'First') setCurrentPage(1);
-                else if (label === 'Prev') setCurrentPage(Math.max(currentPage - 1, 1));
-                else if (label === 'Next') setCurrentPage(Math.min(currentPage + 1, totalPages));
-                else setCurrentPage(totalPages);
-              };
-              return <button key={label} onClick={onClick} disabled={disabled} className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">{label}</button>;
-            })}
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">Page {currentPage} of {totalPages || 1}</span>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
 
       <MerchandiserReplacementAdd

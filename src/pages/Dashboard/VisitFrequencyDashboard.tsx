@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Repeat,
-  CalendarClock,
   Users,
   TrendingUp,
   CheckCircle2,

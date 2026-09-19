@@ -127,6 +127,8 @@ export interface ItemCategory {
   uuid?: string;
   categoryName: string;
   description?: string;
+  parentId?: number | string;
+  nodeLevel?: number;
   status?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -138,6 +140,8 @@ export interface Brand {
   brandName: string;
   description?: string;
   logoUrl?: string;
+  parentId?: number | string;
+  nodeLevel?: number;
   status?: boolean;
   createdAt?: string;
   updatedAt?: string;

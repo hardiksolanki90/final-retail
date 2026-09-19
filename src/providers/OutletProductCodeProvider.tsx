@@ -34,19 +34,15 @@ export default function OutletProductCodeProvider({ children }: { children: Reac
   const deleteMutation = useMutation({
     mutationFn: deleteOutletProductCode,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['outlet-product-code-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to delete', 'error'); },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
     if (window.confirm('Are you sure you want to delete this outlet product code?')) deleteMutation.mutate(uuid);
   };
 
-  const items = Array.isArray(responseData?.data)
-    ? responseData.data
-    : (Array.isArray(responseData?.data?.items)
-       ? responseData.data.items
-       : (Array.isArray(responseData?.data?.data) ? responseData.data.data : []));
-  const meta = responseData?.meta ?? responseData?.data ?? (responseData ? { current_page: responseData.current_page, per_page: responseData.per_page, total: responseData.total, last_page: responseData.last_page } : null);
+  const items = responseData?.data ?? [];
+  const meta = responseData?.meta ?? null;
 
   const value: OutletProductCodeContextType = {
     data: items, meta, isLoading, error: error as Error | null,

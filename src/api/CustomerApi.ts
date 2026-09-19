@@ -1,5 +1,6 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated } from '../lib/paginatedResponse';
 import type {
   Customer,
   CustomerFormData,
@@ -14,6 +15,7 @@ import type {
   CustomerFilters,
   CustomerBulkAction,
   CustomerSelectOption,
+  SalesOrganisation,
 } from '../types/Customer';
 
 // Customer CRUD Operations
@@ -56,7 +58,7 @@ export const getCustomerList = async (
   }
 
   const response = await axiosInstance.get(`/customer/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'customers', perPage) as CustomerListResponse;
 };
 
 export const getAllCustomers = async (filters?: CustomerFilters): Promise<CustomerSelectOption[]> => {
@@ -98,7 +100,7 @@ export const searchCustomers = async (
   }
 
   const response = await axiosInstance.post('/customer/search', Object.fromEntries(params));
-  return response.data;
+  return unwrapPaginated(response.data, 'customers', perPage) as CustomerListResponse;
 };
 
 export const getCustomerDetails = async (uuid: string): Promise<Customer> => {
@@ -198,13 +200,32 @@ export const deleteCustomerType = async (uuid: string): Promise<void> => {
 };
 
 // Customer Categories API
+export interface CustomerCategoryListResponse {
+  data: any[];
+  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
+  current_page?: number; per_page?: number; total?: number; last_page?: number;
+}
+
+export const getCustomerCategoryList = async (
+  page: number = 1,
+  perPage: number = 15,
+  searchTerm?: string
+): Promise<CustomerCategoryListResponse> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+  if (searchTerm) params.append('search', searchTerm);
+  const response = await axiosInstance.get(`/customer-category/list?${params.toString()}`);
+  return unwrapPaginated(response.data, 'customerCategories', perPage);
+};
+
 export const getCustomerCategories = async (): Promise<CustomerCategory[]> => {
-  const response = await axiosInstance.get('/customer-category/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/customer-category/all?per_page=50');
+  return response.data?.customerCategories ?? [];
 };
 
 export const getCustomerCategoryDetails = async (uuid: string): Promise<CustomerCategory> => {
-  const response = await axiosInstance.get(`/customer-category/edit/${uuid}`);
+  const response = await axiosInstance.get(`/customer-category/view/${uuid}`);
   return response.data.data || response.data;
 };
 
@@ -219,13 +240,13 @@ export const updateCustomerCategory = async (uuid: string, data: Partial<Custome
 };
 
 export const deleteCustomerCategory = async (uuid: string): Promise<void> => {
-  await axiosInstance.post('/customer-category/delete', { id: uuid });
+  await axiosInstance.delete(`/customer-category/delete/${uuid}`);
 };
 
 // Customer Groups API
 export const getCustomerGroups = async (): Promise<CustomerGroup[]> => {
-  const response = await axiosInstance.get('/customer-group/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/customer-group/all?per_page=50');
+  return response.data?.customerGroups ?? [];
 };
 
 export const getCustomerGroupDetails = async (uuid: string): Promise<CustomerGroup> => {
@@ -249,8 +270,8 @@ export const deleteCustomerGroup = async (uuid: string): Promise<void> => {
 
 // Channels API
 export const getChannels = async (): Promise<Channel[]> => {
-  const response = await axiosInstance.get('/channel/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/channel/all?per_page=50');
+  return response.data?.channels ?? [];
 };
 
 export const getChannelDetails = async (uuid: string): Promise<Channel> => {
@@ -272,10 +293,35 @@ export const deleteChannel = async (uuid: string): Promise<void> => {
   await axiosInstance.post('/channel/delete', { id: uuid });
 };
 
+// Sales Organisation API
+export const getSalesOrganisations = async (): Promise<SalesOrganisation[]> => {
+  const response = await axiosInstance.get('/sales-organisation/all?per_page=50');
+  return response.data?.salesOrganisations ?? [];
+};
+
+export const getSalesOrganisationDetails = async (uuid: string): Promise<SalesOrganisation> => {
+  const response = await axiosInstance.get(`/sales-organisation/edit/${uuid}`);
+  return response.data.data || response.data;
+};
+
+export const createSalesOrganisation = async (data: Partial<SalesOrganisation>): Promise<SalesOrganisation> => {
+  const response = await axiosInstance.post('/sales-organisation/add', data);
+  return response.data.data || response.data;
+};
+
+export const updateSalesOrganisation = async (uuid: string, data: Partial<SalesOrganisation>): Promise<SalesOrganisation> => {
+  const response = await axiosInstance.post(`/sales-organisation/edit/${uuid}`, data);
+  return response.data.data || response.data;
+};
+
+export const deleteSalesOrganisation = async (uuid: string): Promise<void> => {
+  await axiosInstance.post('/sales-organisation/delete', { id: uuid });
+};
+
 // Payment Terms API
 export const getPaymentTerms = async (): Promise<PaymentTerm[]> => {
-  const response = await axiosInstance.get('/payment-term/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/payment-term/all?per_page=50');
+  return response.data?.paymentTerms ?? [];
 };
 
 export const getPaymentTermDetails = async (uuid: string): Promise<PaymentTerm> => {
@@ -299,8 +345,8 @@ export const deletePaymentTerm = async (uuid: string): Promise<void> => {
 
 // Routes API
 export const getRoutes = async (): Promise<Route[]> => {
-  const response = await axiosInstance.get('/route/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/route/all?per_page=50');
+  return response.data?.routes ?? [];
 };
 
 export const getRouteDetails = async (uuid: string): Promise<Route> => {

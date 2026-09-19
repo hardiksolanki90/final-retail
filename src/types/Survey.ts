@@ -18,9 +18,10 @@ export interface ConsumerSurvey {
   surveyName: string;
   customerId: string;
   merchandiserId: string;
+  merchandiserName?: string;
   date: string;
   questions: SurveyQuestion[];
-  responses: SurveyResponse[];
+  responses?: SurveyResponse[];
   status?: 'draft' | 'completed' | 'cancelled';
   createdAt?: string;
   updatedAt?: string;
@@ -44,6 +45,7 @@ export interface SensorySurvey {
   productId: string;
   customerId: string;
   merchandiserId: string;
+  merchandiserName?: string;
   date: string;
   appearance: number;
   aroma: number;

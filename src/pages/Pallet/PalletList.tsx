@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Filter,
   Plus,
@@ -15,20 +15,11 @@ import {
   Menu,
 } from 'lucide-react';
 import { PalletAdd } from './PalletAdd';
+import { Pagination } from '../../components/ui/Pagination';
 import { createPallet } from '../../api/PalletApi';
 import { showToast } from '../../lib/toast';
 import type { AddPalletFormData } from '../../types/Pallet';
-
-const palletData = [
-  { id: 1, salesmanCode: 'SM001', salesman: 'John Smith', totalPalletAllocated: 50, totalReturn: 35, pending: 15 },
-  { id: 2, salesmanCode: 'SM002', salesman: 'Sarah Johnson', totalPalletAllocated: 40, totalReturn: 40, pending: 0 },
-  { id: 3, salesmanCode: 'SM003', salesman: 'Mike Brown', totalPalletAllocated: 60, totalReturn: 45, pending: 15 },
-  { id: 4, salesmanCode: 'SM004', salesman: 'Emily Davis', totalPalletAllocated: 35, totalReturn: 30, pending: 5 },
-  { id: 5, salesmanCode: 'SM005', salesman: 'David Wilson', totalPalletAllocated: 55, totalReturn: 50, pending: 5 },
-  { id: 6, salesmanCode: 'SM006', salesman: 'Lisa Anderson', totalPalletAllocated: 45, totalReturn: 38, pending: 7 },
-  { id: 7, salesmanCode: 'SM007', salesman: 'Robert Taylor', totalPalletAllocated: 70, totalReturn: 60, pending: 10 },
-  { id: 8, salesmanCode: 'SM008', salesman: 'Jennifer Martinez', totalPalletAllocated: 30, totalReturn: 25, pending: 5 },
-];
+import { usePallets, usePalletFormOptions } from '../../hooks/Pallet/usePallets';
 
 interface Column {
   key: string;
@@ -84,19 +75,24 @@ export function PalletList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(palletData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
+  const { pallets, total, isLoading, refetch } = usePallets(currentPage);
+  const { salesmen, items, divisions, warehouses, isLoading: optionsLoading } = usePalletFormOptions();
+
+  const palletData = useMemo(
+    () => pallets.map((row, index) => ({ id: index, ...row })),
+    [pallets],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
 
   // Apply filters
-  const filteredData = palletData.filter(c =>
+  const currentData = palletData.filter(c =>
     (!appliedFilter.salesmanCode || String(c.salesmanCode ?? '').toLowerCase().includes(appliedFilter.salesmanCode.toLowerCase())) &&
     (!appliedFilter.salesman || String(c.salesman ?? '').toLowerCase().includes(appliedFilter.salesman.toLowerCase())) &&
     (!appliedFilter.totalPalletAllocated || String(c.totalPalletAllocated ?? '').toLowerCase().includes(appliedFilter.totalPalletAllocated.toLowerCase())) &&
     (!appliedFilter.totalReturn || String(c.totalReturn ?? '').toLowerCase().includes(appliedFilter.totalReturn.toLowerCase())) &&
     (!appliedFilter.pending || String(c.pending ?? '').toLowerCase().includes(appliedFilter.pending.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
   const handleSelectAll = () => {
     setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
@@ -134,6 +130,7 @@ export function PalletList() {
       await createPallet(data);
       showToast.success('Pallet added successfully');
       setIsAddOpen(false);
+      refetch();
     } catch (error) {
       console.error('Error creating pallet:', error);
     } finally {
@@ -361,7 +358,11 @@ export function PalletList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
+              {isLoading ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading pallets…</td></tr>
+              ) : currentData.length === 0 ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No pallet records yet.</td></tr>
+              ) : currentData.map((item) => (
                 <tr
                   key={item.id}
                   className={`hover:bg-[var(--bg-secondary)] transition-colors ${
@@ -391,68 +392,18 @@ export function PalletList() {
           </table>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="ml-4">
-              {startIndex + 1}-{Math.min(endIndex, palletData.length)} of {palletData.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Prev
-            </button>
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Last
-            </button>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
       <PalletAdd
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSubmit={handleAddPallet}
-        isLoading={isAddLoading}
+        isLoading={isAddLoading || optionsLoading}
+        salesmen={salesmen}
+        items={items}
+        divisions={divisions}
+        warehouses={warehouses}
       />
 
       {exportModalOpen && (

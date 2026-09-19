@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
 import { settingsMenu } from '../../data/menuData';
+import { useAuth } from '../../context/AuthContext';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -60,6 +61,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
   const location = useLocation();
+  const { hasPermission } = useAuth();
 
   const getIcon = (iconName: string) => {
     const IconComponent = iconMap[iconName];
@@ -74,7 +76,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
     <Drawer isOpen={isOpen} onClose={onClose} title="Settings" width="w-80">
       <nav className="py-2">
         <ul className="space-y-1 px-3">
-          {settingsMenu.map((item) => (
+          {settingsMenu.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => (
             <li key={item.id}>
               <Link
                 to={item.path}

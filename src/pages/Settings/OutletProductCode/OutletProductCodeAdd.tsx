@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { OutletProductCodeFormData } from '../../../types/OutletProductCode';
+import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 
 interface OutletProductCodeAddProps {
   isOpen: boolean;
@@ -28,7 +29,9 @@ export function OutletProductCodeAdd({
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setError
+    setError,
+    watch,
+    setValue
   } = useForm<OutletProductCodeFormData>({
     defaultValues: initialFormData
   });
@@ -77,6 +80,26 @@ export function OutletProductCodeAdd({
         )}
 
         <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700">Code *</label>
+          </div>
+          <div className="flex items-center gap-2 relative">
+            <input
+              {...register('code', {
+                required: 'Code is required',
+                validate: value => value.trim() !== '' || 'Code cannot be empty'
+              })}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter code"
+            />
+            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} />
+            {errors.code && (
+              <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
           <input
             {...register('name', {
@@ -88,21 +111,6 @@ export function OutletProductCodeAdd({
           />
           {errors.name && (
             <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-          <input
-            {...register('code', {
-              required: 'Code is required',
-              validate: value => value.trim() !== '' || 'Code cannot be empty'
-            })}
-            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter code"
-          />
-          {errors.code && (
-            <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
           )}
         </div>
       </form>

@@ -1,17 +1,17 @@
 export interface Zone {
   id?: string;
   uuid?: string;
+  zoneCode: string;
   name: string;
-  noTruck: string;
-  status: string;
+  status: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface ZoneFormData {
+  zoneCode: string;
   name: string;
-  noTruck: string;
-  status: string;
+  status: boolean;
 }
 
 export interface ZoneListResponse {

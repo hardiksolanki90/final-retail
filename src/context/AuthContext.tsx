@@ -1,18 +1,47 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import * as AuthApi from '../api/AuthApi';
+import { getOrganisationDetails } from '../api/OrganisationApi';
+import {
+  getStoredOrganisation,
+  setStoredOrganisation,
+  clearStoredOrganisation,
+} from '../utils/organisationStorage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Organisation {
   id: number;
+  uuid?: string;
   org_name: string;
   org_company_id?: string;
   org_email?: string;
   org_phone?: string;
   org_address?: string;
+  org_city?: string;
+  org_state?: string;
+  org_postal?: string;
+  org_currency?: string;
+  org_contact_person?: string;
+  org_contact_person_number?: string;
   org_status: boolean;
   is_complete?: boolean;
+  country?: {
+    id: number;
+    countryMasterId: number | null;
+    name: string;
+    countryCode: string;
+    dialCode?: string | null;
+    currency?: string | null;
+    currencyCode?: string | null;
+    currencySymbol?: string | null;
+  } | null;
+}
+
+interface UserRole {
+  id: number;
+  name: string;
+  permissions: string[];
 }
 
 interface User {
@@ -26,6 +55,7 @@ interface User {
   status: boolean;
   is_approved_by_admin: boolean;
   organisation?: Organisation;
+  role?: UserRole | null;
 }
 
 interface LoginCredentialsLocal {
@@ -42,6 +72,7 @@ interface AuthResult {
 
 interface AuthContextType {
   user: User | null;
+  organisation: Organisation | null;
   isAuthenticated: boolean;
   organisationComplete: boolean;
   loading: boolean;
@@ -50,6 +81,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (profileData: any) => Promise<AuthResult>;
   checkAuthStatus: () => Promise<void>;
+  hasPermission: (permission: string) => boolean;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -64,6 +96,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [organisation, setOrganisation] = useState<Organisation | null>(() => getStoredOrganisation() as Organisation | null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [organisationComplete, setOrganisationComplete] = useState(false);
@@ -73,19 +106,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const applyUser = (u: User) => {
     setUser(u);
     setIsAuthenticated(true);
-    // If the organisation has a company ID or phone (which are required for full profile vs skeleton), it's complete
-    const isComplete = Boolean(
-      u.organisation?.is_complete || 
-      u.organisation?.org_company_id || 
-      u.organisation?.org_phone
-    );
-    setOrganisationComplete(isComplete);
+    // is_complete is set server-side only when the user submits the
+    // Organisation Details form (OrganisationAdd) — registration always
+    // creates the org shell with is_complete = false, even though it
+    // already carries org_name/org_company_id/org_phone.
+    setOrganisationComplete(Boolean(u.organisation?.is_complete));
+    if (u.organisation) {
+      setOrganisation(u.organisation);
+      setStoredOrganisation(u.organisation as any);
+    }
   };
 
   const clearUser = () => {
     setUser(null);
+    setOrganisation(null);
     setIsAuthenticated(false);
     setOrganisationComplete(false);
+    clearStoredOrganisation();
   };
 
   // ── checkAuthStatus ───────────────────────────────────────────────────────
@@ -97,6 +134,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const userData = await AuthApi.getCurrentUser();
       applyUser(userData as unknown as User);
+
+      // Refresh organisation details in localStorage
+      try {
+        const orgDetails = await getOrganisationDetails();
+        if (orgDetails) {
+          setOrganisation(orgDetails as any);
+          setStoredOrganisation(orgDetails as any);
+          setOrganisationComplete(Boolean(orgDetails.is_complete));
+        }
+      } catch {
+        // Fallback gracefully if org details call fails
+      }
     } catch {
       clearUser();
     } finally {
@@ -104,7 +153,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Guards against StrictMode's dev-mode double-invoke of mount effects,
+  // which otherwise fires getCurrentUser()/getOrganisationDetails() twice.
+  const didCheckAuth = useRef(false);
   useEffect(() => {
+    if (didCheckAuth.current) return;
+    didCheckAuth.current = true;
     checkAuthStatus();
   }, []);
 
@@ -112,19 +166,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // getCsrfCookie() is called inside AuthApi.login before posting credentials.
   // Laravel Sanctum responds with a Set-Cookie (session + XSRF-TOKEN).
 
-  const login = async (credentials: LoginCredentialsLocal): Promise<AuthResult> => {
+  const login = async (credentials: any): Promise<AuthResult> => {
     try {
       setLoading(true);
-      const response = await AuthApi.login(credentials as LoginCredentials);
+      const response = await AuthApi.login(credentials as any);
 
       // Backend: { success, data: { user, ... } } or just { user }
-      const userData = (response as any)?.user ?? response;
-      applyUser(userData as User);
+      const user = (response as any)?.user ?? response;
+      applyUser(user as User);
+
+      // Call API after successfully login to fetch and store reusable org details in localStorage
+      try {
+        const orgDetails = await getOrganisationDetails();
+        if (orgDetails) {
+          setOrganisation(orgDetails as any);
+          setStoredOrganisation(orgDetails as any);
+          setOrganisationComplete(Boolean(orgDetails.is_complete));
+        }
+      } catch (orgErr) {
+        console.warn('Could not fetch organisation details after login:', orgErr);
+      }
+
       return { success: true, data: response };
     } catch (error: any) {
       clearUser();
       const message = error.response?.data?.message || error.message || 'Login failed.';
-      return { success: false, message };
+      return { success: false, message, errors: error.response?.data?.errors };
     } finally {
       setLoading(false);
     }
@@ -135,11 +202,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: any): Promise<AuthResult> => {
     try {
       setLoading(true);
-      const response = await AuthApi.register(userData as RegisterData);
+      const response = await AuthApi.register(userData as any);
+      const user = (response as any)?.user ?? response;
+      if (user) {
+        applyUser(user as User);
+      }
       return {
         success: true,
         data: response,
-        message: 'Registration successful. Awaiting admin approval.',
+        message: 'Registration successful.',
       };
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Registration failed.';
@@ -175,10 +246,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // ── hasPermission ─────────────────────────────────────────────────────────
+
+  const hasPermission = (permission: string): boolean => {
+    return user?.role?.permissions.includes(permission) ?? false;
+  };
+
   // ── Context value ─────────────────────────────────────────────────────────
 
   const value: AuthContextType = {
     user,
+    organisation,
     isAuthenticated,
     organisationComplete,
     loading,
@@ -187,6 +265,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     updateProfile,
     checkAuthStatus,
+    hasPermission,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

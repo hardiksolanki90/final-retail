@@ -55,7 +55,7 @@ export default function MerchandiserReplacementProvider({ children }: { children
   const deleteMutation = useMutation({
     mutationFn: deleteMerchandiserReplacement,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['merchandiser-replacement-list'] }); },
-    onError: (err: Error) => { showToast(err.message || 'Failed to delete', 'error'); },
+    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {

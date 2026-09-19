@@ -2,20 +2,23 @@ export interface Customer {
   id?: number;
   uuid?: string;
   code: string;
-  erpCode?: string;
   shopName: string;
   firstName: string;
   lastName?: string;
   fullName?: string;
   email?: string;
   phoneNumber?: string;
-  address: string;
+  customerOfficeAddress?: string;
+  customerOfficeCity?: string;
+  customerOfficeState?: string;
+  customerOfficeZipcode?: string;
+  customerOfficePhone?: string;
+  customerOfficeLat?: number;
+  customerOfficeLang?: number;
+  customerHomeAddress?: string;
+  customerHomeLat?: number;
+  customerHomeLang?: number;
   fullAddress?: string;
-  city?: string;
-  state?: string;
-  zipcode?: string;
-  latitude?: number;
-  longitude?: number;
   balance: number;
   creditLimit: number;
   creditDays?: number;
@@ -23,8 +26,23 @@ export interface Customer {
   trnNo?: string;
   image?: string;
   status: boolean;
+  hasLoginAccess?: boolean;
+  user?: {
+    id: number;
+    uuid: string;
+    email: string;
+    status: boolean;
+  } | null;
   routeId?: number;
   salesmanId?: number;
+  salesOrganisationId?: number;
+  countryId?: number;
+  regionId?: number;
+  merchandiserId?: number;
+  shipToPartyId?: number;
+  soldToPartyId?: number;
+  payerId?: number;
+  billToPartyId?: number;
   customerTypeId?: number;
   customerCategoryId?: number;
   customerGroupId?: number;
@@ -41,6 +59,11 @@ export interface Customer {
   };
   salesman?: {
     id: number;
+    name: string;
+  };
+  salesOrganisation?: {
+    id: number;
+    uuid: string;
     name: string;
   };
   customerType?: {
@@ -73,26 +96,40 @@ export interface Customer {
 
 export interface CustomerFormData {
   code?: string;
-  erpCode?: string;
-  shopName: string;
+  shopName?: string;
   firstName: string;
   lastName?: string;
   email?: string;
   phoneNumber?: string;
-  address: string;
-  city?: string;
-  state?: string;
-  zipcode?: string;
-  latitude?: number;
-  longitude?: number;
+  customerOfficeAddress?: string;
+  customerOfficeCity?: string;
+  customerOfficeState?: string;
+  customerOfficeZipcode?: string;
+  customerOfficePhone?: string;
+  customerOfficeLat?: number;
+  customerOfficeLang?: number;
+  customerHomeAddress?: string;
+  customerHomeLat?: number;
+  customerHomeLang?: number;
   balance?: number;
   creditLimit?: number;
   creditDays?: number;
   trnNo?: string;
   image?: string;
   status?: boolean;
+  enableLogin?: boolean;
+  password?: string;
+  passwordConfirmation?: string;
   routeId?: number | string;
   salesmanId?: number | string;
+  salesOrganisationId?: number | string;
+  countryId?: number | string;
+  regionId?: number | string;
+  merchandiserId?: number | string;
+  shipToPartyId?: number | string;
+  soldToPartyId?: number | string;
+  payerId?: number | string;
+  billToPartyId?: number | string;
   customerTypeId?: number | string;
   customerCategoryId?: number | string;
   customerGroupId?: number | string;
@@ -141,6 +178,9 @@ export interface CustomerCategory {
   id?: number;
   uuid?: string;
   categoryName: string;
+  customerCategoryCode?: string;
+  parentId?: number | null;
+  nodeLevel?: number;
   description?: string;
   status?: boolean;
   createdAt?: string;
@@ -151,7 +191,20 @@ export interface CustomerGroup {
   id?: number;
   uuid?: string;
   groupName: string;
+  groupCode?: string;
+  type?: string;
   description?: string;
+  status?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SalesOrganisation {
+  id?: number;
+  uuid?: string;
+  name: string;
+  parentId?: number | null;
+  nodeLevel?: number;
   status?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -161,6 +214,8 @@ export interface Channel {
   id?: number;
   uuid?: string;
   channelName: string;
+  parentId?: number | null;
+  nodeLevel?: number;
   description?: string;
   status?: boolean;
   createdAt?: string;

@@ -1,11 +1,9 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
 import type { DriverReplacementFormData } from '../types/DriverReplacement';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface DriverReplacementListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-}
+export type DriverReplacementListResponse = NormalizedListResponse<any>;
 
 export interface DriverReplacementFilters {
   old_salesman_id?: number;
@@ -25,7 +23,7 @@ export const getDriverReplacementList = async (
   if (filters?.new_salesman_id) params.append('new_salesman_id', filters.new_salesman_id.toString());
   if (filters?.reason_id) params.append('reason_id', filters.reason_id.toString());
   const response = await axiosInstance.get(`/driver-replacement/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'driverReplacements', perPage);
 };
 
 export const createDriverReplacement = async (data: DriverReplacementFormData) => {

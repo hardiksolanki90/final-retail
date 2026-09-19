@@ -162,7 +162,7 @@ export function PortfolioManagementAdd({
             {...register('salesmanId', {
               required: 'Salesman is required'
             })}
-            onChange={(value) => handleSelectChange('salesmanId', value)}
+            onChange={(e) => handleSelectChange('salesmanId', e.target.value)}
             options={salesmen}
             placeholder="Select salesman"
             error={errors.salesmanId?.message}
@@ -173,7 +173,7 @@ export function PortfolioManagementAdd({
             {...register('customerId', {
               required: 'Customer is required'
             })}
-            onChange={(value) => handleSelectChange('customerId', value)}
+            onChange={(e) => handleSelectChange('customerId', e.target.value)}
             options={customers}
             placeholder="Select customer"
             error={errors.customerId?.message}
@@ -226,8 +226,8 @@ export function PortfolioManagementAdd({
             <div className="col-span-6">
               <Select
                 value={currentItem.itemId}
-                onChange={(value) => setCurrentItem((prev) => ({ ...prev, itemId: value }))}
-                options={items.filter(item => !watchedItems?.some(i => i.itemId === item.value))}
+                onChange={(e) => setCurrentItem((prev) => ({ ...prev, itemId: e.target.value }))}
+                options={items.filter((item: any) => !watchedItems?.some((i: any) => i.itemId === item.value))}
                 placeholder="Select item"
               />
             </div>
@@ -262,7 +262,7 @@ export function PortfolioManagementAdd({
           </div>
 
           {errors.items && (
-            <p className="text-sm text-red-500">{errors.items}</p>
+            <p className="text-sm text-red-500">{errors.items?.message}</p>
           )}
 
           {fields.length > 0 && (
@@ -284,7 +284,7 @@ export function PortfolioManagementAdd({
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
                   {fields.map((field, index) => {
-                    const itemOption = items.find(i => i.value === field.itemId);
+                    const itemOption = items.find((i: any) => i.value === field.itemId);
                     return (
                       <tr key={field.id} className="bg-[var(--bg-card)]">
                         <td className="px-3 py-2 text-sm text-[var(--text-primary)]">
@@ -326,7 +326,7 @@ export function PortfolioManagementAdd({
           {...register('status', {
             required: 'Status is required'
           })}
-          onChange={(value) => handleSelectChange('status', value)}
+          onChange={(e) => handleSelectChange('status', e.target.value)}
           options={statusOptions}
           placeholder="Select status"
           error={errors.status?.message}

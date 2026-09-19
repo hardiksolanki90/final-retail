@@ -5,6 +5,7 @@ export { default as SalesmanProvider, useSalesman, SalesmanContext } from './Sal
 export { default as OrderProvider, useOrder, OrderContext } from './OrderProvider';
 export { default as InvoiceProvider, useInvoice, InvoiceContext } from './InvoiceProvider';
 export { default as DeliveryProvider, useDelivery, DeliveryContext } from './DeliveryProvider';
+export { default as AreaProvider, useArea, AreaContext } from './AreaProvider';
 export { default as BeatProvider, useBeat, BeatContext } from './BeatProvider';
 export { default as TaxProvider, useTax, TaxContext } from './TaxProvider';
 export { default as CurrencyProvider, useCurrency, CurrencyContext } from './CurrencyProvider';

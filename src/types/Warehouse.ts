@@ -5,6 +5,7 @@ export interface Warehouse {
   name: string;
   address?: string;
   manager?: string;
+  managerPhone?: string;
   isMain: boolean;
   locType?: string;
   lat?: string;
@@ -22,6 +23,7 @@ export interface WarehouseFormData {
   name: string;
   address?: string;
   manager?: string;
+  managerPhone?: string;
   isMain?: boolean;
   locType?: string;
   lat?: string;

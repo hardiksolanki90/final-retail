@@ -1,11 +1,13 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 
-export interface TaxListResponse {
-  data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
-}
+export type TaxListResponse = NormalizedListResponse<any>;
+
+export const getTaxTypes = async (): Promise<string[]> => {
+  const response = await axiosInstance.get('/tax-rate/types');
+  return response.data?.data ?? [];
+};
 
 export const getTaxList = async (page = 1, perPage = 15, searchTerm?: string): Promise<TaxListResponse> => {
   const params = new URLSearchParams();
@@ -13,7 +15,7 @@ export const getTaxList = async (page = 1, perPage = 15, searchTerm?: string): P
   params.append('per_page', perPage.toString());
   if (searchTerm) params.append('search', searchTerm);
   const response = await axiosInstance.get(`/tax-rate/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'taxRates', perPage);
 };
 
 export const createTax = async (data: Record<string, any>) => {

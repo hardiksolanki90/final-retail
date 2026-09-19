@@ -22,6 +22,9 @@ interface TaxContextType {
   setEditingItem: (item: any) => void;
   handleDeleteWithConfirmation: (uuid: string) => void;
   refetch: () => void;
+  createTaxData: (data: Record<string, any>) => Promise<any>;
+  updateTaxData: (uuid: string, data: Record<string, any>) => Promise<any>;
+  isSaving: boolean;
 }
 
 export const TaxContext = createContext<TaxContextType | undefined>(undefined);
@@ -47,7 +50,7 @@ export default function TaxProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ['tax-list'] });
     },
     onError: (err: Error) => {
-      showToast(err.message || 'Failed to delete', 'error');
+      showToast.error(err.message || 'Failed to delete');
     },
   });
 
@@ -57,18 +60,30 @@ export default function TaxProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const items = Array.isArray(responseData?.data)
-    ? responseData.data
-    : (Array.isArray(responseData?.data?.items) 
-       ? responseData.data.items 
-       : (Array.isArray(responseData?.data?.data) ? responseData.data.data : []));
-  const meta = responseData?.meta ?? responseData?.data ?? (responseData ? { current_page: responseData.current_page, per_page: responseData.per_page, total: responseData.total, last_page: responseData.last_page } : null);
+  const createMutation = useMutation({
+    mutationFn: (data: Record<string, any>) => createTax(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tax-list'] }); },
+    onError: (err: any) => { showToast.error(err?.response?.data?.message || 'Failed to create tax'); },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, any> }) => updateTax(uuid, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tax-list'] }); },
+    onError: (err: any) => { showToast.error(err?.response?.data?.message || 'Failed to update tax'); },
+  });
+
+  const createTaxData = (data: Record<string, any>) => createMutation.mutateAsync(data);
+  const updateTaxData = (uuid: string, data: Record<string, any>) => updateMutation.mutateAsync({ uuid, data });
+
+  const items = responseData?.data ?? [];
+  const meta = responseData?.meta ?? null;
 
   const value: TaxContextType = {
     data: items, meta, isLoading, error: error as Error | null,
     searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
     selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
     editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
+    createTaxData, updateTaxData, isSaving: createMutation.isPending || updateMutation.isPending,
   };
 
   return <TaxContext.Provider value={value}>{children}</TaxContext.Provider>;

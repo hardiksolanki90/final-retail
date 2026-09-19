@@ -1,5 +1,6 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
+import { unwrapPaginated } from '../lib/paginatedResponse';
 import type {
   Salesman,
   SalesmanFormData,
@@ -56,11 +57,12 @@ export const getSalesmanList = async (
   }
 
   const response = await axiosInstance.get(`/salesman/list?${params.toString()}`);
-  return response.data;
+  return unwrapPaginated(response.data, 'salesmen', perPage) as SalesmanListResponse;
 };
 
 export const getAllSalesmen = async (filters?: SalesmanFilters): Promise<SalesmanSelectOption[]> => {
   const params = new URLSearchParams();
+  params.append('per_page', '50');
 
   if (filters?.routeId) {
     params.append('route_id', filters.routeId.toString());
@@ -71,7 +73,7 @@ export const getAllSalesmen = async (filters?: SalesmanFilters): Promise<Salesma
   }
 
   const response = await axiosInstance.get(`/salesman/all?${params.toString()}`);
-  return response.data.data || response.data;
+  return response.data?.salesmen ?? [];
 };
 
 export const searchSalesmen = async (
@@ -94,7 +96,7 @@ export const searchSalesmen = async (
   }
 
   const response = await axiosInstance.post('/salesman/search', Object.fromEntries(params));
-  return response.data;
+  return unwrapPaginated(response.data, 'salesmen', perPage) as SalesmanListResponse;
 };
 
 export const getSalesmanDetails = async (uuid: string): Promise<Salesman> => {
@@ -173,8 +175,8 @@ export const bulkActionSalesmen = async (bulkAction: SalesmanBulkAction): Promis
 
 // Salesman Types API
 export const getSalesmanTypes = async (): Promise<SalesmanType[]> => {
-  const response = await axiosInstance.get('/salesman-type/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/salesman-type/all?per_page=50');
+  return response.data?.salesmanTypes ?? [];
 };
 
 export const getSalesmanTypeDetails = async (uuid: string): Promise<SalesmanType> => {
@@ -198,8 +200,8 @@ export const deleteSalesmanType = async (uuid: string): Promise<void> => {
 
 // Salesman Roles API
 export const getSalesmanRoles = async (): Promise<SalesmanRole[]> => {
-  const response = await axiosInstance.get('/salesman-role/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/salesman-role/all?per_page=50');
+  return response.data?.salesmanRoles ?? [];
 };
 
 export const getSalesmanRoleDetails = async (uuid: string): Promise<SalesmanRole> => {
@@ -223,20 +225,20 @@ export const deleteSalesmanRole = async (uuid: string): Promise<void> => {
 
 // Routes API (for salesman assignment)
 export const getRoutes = async (): Promise<Route[]> => {
-  const response = await axiosInstance.get('/route/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/route/all?per_page=50');
+  return response.data?.routes ?? [];
 };
 
 // Countries API
 export const getCountries = async (): Promise<Country[]> => {
-  const response = await axiosInstance.get('/country/all');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/country/all?per_page=50');
+  return response.data?.countries ?? [];
 };
 
 // Supervisor Options (Active Salesmen who can be supervisors)
 export const getSupervisorOptions = async (): Promise<SupervisorOption[]> => {
-  const response = await axiosInstance.get('/salesman/all?supervisor=true');
-  return response.data.data || response.data;
+  const response = await axiosInstance.get('/salesman/all?supervisor=true&per_page=50');
+  return response.data?.salesmen ?? [];
 };
 
 // Utility Functions

@@ -4,29 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
 import { Button, SaveButton, CancelButton } from '../../components/ui/Button';
 import { Plus, Trash2, ClipboardList, ChevronLeft, Settings } from 'lucide-react';
+import type { GRNFormData, GRNItem } from '../../types/GRN';
+import { useGRNFormOptions, useGRNMutations } from '../../hooks/GRN/useGRN';
 
 type SelectOption = {
   value: string;
   label: string;
-};
-
-type GRNItem = {
-  id: string;
-  itemId: string;
-  itemName: string;
-  uom: string;
-  quantity: number;
-  reason: string;
-  returnReason: string;
-};
-
-type GRNFormFields = {
-  sourceWarehouseId: string;
-  destinationWarehouseId: string;
-  grnNumber: string;
-  grnDate: string;
-  items: GRNItem[];
-  remark: string;
 };
 
 const emptyItem: GRNItem = {
@@ -39,7 +22,7 @@ const emptyItem: GRNItem = {
   returnReason: '',
 };
 
-const defaultValues: GRNFormFields = {
+const defaultValues: GRNFormData = {
   sourceWarehouseId: '',
   destinationWarehouseId: '',
   grnNumber: '',
@@ -55,16 +38,8 @@ export function GRNAdd() {
   const [grnPrefix, setGrnPrefix] = useState('');
   const [grnNumVal, setGrnNumVal] = useState('');
 
-  // Mock data for dropdowns
-  const warehouses: SelectOption[] = [
-    { value: 'WH01', label: 'Main Warehouse' },
-    { value: 'WH02', label: 'Secondary Warehouse' },
-  ];
-  
-  const items: SelectOption[] = [
-    { value: 'ITM-001', label: 'Apple' },
-    { value: 'ITM-002', label: 'Banana' },
-  ];
+  const { warehouses, items, reasons, isLoading: optionsLoading } = useGRNFormOptions();
+  const { createMutation } = useGRNMutations();
 
   const uomOptions: SelectOption[] = [
     { value: 'PC', label: 'PC' },
@@ -73,27 +48,18 @@ export function GRNAdd() {
     { value: 'CTN', label: 'CTN' },
   ];
 
-  const reasonOptions: SelectOption[] = [
-    { value: 'Damaged', label: 'Damaged' },
-    { value: 'Expired', label: 'Expired' },
-    { value: 'Excess', label: 'Excess' },
-    { value: 'Other', label: 'Other' },
-  ];
-
-  const returnReasonOptions: SelectOption[] = [
-    { value: 'Quality Issue', label: 'Quality Issue' },
-    { value: 'Not Ordered', label: 'Not Ordered' },
-    { value: 'Other', label: 'Other' },
-  ];
-
-  const { control, register, handleSubmit, setValue, formState: { errors } } =
-    useForm<GRNFormFields>({ defaultValues });
+  const { control, register, handleSubmit, setValue, formState: { errors, isSubmitting } } =
+    useForm<GRNFormData>({ defaultValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
-  const onSubmit = (formData: GRNFormFields) => {
-    console.log('GRN form data:', formData);
-    navigate('/grn'); // Assuming route to GRN list is /grn
+  const onSubmit = async (formData: GRNFormData) => {
+    try {
+      await createMutation.mutateAsync(formData);
+      navigate('/grn');
+    } catch {
+      // toast already shown by the mutation's onError handler
+    }
   };
 
   const selectClass = 'w-full px-2 py-1 border rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500';
@@ -124,12 +90,13 @@ export function GRNAdd() {
                 <select
                   {...register('sourceWarehouseId')}
                   className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={optionsLoading}
                 >
-                  <option value="">Select</option>
-                  {warehouses.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  <option value="">{optionsLoading ? 'Loading…' : 'Select'}</option>
+                  {warehouses.map((o: SelectOption) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Destination Warehouse
@@ -137,9 +104,10 @@ export function GRNAdd() {
                 <select
                   {...register('destinationWarehouseId')}
                   className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={optionsLoading}
                 >
-                  <option value="">Select</option>
-                  {warehouses.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  <option value="">{optionsLoading ? 'Loading…' : 'Select'}</option>
+                  {warehouses.map((o: SelectOption) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             </div>
@@ -197,9 +165,10 @@ export function GRNAdd() {
                   <tr key={field.id} className="border-t border-gray-200 dark:border-gray-700">
                     <td className="px-3 py-2">{index + 1}</td>
                     <td className="px-3 py-2">
-                      <select 
-                        {...register(`items.${index}.itemId`)} 
+                      <select
+                        {...register(`items.${index}.itemId`)}
                         className={selectClass}
+                        disabled={optionsLoading}
                         onChange={(e) => {
                           const selectedItem = items.find(i => i.value === e.target.value);
                           if (selectedItem) {
@@ -209,8 +178,8 @@ export function GRNAdd() {
                           }
                         }}
                       >
-                        <option value="">Search an item *</option>
-                        {items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        <option value="">{optionsLoading ? 'Loading…' : 'Search an item *'}</option>
+                        {items.map((o: SelectOption) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </td>
                     <td className="px-3 py-2">
@@ -238,13 +207,13 @@ export function GRNAdd() {
                     <td className="px-3 py-2">
                        <select {...register(`items.${index}.reason`)} className={selectClass}>
                         <option value="">Select</option>
-                        {reasonOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </td>
                     <td className="px-3 py-2">
                        <select {...register(`items.${index}.returnReason`)} className={selectClass}>
                         <option value="">Select</option>
-                        {returnReasonOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -287,8 +256,8 @@ export function GRNAdd() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-4 flex justify-end gap-3 sticky bottom-0 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] text-sm">
-          <CancelButton onClick={() => navigate('/grn')}>Cancel</CancelButton>
-          <SaveButton type="submit">Save &amp; Submit</SaveButton>
+          <CancelButton onClick={() => navigate('/grn')} disabled={isSubmitting}>Cancel</CancelButton>
+          <SaveButton type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save & Submit'}</SaveButton>
         </div>
       </form>
 

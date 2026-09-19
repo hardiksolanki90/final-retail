@@ -50,6 +50,7 @@ export function ShelfDisplayAdd({
     register,
     handleSubmit,
     reset,
+    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<ShelfDisplayFormData>({ defaultValues });
@@ -92,20 +93,26 @@ export function ShelfDisplayAdd({
       width="w-[600px]"
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-        <Input
-          label="Display Code"
-          {...register('displayCode', { required: 'Display Code is required' })}
-          error={errors.displayCode?.message}
-          placeholder="Enter display code"
-          required
-        />
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Display Code</label>
+          </div>
+          <div className="flex items-center gap-2 relative">
+            <Input
+              {...register('displayCode', { required: 'Display Code is required' })}
+              error={errors.displayCode?.message}
+              placeholder="Enter display code"
+              required
+            />
+            <OrderCodeSettingsIcon label="Display Code" value={watch('displayCode') || ''} onChange={(v) => setValue('displayCode', v)} />
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Customer <span className="text-red-500">*</span>
             </label>
-                  <OrderCodeSettingsIcon label="Brand" value="" onChange={() => {}} />
             <select {...register('customerId', { required: 'Customer is required' })} className={selectClass}>
               <option value="">Select customer</option>
               {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

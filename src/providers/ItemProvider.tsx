@@ -4,17 +4,19 @@ import {
   getItemList,
   getAllItems,
   getItemsWithStock,
-  searchItems,
   deleteItem,
   createItem,
   updateItem,
-  getItemDetails,
   getItemCategories,
   getBrands,
   getItemUoms,
   bulkActionItems,
+  createItemCategory,
+  createBrand,
 } from '../api/ItemApi';
+import { getAllItemGroups, createItemGroup } from '../api/ItemGroupApi';
 import { showToast } from '../lib/toast';
+import type { SelectOption } from '../components/ui/Select';
 import type {
   Item,
   ItemFormData,
@@ -63,9 +65,14 @@ interface ItemContextType {
   categories: ItemCategory[];
   brands: Brand[];
   uoms: ItemUom[];
+  groups: any[];
   isLoadingCategories: boolean;
   isLoadingBrands: boolean;
   isLoadingUoms: boolean;
+  isLoadingGroups: boolean;
+  createCategoryOption: (values: Record<string, any>) => Promise<SelectOption>;
+  createBrandOption: (values: Record<string, any>) => Promise<SelectOption>;
+  createGroupOption: (values: Record<string, any>) => Promise<SelectOption>;
 
   // Additional queries
   itemsWithStock: ItemWithStock[] | undefined;
@@ -137,6 +144,13 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     enabled: isItemModalVisible,
   });
 
+  const { data: groups = [], isLoading: isLoadingGroups } = useQuery({
+    queryKey: ['item-groups'],
+    queryFn: getAllItemGroups,
+    staleTime: 10 * 60 * 1000,
+    enabled: isItemModalVisible,
+  });
+
   // All items query (for dropdowns)
   const { data: allItems } = useQuery({
     queryKey: ['all-items', filters],
@@ -154,6 +168,35 @@ export default function ItemProvider({ children }: ItemProviderProps) {
   });
 
   // Mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: (values: Record<string, any>) => createItemCategory({
+      categoryName: values.categoryName,
+      parentId: values.parentId ? Number(values.parentId) : undefined,
+      status: values.status ?? true,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['item-categories'] });
+    },
+  });
+
+  const createBrandMutation = useMutation({
+    mutationFn: (values: Record<string, any>) => createBrand({
+      brandName: values.brandName,
+      parentId: values.parentId ? Number(values.parentId) : undefined,
+      status: values.status ?? true,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+    },
+  });
+
+  const createGroupMutation = useMutation({
+    mutationFn: (values: Record<string, any>) => createItemGroup({ groupName: values.groupName, status: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['item-groups'] });
+    },
+  });
+
   const addItemMutation = useMutation({
     mutationFn: createItem,
     onSuccess: () => {
@@ -275,9 +318,23 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     categories,
     brands,
     uoms,
+    groups,
     isLoadingCategories,
     isLoadingBrands,
     isLoadingUoms,
+    isLoadingGroups,
+    createCategoryOption: async (values: Record<string, any>) => {
+      const created = await createCategoryMutation.mutateAsync(values);
+      return { value: created.id?.toString() || '', label: created.categoryName };
+    },
+    createBrandOption: async (values: Record<string, any>) => {
+      const created = await createBrandMutation.mutateAsync(values);
+      return { value: created.id?.toString() || '', label: created.brandName };
+    },
+    createGroupOption: async (values: Record<string, any>) => {
+      const created = await createGroupMutation.mutateAsync(values);
+      return { value: created.id?.toString() || '', label: created.groupName };
+    },
     itemsWithStock,
     allItems,
     refetchItems: () => refetchItems(),

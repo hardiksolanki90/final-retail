@@ -2,6 +2,8 @@ export interface MenuItem {
   name: string;
   path: string;
   icon: string;
+  /** RBAC pilot only — most items are unannotated and always visible. */
+  permission?: string;
 }
 
 export interface MenuSection {
@@ -41,7 +43,7 @@ export const sidebarMenu: MenuSection[] = [
         { name: "Order", path: "/order", icon: "shopping-cart" },
         { name: "Delivery", path: "/delivery", icon: "truck" },
         { name: "Invoice", path: "/invoice", icon: "receipt" },
-      { name: "Credit Note", path: "/credit-note", icon: "file-text" },
+      { name: "Credit Note", path: "/credit-note", icon: "file-text", permission: "credit-notes.view" },
       { name: "Debit Note", path: "/debit-note", icon: "file-text" },
       { name: "Return", path: "/return", icon: "shopping-cart" },
       {
@@ -178,6 +180,8 @@ export interface SettingsMenuItem {
   name: string;
   path: string;
   icon: string;
+  /** RBAC pilot only — most items are unannotated and always visible. */
+  permission?: string;
 }
 
 export const settingsMenu: SettingsMenuItem[] = [
@@ -188,27 +192,35 @@ export const settingsMenu: SettingsMenuItem[] = [
     icon: "building",
   },
   {
-    id: 2,
-    name: "Users & Roles",
-    path: "/settings/users-roles",
-    icon: "users",
-  },
-  {
     id: 4,
     name: "Preferences",
     path: "/settings/preferences",
     icon: "sliders",
   },
+
+  {
+    id: 2,
+    name: "Users & Roles",
+    path: "/settings/users-roles",
+    icon: "users",
+  },
   { id: 5, name: "Taxes", path: "/settings/taxes", icon: "percent" },
+  {
+    id: 26,
+    name: "Work Flow Approval",
+    path: "/settings/work-flow-approval",
+    icon: "git-branch",
+  },
   { id: 6, name: "Currency", path: "/settings/currency", icon: "dollar-sign" },
   { id: 7, name: "Bank", path: "/settings/bank", icon: "landmark" },
   { id: 8, name: "Warehouse", path: "/settings/warehouse", icon: "warehouse" },
   { id: 9, name: "Country", path: "/settings/country", icon: "globe" },
   { id: 10, name: "Region", path: "/settings/region", icon: "map-pin" },
+  { id: 25, name: "Area", path: "/settings/area", icon: "map-pin" },
   {
     id: 11,
-    name: "Branch/Depot",
-    path: "/settings/branch-depot",
+    name: "Depot",
+    path: "/settings/depot",
     icon: "home",
   },
   { id: 12, name: "Van Master", path: "/settings/van-master", icon: "truck" },

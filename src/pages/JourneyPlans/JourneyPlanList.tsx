@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Filter,
   Plus,
@@ -14,20 +14,8 @@ import {
   X,
   Menu,
 } from 'lucide-react';
-
-// Sample journey plan data
-const journeyPlansData = [
-  { id: 1, code: 'JP001', name: 'Downtown Route A', salesman: 'John Smith', route: 'Route A', day: 'Monday', customers: 15, status: 'Active' },
-  { id: 2, code: 'JP002', name: 'Mall Circuit', salesman: 'Jane Doe', route: 'Route B', day: 'Tuesday', customers: 12, status: 'Active' },
-  { id: 3, code: 'JP003', name: 'Industrial Zone', salesman: 'Mike Johnson', route: 'Route C', day: 'Wednesday', customers: 8, status: 'Active' },
-  { id: 4, code: 'JP004', name: 'Suburban Run', salesman: 'Sarah Williams', route: 'Route D', day: 'Thursday', customers: 20, status: 'Inactive' },
-  { id: 5, code: 'JP005', name: 'City Center', salesman: 'Tom Brown', route: 'Route E', day: 'Friday', customers: 18, status: 'Active' },
-  { id: 6, code: 'JP006', name: 'East Side Coverage', salesman: 'Emily Davis', route: 'Route F', day: 'Monday', customers: 10, status: 'Active' },
-  { id: 7, code: 'JP007', name: 'West District', salesman: 'David Wilson', route: 'Route G', day: 'Tuesday', customers: 14, status: 'Active' },
-  { id: 8, code: 'JP008', name: 'North Area', salesman: 'Lisa Anderson', route: 'Route H', day: 'Wednesday', customers: 9, status: 'Inactive' },
-  { id: 9, code: 'JP009', name: 'South Zone', salesman: 'Robert Taylor', route: 'Route I', day: 'Thursday', customers: 16, status: 'Active' },
-  { id: 10, code: 'JP010', name: 'Premium Clients', salesman: 'Jennifer Martinez', route: 'Route J', day: 'Friday', customers: 6, status: 'Active' },
-];
+import { useJourneyPlans } from '../../hooks/JourneyPlans/useJourneyPlans';
+import { Pagination } from '../../components/ui/Pagination';
 
 interface Column {
   key: string;
@@ -36,8 +24,7 @@ interface Column {
 }
 
 export function JourneyPlanList() {
-  const navigate = useNavigate();
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
@@ -48,28 +35,47 @@ export function JourneyPlanList() {
   const columnsRef = useRef<HTMLDivElement>(null);
   const moreActionsRef = useRef<HTMLDivElement>(null);
 
-  // Export modal state
   const [exportType, setExportType] = useState<'all' | 'specific'>('specific');
   const [exportFromDate, setExportFromDate] = useState('');
   const [exportToDate, setExportToDate] = useState('');
   const [exportFormat, setExportFormat] = useState<'csv' | 'xls' | ''>('');
 
+  const { journeyPlans, total, isLoading, bulkAction } = useJourneyPlans(currentPage);
+
+  const journeyPlansData = useMemo(
+    () =>
+      journeyPlans.map((jp) => {
+        const customerCount = Object.values(jp.dayCustomers ?? {}).reduce(
+          (sum, rows) => sum + rows.length,
+          0,
+        );
+        return {
+          id: jp.uuid ?? '',
+          name: jp.journeyName,
+          merchandiser: jp.merchandiserName ?? '—',
+          base: jp.journeyPlanBase === 'week_wise' ? 'Week Wise' : 'Day Wise',
+          firstDay: jp.firstDayOfWeek,
+          customers: customerCount,
+          status: jp.status ? 'Active' : 'Inactive',
+        };
+      }),
+    [journeyPlans],
+  );
+
   const [columns, setColumns] = useState<Column[]>([
-    { key: 'code', label: 'Code', visible: true },
     { key: 'name', label: 'Name', visible: true },
-    { key: 'salesman', label: 'Salesman', visible: true },
-    { key: 'route', label: 'Route', visible: true },
-    { key: 'day', label: 'Day', visible: true },
+    { key: 'merchandiser', label: 'Merchandiser', visible: true },
+    { key: 'base', label: 'Plan Base', visible: true },
+    { key: 'firstDay', label: 'First Day', visible: true },
     { key: 'customers', label: 'Customers', visible: true },
     { key: 'status', label: 'Status', visible: true },
   ]);
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDraft, setFilterDraft] = useState({ code: '', name: '', salesman: '', route: '', day: '', customers: '' });
-  const [appliedFilter, setAppliedFilter] = useState({ code: '', name: '', salesman: '', route: '', day: '', customers: '' });
+  const [filterDraft, setFilterDraft] = useState({ name: '', merchandiser: '' });
+  const [appliedFilter, setAppliedFilter] = useState({ name: '', merchandiser: '' });
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (bulkActionRef.current && !bulkActionRef.current.contains(event.target as Node)) {
@@ -86,54 +92,29 @@ export function JourneyPlanList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(journeyPlansData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-
-  // Apply filters
-  const filteredData = journeyPlansData.filter(c =>
-    (!appliedFilter.code || String(c.code ?? '').toLowerCase().includes(appliedFilter.code.toLowerCase())) &&
+  // Server already paginates by currentPage — client-side filter applies
+  // only within the current page's rows.
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
+  const currentData = journeyPlansData.filter(c =>
     (!appliedFilter.name || String(c.name ?? '').toLowerCase().includes(appliedFilter.name.toLowerCase())) &&
-    (!appliedFilter.salesman || String(c.salesman ?? '').toLowerCase().includes(appliedFilter.salesman.toLowerCase())) &&
-    (!appliedFilter.route || String(c.route ?? '').toLowerCase().includes(appliedFilter.route.toLowerCase())) &&
-    (!appliedFilter.day || String(c.day ?? '').toLowerCase().includes(appliedFilter.day.toLowerCase())) &&
-    (!appliedFilter.customers || String(c.customers ?? '').toLowerCase().includes(appliedFilter.customers.toLowerCase()))
+    (!appliedFilter.merchandiser || String(c.merchandiser ?? '').toLowerCase().includes(appliedFilter.merchandiser.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
   const handleSelectAll = () => {
-    if (selectedRows.length === currentData.length) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(currentData.map((item) => item.id));
-    }
+    setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
   };
 
-  const handleSelectRow = (id: number) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    );
+  const handleSelectRow = (id: string) => {
+    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
   const toggleColumn = (key: string) => {
-    setColumns((prev) =>
-      prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col))
-    );
+    setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   };
 
   const visibleColumns = columns.filter((col) => col.visible);
 
-  const handleExport = () => {
-    setExportModalOpen(true);
-  };
-
   const handleExportSubmit = () => {
-    console.log('Exporting journey plans...', {
-      type: exportType,
-      fromDate: exportFromDate,
-      toDate: exportToDate,
-      format: exportFormat,
-    });
     setExportModalOpen(false);
     setExportType('specific');
     setExportFromDate('');
@@ -149,26 +130,22 @@ export function JourneyPlanList() {
     setExportFormat('');
   };
 
-  const handleImport = () => {
-    console.log('Importing journey plans...');
-  };
-
-  const handleCreate = () => {
-    navigate('/journey-plan/add');
-  };
-
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => console.log('Delete', selectedRows) },
-    { label: 'Archive Selected', icon: Archive, action: () => console.log('Archive', selectedRows) },
-    { label: 'Update Status', icon: Tag, action: () => console.log('Update Status', selectedRows) },
+    { label: 'Activate Selected', icon: Tag, action: () => { bulkAction({ uuids: selectedRows, action: 'activate' }); setSelectedRows([]); } },
+    { label: 'Deactivate Selected', icon: Archive, action: () => { bulkAction({ uuids: selectedRows, action: 'deactivate' }); setSelectedRows([]); } },
+    { label: 'Delete Selected', icon: Trash2, action: () => { bulkAction({ uuids: selectedRows, action: 'delete' }); setSelectedRows([]); } },
   ];
 
   const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 text-xs font-medium ';
-    if (status === 'Active') {
-      return `${baseClasses} `;
+    const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
+    switch (status) {
+      case 'Active':
+        return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400`;
+      case 'Inactive':
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
     }
-    return `${baseClasses} `;
   };
 
   return (
@@ -182,9 +159,7 @@ export function JourneyPlanList() {
           </p>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Bulk Action Dropdown */}
           {selectedRows.length > 0 && (
             <div className="relative" ref={bulkActionRef}>
               <button
@@ -219,7 +194,6 @@ export function JourneyPlanList() {
             </div>
           )}
 
-          {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
             className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
@@ -237,7 +211,6 @@ export function JourneyPlanList() {
             )}
           </button>
 
-          {/* Columns Dropdown */}
           <div className="relative" ref={columnsRef}>
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
@@ -248,7 +221,7 @@ export function JourneyPlanList() {
               <ChevronDown className="w-4 h-4" />
             </button>
             {columnsDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto">
                 <div className="py-1">
                   {columns.map((column) => (
                     <button
@@ -265,7 +238,6 @@ export function JourneyPlanList() {
             )}
           </div>
 
-          {/* Create Button */}
           <Link
             to="/journey-plan/add"
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -274,7 +246,6 @@ export function JourneyPlanList() {
             Create
           </Link>
 
-          {/* More Actions Dropdown */}
           <div className="relative" ref={moreActionsRef}>
             <button
               onClick={() => setMoreActionsOpen(!moreActionsOpen)}
@@ -288,7 +259,7 @@ export function JourneyPlanList() {
                 <div className="py-1">
                   <button
                     onClick={() => {
-                      handleExport();
+                      setExportModalOpen(true);
                       setMoreActionsOpen(false);
                     }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
@@ -297,10 +268,7 @@ export function JourneyPlanList() {
                     Export
                   </button>
                   <button
-                    onClick={() => {
-                      handleImport();
-                      setMoreActionsOpen(false);
-                    }}
+                    onClick={() => setMoreActionsOpen(false)}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
                     <Upload className="w-4 h-4" />
@@ -313,17 +281,12 @@ export function JourneyPlanList() {
         </div>
       </div>
 
-            {/* Filter Accordion */}
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
             {([
-              { key: 'code', label: 'Code' },
               { key: 'name', label: 'Name' },
-              { key: 'salesman', label: 'Salesman' },
-              { key: 'route', label: 'Route' },
-              { key: 'day', label: 'Day' },
-              { key: 'customers', label: 'Customers' },
+              { key: 'merchandiser', label: 'Merchandiser' },
             ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
@@ -345,7 +308,7 @@ export function JourneyPlanList() {
               </button>
               <button
                 onClick={() => {
-                  const empty = { code: '', name: '', salesman: '', route: '', day: '', customers: '' };
+                  const empty = { name: '', merchandiser: '' };
                   setFilterDraft(empty);
                   setAppliedFilter(empty);
                   setFilterOpen(false);
@@ -359,7 +322,6 @@ export function JourneyPlanList() {
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -376,7 +338,7 @@ export function JourneyPlanList() {
                 {visibleColumns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
+                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap"
                   >
                     {column.label}
                   </th>
@@ -384,7 +346,11 @@ export function JourneyPlanList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
+              {isLoading ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading journey plans…</td></tr>
+              ) : currentData.length === 0 ? (
+                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No journey plans yet.</td></tr>
+              ) : currentData.map((item) => (
                 <tr
                   key={item.id}
                   className={`hover:bg-[var(--bg-secondary)] transition-colors ${
@@ -400,14 +366,9 @@ export function JourneyPlanList() {
                     />
                   </td>
                   {visibleColumns.map((column) => (
-                    <td
-                      key={column.key}
-                      className="px-4 py-3 text-sm text-[var(--text-primary)]"
-                    >
+                    <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)] whitespace-nowrap">
                       {column.key === 'status' ? (
-                        <span className={getStatusBadge(item.status)}>
-                          {item.status}
-                        </span>
+                        <span className={getStatusBadge(item.status)}>{item.status}</span>
                       ) : (
                         item[column.key as keyof typeof item]
                       )}
@@ -419,89 +380,21 @@ export function JourneyPlanList() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-[var(--border-color)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span>Rows per page:</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="px-2 py-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span className="ml-4">
-              {startIndex + 1}-{Math.min(endIndex, journeyPlansData.length)} of {journeyPlansData.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Prev
-            </button>
-            <span className="px-3 py-1 text-sm text-[var(--text-primary)]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Last
-            </button>
-          </div>
-        </div>
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
-      {/* Export Modal */}
       {exportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={handleExportCancel}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={handleExportCancel} />
           <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
-              <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-                Export Journey Plans
-              </h2>
-              <button
-                onClick={handleExportCancel}
-                className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"
-              >
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Journey Plans</h2>
+              <button onClick={handleExportCancel} className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors">
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
             </div>
-
             <div className="px-6 py-4 space-y-6">
-              <p className="text-[var(--text-secondary)]">
-                Export journey plan data in CSV or XLS format.
-              </p>
-
+              <p className="text-[var(--text-secondary)]">Export journey plan data in CSV or XLS format.</p>
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -511,9 +404,7 @@ export function JourneyPlanList() {
                     onChange={() => setExportType('all')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)] font-medium">
-                    All Journey Plans
-                  </span>
+                  <span className="text-[var(--text-primary)] font-medium">All Records</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -523,18 +414,13 @@ export function JourneyPlanList() {
                     onChange={() => setExportType('specific')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)] font-medium">
-                    Specific Date Range
-                  </span>
+                  <span className="text-[var(--text-primary)] font-medium">Specific Date Range</span>
                 </label>
               </div>
-
               {exportType === 'specific' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                      From
-                    </label>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">From</label>
                     <input
                       type="date"
                       value={exportFromDate}
@@ -543,9 +429,7 @@ export function JourneyPlanList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                      To
-                    </label>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">To</label>
                     <input
                       type="date"
                       value={exportToDate}
@@ -555,11 +439,8 @@ export function JourneyPlanList() {
                   </div>
                 </div>
               )}
-
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-[var(--text-secondary)]">
-                  Export As :
-                </label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As :</label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
@@ -568,9 +449,7 @@ export function JourneyPlanList() {
                     onChange={() => setExportFormat('csv')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)]">
-                    CSV (Comma Separated Value)
-                  </span>
+                  <span className="text-[var(--text-primary)]">CSV (Comma Separated Value)</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -580,13 +459,10 @@ export function JourneyPlanList() {
                     onChange={() => setExportFormat('xls')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)]">
-                    XLS (Microsoft Excel Compatible)
-                  </span>
+                  <span className="text-[var(--text-primary)]">XLS (Microsoft Excel Compatible)</span>
                 </label>
               </div>
             </div>
-
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
               <button
                 onClick={handleExportSubmit}
