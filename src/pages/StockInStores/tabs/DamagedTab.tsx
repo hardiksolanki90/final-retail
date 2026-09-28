@@ -26,10 +26,10 @@ export function DamagedTab() {
           <Input type="date" value="2025-03-31" readOnly className="h-9 text-sm" />
         </div>
         <div className="flex items-center gap-2 mb-0.5">
-          <button className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+          <button className="h-9 cursor-pointer px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
             Filter
           </button>
-          <button className="h-9 px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors">
+          <button className="h-9 cursor-pointer px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors">
             All
           </button>
         </div>

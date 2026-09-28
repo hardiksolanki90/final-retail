@@ -4,7 +4,7 @@ export interface Planogram {
   planogramCode: string;
   name: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   category: string;
   description?: string;
   image?: string;
@@ -20,7 +20,7 @@ export interface PlanogramFormData {
   planogramCode: string;
   name: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   category: string;
   description?: string;
   image?: File | null;

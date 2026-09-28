@@ -1,8 +1,7 @@
-import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CreatableSelect } from '../ui/CreatableSelect';
-import { getAllItemGroups, createItemGroup } from '../../api/ItemGroupApi';
+import { getItemGroupList, createItemGroup } from '../../api/ItemGroupApi';
 import type { SelectOption } from '../ui/Select';
+import { useInfiniteSelect } from '../../hooks';
 
 interface ItemGroupSelectProps {
   label?: string;
@@ -13,48 +12,58 @@ interface ItemGroupSelectProps {
 }
 
 export function ItemGroupSelect({ label = 'Item Group', value, onChange, error, required }: ItemGroupSelectProps) {
-  const queryClient = useQueryClient();
-
-  const { data: groups = [] } = useQuery({
-    queryKey: ['item-groups'],
-    queryFn: getAllItemGroups,
-    staleTime: 10 * 60 * 1000,
-  });
-
-  const groupOptions: SelectOption[] = groups.map(group => ({
-    value: group.id?.toString() || '',
-    label: group.code ? `${group.code} - ${group.name}` : group.name || 'Group',
-  }));
-
-  const createGroupMutation = useMutation({
-    mutationFn: (values: Record<string, any>) => createItemGroup({
-        code: values.code,
-        name: values.name,
-        status: values.status ?? true,
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['item-groups'] });
+  const {
+    options,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    onLoadMore,
+    onSearchChange,
+    addOption,
+  } = useInfiniteSelect({
+    selectedValue: value,
+    fetchPage: async (page, search) => {
+      const res = await getItemGroupList(page, 15, search || undefined);
+      return {
+        items: res?.data || [],
+        hasMore: Boolean(res?.meta?.has_more_pages),
+      };
     },
+    mapItemToOption: (r: any) => ({
+      value: String(r.id),
+      label: r.code ? `${r.code} - ${r.name}` : r.name || 'Group',
+    }),
   });
 
   const handleCreateOption = async (values: Record<string, any>): Promise<SelectOption> => {
-    const created = await createGroupMutation.mutateAsync(values);
+    const created = await createItemGroup({
+        code: values.code,
+        name: values.name,
+        status: values.status ?? true,
+    });
     const data = created.data || created;
-    return { 
-        value: data.id?.toString() || '', 
+    const newOption = { 
+        value: String(data.id ?? ''), 
         label: data.code ? `${data.code} - ${data.name}` : data.name || values.name 
     };
+    addOption(newOption);
+    return newOption;
   };
 
   return (
     <CreatableSelect
       label={required ? `${label}*` : label}
-      value={value}
+      value={String(value ?? '')}
       onChange={onChange}
-      options={groupOptions}
+      options={options}
       placeholder="Select Item Group"
       createLabel="Add New Group"
       onCreate={handleCreateOption}
+      isLoading={isLoading}
+      isLoadingMore={isLoadingMore}
+      hasMore={hasMore}
+      onLoadMore={onLoadMore}
+      onSearchChange={onSearchChange}
       fields={[
         { type: 'text', name: 'code', label: 'Group Code', required: true, hasCodeSettings: true },
         { type: 'text', name: 'name', label: 'Group Name', required: true },

@@ -2,14 +2,12 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getCustomerList,
-  getAllCustomers,
   deleteCustomer,
   createCustomer,
   updateCustomer,
   getCustomerSales,
   getCustomersBySalesman,
   bulkActionCustomers,
-  getCustomerTypes,
   getCustomerCategories,
   createCustomerCategory,
   getCustomerGroups,
@@ -27,7 +25,6 @@ import type {
   CustomerFormData,
   CustomerListResponse,
   CustomerSalesData,
-  CustomerType,
   CustomerCategory,
   CustomerGroup,
   Channel,
@@ -85,7 +82,6 @@ interface CustomerContextType {
   isDeleting: boolean;
 
   // Related data
-  customerTypes: CustomerType[];
   customerCategories: CustomerCategory[];
   customerGroups: CustomerGroup[];
   channels: Channel[];
@@ -101,7 +97,6 @@ interface CustomerContextType {
   isLoadingRelatedData: boolean;
 
   // Additional queries
-  allCustomers: any[] | undefined;
   customersBySalesman: Customer[] | undefined;
 
   // Actions
@@ -170,13 +165,6 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
   });
 
   // Related data queries
-  const { data: customerTypes = [], isLoading: isLoadingTypes } = useQuery({
-    queryKey: ['customer-types'],
-    queryFn: getCustomerTypes,
-    staleTime: 10 * 60 * 1000,
-    enabled: isCustomerModalVisible,
-  });
-
   const { data: customerCategories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ['customer-categories'],
     queryFn: getCustomerCategories,
@@ -217,14 +205,6 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     queryFn: getRoutes,
     staleTime: 10 * 60 * 1000,
     enabled: isCustomerModalVisible,
-  });
-
-  // All customers query (for dropdowns)
-  const { data: allCustomers } = useQuery({
-    queryKey: ['all-customers', filters],
-    queryFn: () => getAllCustomers(filters),
-    staleTime: 10 * 60 * 1000,
-    enabled: false, // Only fetch when needed
   });
 
   // Customers by salesman query
@@ -408,8 +388,7 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     deleteCustomerMutation.mutate(uuid);
   };
 
-  const isLoadingRelatedData = 
-    isLoadingTypes ||
+  const isLoadingRelatedData =
     isLoadingCategories ||
     isLoadingGroups ||
     isLoadingChannels ||
@@ -451,7 +430,6 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     isUpdating: updateCustomerMutation.isPending,
     deleteCustomerData,
     isDeleting: deleteCustomerMutation.isPending,
-    customerTypes,
     customerCategories,
     customerGroups,
     channels,
@@ -463,7 +441,6 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     createCustomerGroupOption,
     createChannelOption,
     createSalesOrganisationOption,
-    allCustomers,
     customersBySalesman,
     refetchCustomers: () => refetchCustomers(),
     handleAddCustomerModal,

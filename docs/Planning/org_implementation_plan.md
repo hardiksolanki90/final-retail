@@ -101,7 +101,7 @@ The goal is to streamline the registration flow so that:
   - `GET /auth/user` -> `AuthController@user`
 
 #### [MODIFY] `app/Repositories/OrganisationRepository.php`
-- Add `toResource(Organisation $organisation): array` to format organisation response data cleanly for the frontend.
+- Add `resource(Organisation $organisation): array` to format organisation response data cleanly for the frontend.
 - Update `current()` to return the shaped resource.
 
 ---

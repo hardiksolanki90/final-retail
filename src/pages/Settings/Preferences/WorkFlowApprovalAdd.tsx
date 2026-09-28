@@ -106,7 +106,7 @@ export function WorkFlowApprovalAdd() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workflow Rule Name*</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workflow Rule Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
                   <input
                     type="text"
                     {...register('name', { required: 'Workflow Rule Name is required' })}
@@ -116,7 +116,7 @@ export function WorkFlowApprovalAdd() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Module*</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Module <span className="text-red-500 font-bold ml-0.5">*</span></label>
                   <select
                     {...register('module', { required: 'Module is required' })}
                     className={`block w-full px-3 py-2 rounded-lg border ${errors.module ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none`}

@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 import type { DepotFormData } from '../../../types/Depot';
 import { RegionSelect } from '../../../components/ui/RegionSelect';
 import { AreaSelect } from '../../../components/ui/AreaSelect';
@@ -51,6 +52,7 @@ export function DepotAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -66,6 +68,13 @@ export function DepotAdd({
 
   const onFormSubmit = async (formData: DepotFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('depot', formData.depotCode);
+      if (resolvedCode !== formData.depotCode) {
+        formData.depotCode = resolvedCode ?? '';
+        setValue('depotCode', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onEvent?.({
         eventType: initialData ? 'DepotUpdated' : 'DepotCreated',
         depot: formData,
@@ -122,18 +131,16 @@ export function DepotAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Depot Code *</label>
+            <label className="block text-sm font-medium text-gray-700">Depot Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('depotCode', {
-                required: 'Depot code is required',
-                validate: value => value.trim() !== '' || 'Depot code cannot be empty'
-              })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g. DP01"
+              {...register('depotCode')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Depot Code" value={watch('depotCode') || ''} onChange={(v) => setValue('depotCode', v)} />
+            <OrderCodeSettingsIcon label="Depot Code" value={watch('depotCode') || ''} onChange={(v) => setValue('depotCode', v)} entityKey="depot" onLockChange={setCodeLocked} />
             {errors.depotCode && (
               <p className="text-red-600 text-xs mt-1">{errors.depotCode.message}</p>
             )}
@@ -141,7 +148,7 @@ export function DepotAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Depot Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Depot Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('depotName', {
               required: 'Depot name is required',
@@ -162,7 +169,7 @@ export function DepotAdd({
             rules={{ required: 'Region is required' }}
             render={({ field }) => (
               <RegionSelect
-                label="Region *"
+                label="Region" required
                 error={errors.regionId?.message}
                 value={field.value}
                 onChange={field.onChange}
@@ -187,7 +194,7 @@ export function DepotAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Depot Manager *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Depot Manager <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('depotManager', {
               required: 'Depot manager is required',

@@ -3,7 +3,7 @@ export interface ShelfDisplay {
   uuid?: string;
   displayCode: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   date: string;
   category: string;
   brandId?: string;
@@ -22,7 +22,7 @@ export interface ShelfDisplay {
 export interface ShelfDisplayFormData {
   displayCode: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   date: string;
   category: string;
   brandId?: string;

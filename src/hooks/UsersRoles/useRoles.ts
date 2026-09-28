@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getRoleList, createRole, updateRole, bulkActionRoles } from '../../api/RoleApi';
+import { getRoleList, getAllRoles, createRole, updateRole, bulkActionRoles } from '../../api/RoleApi';
 import { getAllPermissions } from '../../api/PermissionApi';
 import { showToast } from '../../lib/toast';
 import type { UserRoleFormData } from '../../types/UsersRoles';
@@ -19,6 +19,7 @@ export function useRoles(page: number = 1, searchTerm: string = '') {
     onSuccess: () => {
       showToast.success('Roles updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['roles-all'] });
     },
     onError: (error: any) => {
       showToast.error(error.response?.data?.message || 'Failed to update roles');
@@ -30,6 +31,22 @@ export function useRoles(page: number = 1, searchTerm: string = '') {
     total: listQuery.data?.total ?? 0,
     isLoading: listQuery.isLoading,
     bulkAction: bulkActionMutation.mutate,
+  };
+}
+
+// Assignment-picker options (e.g. Create/Edit User role dropdown) — excludes
+// Org Admin, which is a singleton assigned automatically at org registration,
+// never something to hand a second person via the invite flow.
+export function useAllRoles() {
+  const query = useQuery({
+    queryKey: ['roles-all'],
+    queryFn: () => getAllRoles(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return {
+    roleOptions: query.data ?? [],
+    isLoading: query.isLoading,
   };
 }
 
@@ -54,6 +71,7 @@ export function useRoleMutations() {
     onSuccess: () => {
       showToast.success('Role created successfully!');
       queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['roles-all'] });
     },
     onError: (error: any) => {
       showToast.error(error.response?.data?.message || 'Failed to create role');
@@ -65,6 +83,7 @@ export function useRoleMutations() {
     onSuccess: () => {
       showToast.success('Role updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['roles-all'] });
     },
     onError: (error: any) => {
       showToast.error(error.response?.data?.message || 'Failed to update role');

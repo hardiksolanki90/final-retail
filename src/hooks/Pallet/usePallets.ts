@@ -24,7 +24,7 @@ export function usePallets(page: number = 1) {
 
 export function usePalletFormOptions() {
   const salesmenQuery = useQuery({
-    queryKey: ['pallet-salesmen'],
+    queryKey: ['pallet-salesman'],
     queryFn: () => getAllSalesmen(),
     staleTime: 5 * 60 * 1000,
   });
@@ -58,7 +58,7 @@ export function usePalletFormOptions() {
   return {
     // pallets.salesman_id is a straight FK to users, so the option value
     // must be the salesman's underlying userId, not SalesmanInfo's own uuid.
-    salesmen: (salesmenQuery.data ?? []).map((s) => ({ value: String(s.userId), label: s.name })),
+    salesman: (salesmenQuery.data ?? []).map((s) => ({ value: String(s.userId), label: s.name })),
     items: itemsQuery.data ?? [],
     warehouses: warehousesQuery.data ?? [],
     divisions: divisionsQuery.data ?? [],

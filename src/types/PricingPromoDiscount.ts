@@ -1,66 +1,57 @@
-// ─── Module type (drives page title + last tab label) ─────────────────────────
-export type ModuleType = 'Promotion' | 'Pricing' | 'Discount';
+export type RuleType = 'pricing' | 'promotion' | 'discount';
+export type OfferType = 'free_goods' | 'percentage' | 'fixed';
+export type RowType = 'order' | 'offer';
 
-// ─── Tab 1 – Select Key Combination ──────────────────────────────────────────
-export interface KeyCombination {
+/** One row in the Items tab (Promotion/Discount only). */
+export interface RuleItemRow {
   id: string;
-  label: string; // e.g. "Customer/Material"
+  rowType: RowType;
+  itemId: string;
+  itemName?: string;
+  uomId?: string;
+  uomName?: string;
+  quantity?: string;
+  price?: string;
 }
 
-export interface LocationKeys {
-  country: boolean;
-  region: boolean;
-  area: boolean;
-  route: boolean;
-}
-
-export interface CustomerKeys {
-  salesOrganisation: boolean;
-  channel: boolean;
-  customerCategory: boolean;
-  customer: boolean;
-}
-
-export interface ItemKeys {
-  majorCategory: boolean;
-  itemGroup: boolean;
-}
-
-export interface SelectKeyCombinationData {
-  selectedCombination: string;
-  location: LocationKeys;
-  customer: CustomerKeys;
-  item: ItemKeys;
-}
-
-// ─── Tab 2 – Key Value ────────────────────────────────────────────────────────
-export interface KeyValueData {
-  customerId: string;
-  itemGroupId: string;
-}
-
-// ─── Tab 3 – Module Detail (Promotion / Pricing / Discount) ─────────────────
-export interface OrderItemRow {
-  id: string;
-  itemName: string;
-  quantity: string;
-  uom: string;
-  price: string;
-}
-
-export interface OfferItemRow {
-  id: string;
-  itemName: string;
-  uom: string;
-  offeredQuantity: string;
-}
-
-export interface ModuleDetailData {
+export interface PricingPromotionRule {
+  id?: number;
+  uuid?: string;
+  type: RuleType;
   name: string;
+  customerId?: string | null;
+  customerName?: string | null;
+  itemGroupId?: string | null;
+  itemGroupName?: string | null;
   startDate: string;
   endDate: string;
-  orderType: string;
-  offerType: string;
-  orderItems: OrderItemRow[];
-  offerItems: OfferItemRow[];
+  price?: number | null;
+  offerType?: OfferType | null;
+  offerValue?: number | null;
+  status?: boolean;
+  /** Present on the View/Add-Edit payload; the List endpoint sends `itemCount` instead. */
+  items?: RuleItemRow[];
+  itemCount?: number;
+}
+
+/** Form state for the Add/Edit wizard. */
+export interface RuleFormData {
+  name: string;
+  customerId: string;
+  itemGroupId: string;
+  startDate: string;
+  endDate: string;
+  price: string;
+  offerType: OfferType | '';
+  offerValue: string;
+  status?: boolean;
+  items: RuleItemRow[];
+}
+
+export interface RuleListResponse {
+  data: PricingPromotionRule[];
+  total: number;
+  currentPage: number;
+  perPage: number;
+  lastPage: number;
 }

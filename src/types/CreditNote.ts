@@ -20,6 +20,9 @@ export interface CreditNote {
   creditNoteDate: string;
   customerId: string;
   invoiceId: string;
+  /** Readable display fields sent by the list endpoint (uuid fields above are for the form). */
+  customer?: string;
+  invoiceNo?: string;
   reason: string;
   items: CreditNoteItem[];
   grossTotal: number;

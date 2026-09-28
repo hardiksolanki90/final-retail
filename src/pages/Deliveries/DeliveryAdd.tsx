@@ -121,7 +121,7 @@ export function DeliveryAdd() {
         <div className="bg-gray-200 dark:bg-gray-700 px-4 py-4">
           <div className="grid grid-cols-2 gap-8 max-w-4xl">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Delivery Type <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Delivery Type <span className="text-red-500 font-bold ml-0.5">*</span></label>
               <select {...register('deliveryType', { required: true })} className={fieldClass}>
                 {deliveryTypes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -133,7 +133,7 @@ export function DeliveryAdd() {
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="space-y-4">
               <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer <span className="text-red-500 font-bold ml-0.5">*</span></label>
               <select {...register('customerId', { required: 'Customer is required' })} className={fieldClass}>
                 <option value="">Select Customer</option>
                 {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -141,14 +141,14 @@ export function DeliveryAdd() {
               {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
             </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer LOB <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer LOB <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('customerLob', { required: true })} className={fieldClass}>
                   <option value="">Select Customer LOB</option>
                   {customerLobs.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Warehouse <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Warehouse <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('warehouse', { required: true })} className={fieldClass}>
                   <option value="">Select Warehouse</option>
                   {warehouses.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

@@ -25,13 +25,14 @@ export function RouteSelect({ label = 'Route', value, onChange, error, required,
 
   return (
     <Select
-      label={required ? `${label}*` : label}
+      label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       options={routeOptions}
       placeholder="Select route"
       isLoading={isLoading || isLoadingRoutes}
       error={error}
+      required={required}
     />
   );
 }

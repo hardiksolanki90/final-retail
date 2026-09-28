@@ -6,7 +6,7 @@ import {
   bulkActionCreditNotes,
   getInvoiceOptions,
 } from '../../api/CreditNoteApi';
-import { getAllCustomers } from '../../api/CustomerApi';
+import { getCustomerOptions } from '../../api/CustomerApi';
 import { getAllItems } from '../../api/ItemApi';
 import { getReasonOptions } from '../../api/ReasonApi';
 import { showToast } from '../../lib/toast';
@@ -50,7 +50,7 @@ export function useCreditNotes(page: number = 1, searchTerm: string = '') {
 export function useCreditNoteFormOptions() {
   const customersQuery = useQuery({
     queryKey: ['credit-note-customers'],
-    queryFn: () => getAllCustomers(),
+    queryFn: async () => (await getCustomerOptions(1, undefined, 200)).data,
     staleTime: 5 * 60 * 1000,
   });
 

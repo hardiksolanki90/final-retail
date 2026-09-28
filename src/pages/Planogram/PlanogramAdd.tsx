@@ -22,7 +22,7 @@ const defaultValues: PlanogramFormData = {
   planogramCode: '',
   name: '',
   customerId: '',
-  merchandiserId: '',
+  salesmanId: '',
   category: '',
   description: '',
   image: null,
@@ -89,9 +89,9 @@ export function PlanogramAdd({
       console.error('Error saving planogram:', error);
       if (error.response?.data?.errors) {
         Object.entries(error.response.data.errors).forEach(([field, message]) => {
-          setError(field as keyof PlanogramFormData, { 
-            type: 'server', 
-            message: Array.isArray(message) ? message[0] : message 
+          setError(field as keyof PlanogramFormData, {
+            type: 'server',
+            message: Array.isArray(message) ? message[0] : message
           });
         });
       }
@@ -163,13 +163,13 @@ export function PlanogramAdd({
           />
           <Select
             label="Merchandiser"
-            {...register('merchandiserId', {
+            {...register('salesmanId', {
               required: 'Merchandiser is required'
             })}
-            onChange={handleSelectChange('merchandiserId')}
+            onChange={handleSelectChange('salesmanId')}
             options={merchandisers}
             placeholder="Select merchandiser"
-            error={errors.merchandiserId?.message}
+            error={errors.salesmanId?.message}
             required
           />
         </div>

@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { CustomerCategoryFormData } from '../../../types/CustomerCategory';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 
 interface CustomerCategoryAddProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export function CustomerCategoryAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -53,6 +55,13 @@ export function CustomerCategoryAdd({
 
   const onFormSubmit = async (formData: CustomerCategoryFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('customer_category', formData.customerCategoryCode);
+      if (resolvedCode !== formData.customerCategoryCode) {
+        formData.customerCategoryCode = resolvedCode;
+        setValue('customerCategoryCode', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onEvent?.({
         eventType: initialData ? 'CustomerCategoryUpdated' : 'CustomerCategoryCreated',
         customerCategory: formData,
@@ -114,10 +123,11 @@ export function CustomerCategoryAdd({
           <div className="flex items-center gap-2 relative">
             <input
               {...register('customerCategoryCode')}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter category code"
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Code" value={watch('customerCategoryCode') || ''} onChange={(v) => setValue('customerCategoryCode', v)} />
+            <OrderCodeSettingsIcon label="Code" value={watch('customerCategoryCode') || ''} onChange={(v) => setValue('customerCategoryCode', v)} entityKey="customer_category" onLockChange={setCodeLocked} />
             {errors.customerCategoryCode && (
               <p className="text-red-600 text-xs mt-1">{errors.customerCategoryCode.message}</p>
             )}
@@ -125,7 +135,7 @@ export function CustomerCategoryAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('categoryName', {
               required: 'Category name is required',

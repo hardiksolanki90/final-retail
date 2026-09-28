@@ -19,7 +19,7 @@ export function Pagination({
   perPage,
   onPageChange,
   onPerPageChange,
-  perPageOptions = [10, 15, 25, 50],
+  perPageOptions = [15, 25, 50, 100, 200, 500],
   hasLoaded = true,
 }: PaginationProps) {
   return (
@@ -55,7 +55,7 @@ export function Pagination({
               key={label}
               onClick={onClick}
               disabled={disabled}
-              className="px-3 py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 cursor-pointer py-1 text-sm rounded border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {label}
             </button>

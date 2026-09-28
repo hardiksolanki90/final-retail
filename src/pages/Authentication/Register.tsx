@@ -224,8 +224,7 @@ export const Register: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
                     <label htmlFor="firstname" className={labelClass}>
-                      First Name *
-                    </label>
+                      First Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
                     <div className="relative">
                       <User className={iconClass} />
                       <input
@@ -260,8 +259,7 @@ export const Register: React.FC = () => {
 
                 <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
                   <label htmlFor="org_name" className={labelClass}>
-                    Organisation Name *
-                  </label>
+                    Organisation Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
                   <div className="relative">
                     <Boxes className={iconClass} />
                     <input
@@ -284,7 +282,7 @@ export const Register: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="group flex w-full items-center justify-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] py-3.5 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
+                    className="g cursor-pointerroup flex w-full items-center justify-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] py-3.5 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
                   >
                     CONTINUE
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -298,8 +296,7 @@ export const Register: React.FC = () => {
               <>
                 <div className="animate-fade-up" style={{ animationDelay: '0ms' }}>
                   <label htmlFor="email" className={labelClass}>
-                    Work Email *
-                  </label>
+                    Work Email <span className="text-red-500 font-bold ml-0.5">*</span></label>
                   <div className="relative">
                     <Mail className={iconClass} />
                     <input
@@ -324,8 +321,7 @@ export const Register: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="animate-fade-up" style={{ animationDelay: '60ms' }}>
                     <label htmlFor="password" className={labelClass}>
-                      Password *
-                    </label>
+                      Password <span className="text-red-500 font-bold ml-0.5">*</span></label>
                     <div className="relative">
                       <Lock className={iconClass} />
                       <input
@@ -357,8 +353,7 @@ export const Register: React.FC = () => {
 
                   <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
                     <label htmlFor="password_confirmation" className={labelClass}>
-                      Confirm Password *
-                    </label>
+                      Confirm Password <span className="text-red-500 font-bold ml-0.5">*</span></label>
                     <div className="relative">
                       <Lock className={iconClass} />
                       <input
@@ -418,7 +413,7 @@ export const Register: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="group flex flex-1 items-center justify-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] py-3.5 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
+                    className="g cursor-pointerroup flex flex-1 items-center justify-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] py-3.5 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
                   >
                     {isSubmitting ? (
                       'CREATING ORGANISATION…'

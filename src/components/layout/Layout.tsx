@@ -24,9 +24,8 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Main Content */}
         <div
-          className={`transition-all duration-300 ${
-            isSidebarCollapsed ? 'lg:ml-[70px]' : 'lg:ml-[260px]'
-          }`}
+          className={`transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-[70px]' : 'lg:ml-[260px]'
+            }`}
         >
           {/* Header */}
           <Header
@@ -35,7 +34,7 @@ export function Layout({ children }: LayoutProps) {
           />
 
           {/* Page Content */}
-          <main className="p-4 lg:p-6">{children}</main>
+          <main>{children}</main>
         </div>
       </div>
     </OrganisationGuard>

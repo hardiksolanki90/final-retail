@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Drawer } from '../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
 import type { ItemUomFormData } from '../../types/ItemUom';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
 
 interface ItemUomAddProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export function ItemUomAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -54,9 +56,15 @@ export function ItemUomAdd({
 
   const onFormSubmit = async (formData: ItemUomFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('item_uom', formData.code?.trim() || undefined);
+      if (resolvedCode) {
+        setValue('code', resolvedCode);
+        setCodeLocked(true);
+      }
+
       // Trim values before submission
       const trimmedData: ItemUomFormData = {
-        code: formData.code?.trim() || '',
+        code: resolvedCode ?? formData.code?.trim() ?? '',
         name: formData.name?.trim() || '',
         status: formData.status,
       };
@@ -117,23 +125,22 @@ export function ItemUomAdd({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Code <span className="text-red-500">*</span>
+              Code <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('code', {
-                required: 'Code is required',
-                validate: value => value?.trim() ? true : 'Code is required'
-              })}
+              {...register('code')}
               className="block w-full px-3 py-2 rounded-lg border transition-colors
               bg-white dark:bg-gray-800
               text-gray-900 dark:text-gray-100
               border-gray-300 dark:border-gray-600
-              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Enter code"
+              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+              disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} />
+            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="item_uom" onLockChange={setCodeLocked} />
             {errors.code && (
               <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
             )}
@@ -142,7 +149,7 @@ export function ItemUomAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Name <span className="text-red-500">*</span>
+            Name <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             {...register('name', {

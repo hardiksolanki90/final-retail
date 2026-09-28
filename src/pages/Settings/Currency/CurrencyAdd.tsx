@@ -186,7 +186,7 @@ export function CurrencyAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Currency Master *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Currency Master <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <Controller
             name="currencyMasterId"
             control={control}
@@ -219,7 +219,7 @@ export function CurrencyAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Code *</label>
+            <label className="block text-sm font-medium text-gray-700">Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
@@ -238,7 +238,7 @@ export function CurrencyAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('name', {
               required: 'Name is required',
@@ -253,7 +253,7 @@ export function CurrencyAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name Plural *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name Plural <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('namePlural', {
               required: 'Name plural is required',
@@ -268,7 +268,7 @@ export function CurrencyAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Symbol *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Symbol <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('symbol', {
               required: 'Symbol is required',
@@ -283,7 +283,7 @@ export function CurrencyAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Symbol Native *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Symbol Native <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('symbolNative', {
               required: 'Native symbol is required',
@@ -298,7 +298,7 @@ export function CurrencyAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Decimal Digits *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Decimal Digits <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('decimalDigits', {
               required: 'Decimal digits is required',
@@ -315,7 +315,7 @@ export function CurrencyAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Rounding *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Rounding <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('rounding', {
               required: 'Rounding is required',

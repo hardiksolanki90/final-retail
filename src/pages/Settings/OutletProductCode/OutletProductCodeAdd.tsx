@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { OutletProductCodeFormData } from '../../../types/OutletProductCode';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 
 interface OutletProductCodeAddProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ export function OutletProductCodeAdd({
     defaultValues: initialFormData
   });
 
+  const [codeLocked, setCodeLocked] = useState(false);
+
   useEffect(() => {
     if (initialData) {
       reset({ name: initialData.name ?? '', code: initialData.code ?? '' });
@@ -46,6 +49,13 @@ export function OutletProductCodeAdd({
 
   const onFormSubmit = async (data: OutletProductCodeFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('outlet_product_code', data.code);
+      if (resolvedCode !== data.code) {
+        data.code = resolvedCode ?? '';
+        setValue('code', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onSubmit(data);
     } catch (error: any) {
       setError('root', {
@@ -81,18 +91,16 @@ export function OutletProductCodeAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Code *</label>
+            <label className="block text-sm font-medium text-gray-700">Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('code', {
-                required: 'Code is required',
-                validate: value => value.trim() !== '' || 'Code cannot be empty'
-              })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter code"
+              {...register('code')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} />
+            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="outlet_product_code" onLockChange={setCodeLocked} />
             {errors.code && (
               <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
             )}
@@ -100,7 +108,7 @@ export function OutletProductCodeAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('name', {
               required: 'Name is required',

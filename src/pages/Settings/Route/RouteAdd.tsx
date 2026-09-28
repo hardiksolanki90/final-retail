@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { RouteFormData } from '../../../types/Route';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 import { AreaSelect, DepotSelect } from '../../../components/ui';
 
 interface RouteAddProps {
@@ -46,6 +47,7 @@ export function RouteAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -61,6 +63,13 @@ export function RouteAdd({
 
   const onFormSubmit = async (formData: RouteFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('route', formData.code);
+      if (resolvedCode !== formData.code) {
+        formData.code = resolvedCode ?? '';
+        setValue('code', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onEvent?.({
         eventType: initialData ? 'RouteUpdated' : 'RouteCreated',
         route: formData,
@@ -119,24 +128,22 @@ export function RouteAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('code', {
-                required: 'Code is required',
-                validate: (value) => value.trim() !== '' || 'Code cannot be empty',
-              })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Enter route code"
+              {...register('code')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} />
+            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="route" onLockChange={setCodeLocked} />
           </div>
           {errors.code && <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('name', {
               required: 'Name is required',
@@ -155,7 +162,7 @@ export function RouteAdd({
             rules={{ required: 'Area is required' }}
             render={({ field }) => (
               <AreaSelect
-                label="Area *"
+                label="Area"
                 error={errors.areaId?.message}
                 value={field.value}
                 onChange={field.onChange}
@@ -171,7 +178,7 @@ export function RouteAdd({
             rules={{ required: 'Depot is required' }}
             render={({ field }) => (
               <DepotSelect
-                label="Depot *"
+                label="Depot"
                 error={errors.depotId?.message}
                 value={field.value}
                 onChange={field.onChange}

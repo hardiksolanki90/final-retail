@@ -11,7 +11,7 @@ interface PalletAddProps {
   onClose: () => void;
   onSubmit: (data: AddPalletFormData) => void | Promise<void>;
   isLoading?: boolean;
-  salesmen?: SelectOption[];
+  salesman?: SelectOption[];
   items?: SelectOption[];
   divisions?: SelectOption[];
   warehouses?: SelectOption[];
@@ -22,7 +22,7 @@ export function PalletAdd({
   onClose,
   onSubmit,
   isLoading = false,
-  salesmen = [],
+  salesman = [],
   items = [],
   divisions = [],
   warehouses = [],
@@ -66,7 +66,7 @@ export function PalletAdd({
         ...data,
         qty: Number(data.qty)
       };
-      
+
       await onSubmit(processedData);
       onClose();
     } catch (error: any) {
@@ -113,9 +113,9 @@ export function PalletAdd({
           {/* Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Date <span className="text-red-500">*</span>
+              Date <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
-                  <OrderCodeSettingsIcon label="Salesman" value="" onChange={() => {}} />
+            <OrderCodeSettingsIcon label="Salesman" value="" onChange={() => { }} />
             <input
               type="date"
               {...register('date', { required: 'Date is required' })}
@@ -142,7 +142,7 @@ export function PalletAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">Select salesman</option>
-              {salesmen.map((option) => (
+              {salesman.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
@@ -209,7 +209,7 @@ export function PalletAdd({
           {/* Qty */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Qty <span className="text-red-500">*</span>
+              Qty <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <input
               type="number"

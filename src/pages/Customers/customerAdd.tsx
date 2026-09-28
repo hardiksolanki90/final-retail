@@ -1,23 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Drawer } from "../../components/ui/Drawer";
 import { Input } from "../../components/ui/Input";
 import { Select, type SelectOption } from "../../components/ui/Select";
 import { CreatableSelect } from "../../components/ui/CreatableSelect";
+import { RegionSelect } from "../../components/ui/RegionSelect";
 import { SaveButton, CancelButton } from "../../components/ui/Button";
 import { OrderCodeSettingsIcon } from "../../components/ui/OrderCodeSettingsIcon";
 import { CountryPhoneInput } from "../../components/ui/CountryPhoneInput";
 import { getAllSalesmen } from "../../api/SalesmanApi";
 import { getAllCountries } from "../../api/CountryApi";
-import { getRegionOptions, createRegion } from "../../api/RegionApi";
-import { getAllCustomers } from "../../api/CustomerApi";
+import { getCustomerOptions, getCustomerTypeOptions } from "../../api/CustomerApi";
+import { useInfiniteSelect } from "../../hooks/useInfiniteSelect";
 import type {
     CustomerFormData,
     Customer,
 } from "../../types/Customer";
 import { useCustomer } from "../../providers/CustomerProvider";
-import { AlertCircle } from "lucide-react";
+import { reserveCodeIfAuto } from "../../api/CodeSettingApi";
+import { useCodeSetting } from "../../hooks/CodeSetting/useCodeSetting";
+import { AlertCircle, X } from "lucide-react";
 
 interface CustomerAddProps {
     isOpen: boolean;
@@ -56,17 +59,14 @@ const initialFormData: CustomerFormData = {
 function FormFieldLabel({
     label,
     required = false,
-    colon = true,
 }: {
     label: string;
     required?: boolean;
-    colon?: boolean;
 }) {
     return (
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {label}
-            {required && <span className="text-red-500 font-bold ml-0.5">*</span>}
-            {colon ? ':' : ''}
+            {required && <span className="text-red-500 font-bold">*</span>}
         </label>
     );
 }
@@ -82,8 +82,6 @@ export function CustomerAdd({
         updateCustomerData,
         isAdding,
         isUpdating,
-        customerData,
-        customerTypes,
         customerCategories,
         channels,
         createCustomerCategoryOption,
@@ -91,8 +89,6 @@ export function CustomerAdd({
         createSalesOrganisationOption,
         salesOrganisations,
     } = useCustomer();
-
-    const queryClient = useQueryClient();
 
     const {
         register,
@@ -108,6 +104,14 @@ export function CustomerAdd({
     });
 
     const isEditing = !!data;
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [codeLocked, setCodeLocked] = useState(false);
+    // True while the Customer Code input shows an auto-numbering preview
+    // rather than a real reservation — onFormSubmit must still call
+    // reserveCodeIfAuto fresh at submit time so concurrent users don't all
+    // reuse the same previewed number.
+    const [isAutoPreview, setIsAutoPreview] = useState(false);
+    const { codeSetting } = useCodeSetting('customer');
 
     useEffect(() => {
         if (isOpen && data) {
@@ -125,7 +129,7 @@ export function CustomerAdd({
                 customerOfficeZipcode: data.customerOfficeZipcode || (data as any).zipcode || '',
                 image: data.image || '',
                 status: data.status ?? true,
-                salesmanId: data.salesman?.id?.toString() || data.salesmanId?.toString() || data.merchandiserId?.toString() || '',
+                salesmanId: data.salesman?.id?.toString() || data.salesmanId?.toString() || data.salesmanId?.toString() || '',
                 salesOrganisationId: data.salesOrganisationId?.toString() || data.salesOrganisation?.id?.toString() || '',
                 countryId: data.countryId?.toString() || (data as any).country?.id?.toString() || '',
                 regionId: data.regionId?.toString() || (data as any).region?.id?.toString() || '',
@@ -150,14 +154,37 @@ export function CustomerAdd({
         }
     }, [isOpen, data, reset]);
 
+    // Show the next auto-generated code as soon as the setting loads, so the
+    // field isn't blank — this is a preview only, the real reservation still
+    // happens on submit (see isAutoPreview below).
+    useEffect(() => {
+        if (!isOpen || isEditing) return;
+
+        if (codeSetting?.isCodeAuto && (codeSetting.nextCommingNumber || codeSetting.startCode)) {
+            const preview = `${codeSetting.prefixCode ?? ''}${codeSetting.nextCommingNumber ?? codeSetting.startCode ?? ''}`;
+            setValue('code', preview);
+            setCodeLocked(true);
+            setIsAutoPreview(true);
+        } else {
+            setIsAutoPreview(false);
+        }
+    }, [isOpen, isEditing, codeSetting, setValue]);
+
     const onFormSubmit = async (formData: CustomerFormData) => {
         try {
+            const resolvedCode = await reserveCodeIfAuto('customer', isAutoPreview ? undefined : formData.code);
+            if (resolvedCode !== formData.code) {
+                formData.code = resolvedCode;
+                setValue('code', resolvedCode ?? '');
+                setCodeLocked(true);
+            }
+
             const computedShopName = formData.shopName?.trim() || `${formData.firstName} ${formData.lastName || ''}`.trim() || formData.firstName;
             const payload: CustomerFormData = {
                 ...formData,
                 shopName: computedShopName,
                 customerOfficeAddress: formData.customerOfficeAddress || '',
-                merchandiserId: formData.salesmanId || '',
+                salesmanId: formData.salesmanId || '',
                 shipToPartyId: formData.shipToPartyId || undefined,
                 soldToPartyId: formData.soldToPartyId || undefined,
                 payerId: formData.payerId || undefined,
@@ -196,15 +223,22 @@ export function CustomerAdd({
         }
     };
 
-    // Salesmen Options
-    const { data: salesmen = [] } = useQuery({
-        queryKey: ['salesmen-all'],
+    const handleRemoveImage = () => {
+        setValue('image', '');
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    // salesman Options
+    const { data: salesman = [] } = useQuery({
+        queryKey: ['salesman-all'],
         queryFn: () => getAllSalesmen(),
         enabled: isOpen,
         staleTime: 10 * 60 * 1000,
     });
 
-    const salesmanOptions: SelectOption[] = salesmen.map((s: any) => ({
+    const salesmanOptions: SelectOption[] = salesman.map((s: any) => ({
         value: s.id?.toString() || s.value?.toString() || '',
         label: s.name ? `${s.salesmanCode ? s.salesmanCode + ' - ' : ''}${s.name}` : (s.label || s.salesmanCode || ''),
     }));
@@ -225,39 +259,15 @@ export function CustomerAdd({
     const watchedCountryId = watch('countryId');
     const selectedCountryCode = countries.find(c => String(c.id) === String(watchedCountryId))?.countryCode;
 
-    // Regions
-    const { data: regionOpts = [] } = useQuery({
-        queryKey: ['regions-all'],
-        queryFn: () => getRegionOptions(),
+    // Customer Type — paginated + searchable (was a full unpaginated fetch)
+    const customerTypeSelect = useInfiniteSelect({
         enabled: isOpen,
-        staleTime: 10 * 60 * 1000,
+        fetchPage: async (page, search) => {
+            const res = await getCustomerTypeOptions(page, search || undefined);
+            return { items: res.data, hasMore: res.meta.has_more_pages };
+        },
+        mapItemToOption: (t: any) => ({ value: String(t.id ?? ''), label: t.name || '' }),
     });
-
-    const regionOptions: SelectOption[] = regionOpts.map(r => ({
-        value: r.value?.toString() || '',
-        label: r.label || '',
-    }));
-
-    const createRegionMutation = useMutation({
-        mutationFn: (values: Record<string, any>) =>
-            createRegion({
-                regionName: values.name,
-                countryId: values.countryId ? Number(values.countryId) : undefined,
-                status: values.status ?? true,
-            }),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['regions-all'] }),
-    });
-
-    const createRegionOption = async (values: Record<string, any>): Promise<SelectOption> => {
-        const created = await createRegionMutation.mutateAsync(values);
-        return { value: String(created.id ?? ''), label: created.regionName || values.name };
-    };
-
-    // Customer types, categories, channels, sales organisations
-    const customerTypeOptions: SelectOption[] = customerTypes.map(type => ({
-        value: type.id?.toString() || '',
-        label: type.name || '',
-    }));
 
     const customerCategoryOptions: SelectOption[] = customerCategories.map(cat => ({
         value: cat.id?.toString() || '',
@@ -274,32 +284,28 @@ export function CustomerAdd({
         label: so.name || '',
     }));
 
-    // Partner function customer options with "Same as customer" as the default option
-    const { data: allCustomersList = [] } = useQuery({
-        queryKey: ['all-customers-select'],
-        queryFn: () => getAllCustomers(),
-        enabled: isOpen,
-        staleTime: 10 * 60 * 1000,
-    });
-
+    // Partner function customer pickers — each gets its own paginated +
+    // searchable instance (independent search/scroll state per dropdown),
+    // prefixed with a "Same as customer" sentinel and excluding self.
     const watchedCode = watch('code');
     const sameAsCodeLabel = watchedCode?.trim() ? `${watchedCode.trim()} (Same customer)` : 'Same customer';
 
-    const partnerCustomerOptions: SelectOption[] = [
+    const fetchCustomerPage = async (page: number, search: string) => {
+        const res = await getCustomerOptions(page, search || undefined);
+        return { items: res.data, hasMore: res.meta.has_more_pages };
+    };
+    const mapCustomerToOption = (c: any) => ({ value: c.value, label: c.label });
+
+    const shipToPartySelect = useInfiniteSelect({ enabled: isOpen, fetchPage: fetchCustomerPage, mapItemToOption: mapCustomerToOption });
+    const soldToPartySelect = useInfiniteSelect({ enabled: isOpen, fetchPage: fetchCustomerPage, mapItemToOption: mapCustomerToOption });
+    const payerSelect = useInfiniteSelect({ enabled: isOpen, fetchPage: fetchCustomerPage, mapItemToOption: mapCustomerToOption });
+    const billToPartySelect = useInfiniteSelect({ enabled: isOpen, fetchPage: fetchCustomerPage, mapItemToOption: mapCustomerToOption });
+
+    const buildPartnerOptions = (options: SelectOption[]): SelectOption[] => [
         { value: 'same_as_customer', label: sameAsCodeLabel },
-        ...(allCustomersList.length > 0
-            ? allCustomersList
-                .filter((c: any) => String(c.value ?? c.id ?? '') !== String(data?.id ?? ''))
-                .map((c: any) => ({
-                    value: String(c.value ?? c.id ?? ''),
-                    label: c.label || `${c.code || ''} - ${c.shopName || c.name || ''}`,
-                }))
-            : (customerData?.data
-                ?.filter(c => !data?.id || c.id !== data.id)
-                .map(c => ({
-                    value: c.id?.toString() || '',
-                    label: `${c.code} - ${c.shopName || `${c.firstName || ''} ${c.lastName || ''}`.trim()}`,
-                })) || []))
+        // Options are keyed by customer uuid (CustomerRepository::toSelectOption),
+        // so exclude self by uuid, not the numeric id.
+        ...options.filter((o) => String(o.value) !== String(data?.uuid ?? '')),
     ];
 
     const footerContent = (
@@ -326,7 +332,7 @@ export function CustomerAdd({
             isOpen={isOpen}
             onClose={handleClose}
             title={isEditing ? "Edit Customer" : "Add Customer"}
-            width="w-[800px]"
+            width="w-[700px]"
             footer={footerContent}
         >
             <form
@@ -349,11 +355,14 @@ export function CustomerAdd({
                         <Input
                             {...register('code')}
                             placeholder="Auto-generated if empty"
+                            disabled={codeLocked}
                         />
                         <OrderCodeSettingsIcon
                             label="Customer Code"
                             value={watch('code') || ''}
                             onChange={(v) => setValue('code', v)}
+                            entityKey="customer"
+                            onLockChange={setCodeLocked}
                         />
                     </div>
                 </div>
@@ -382,10 +391,9 @@ export function CustomerAdd({
 
                 {/* Email */}
                 <div>
-                    <FormFieldLabel label="Email" required />
+                    <FormFieldLabel label="Email" />
                     <Input
                         {...register('email', {
-                            required: 'Email is required',
                             pattern: {
                                 value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                                 message: 'Please enter a valid email address',
@@ -491,7 +499,12 @@ export function CustomerAdd({
                                 <Select
                                     value={String(field.value ?? '')}
                                     onChange={(e) => field.onChange(e.target.value)}
-                                    options={customerTypeOptions}
+                                    options={customerTypeSelect.options}
+                                    isLoading={customerTypeSelect.isLoading}
+                                    isLoadingMore={customerTypeSelect.isLoadingMore}
+                                    hasMore={customerTypeSelect.hasMore}
+                                    onLoadMore={customerTypeSelect.onLoadMore}
+                                    onSearchChange={customerTypeSelect.onSearchChange}
                                     placeholder="Select customer type"
                                 />
                             )}
@@ -581,18 +594,10 @@ export function CustomerAdd({
                             name="regionId"
                             control={control}
                             render={({ field }) => (
-                                <CreatableSelect
-                                    value={String(field.value ?? '')}
+                                <RegionSelect
+                                    value={field.value ?? ''}
                                     onChange={field.onChange}
-                                    options={regionOptions}
                                     placeholder="Search"
-                                    createLabel="Add New Region"
-                                    onCreate={createRegionOption}
-                                    fields={[
-                                        { type: 'text', name: 'name', label: 'Region Name', required: true },
-                                        { type: 'select', name: 'countryId', label: 'Country', options: countryOptions, placeholder: 'Select Country' },
-                                        { type: 'toggle', name: 'status', label: 'Active' },
-                                    ]}
                                 />
                             )}
                         />
@@ -636,7 +641,12 @@ export function CustomerAdd({
                                     <Select
                                         value={String(field.value ?? '')}
                                         onChange={(e) => field.onChange(e.target.value)}
-                                        options={partnerCustomerOptions}
+                                        options={buildPartnerOptions(shipToPartySelect.options)}
+                                        isLoading={shipToPartySelect.isLoading}
+                                        isLoadingMore={shipToPartySelect.isLoadingMore}
+                                        hasMore={shipToPartySelect.hasMore}
+                                        onLoadMore={shipToPartySelect.onLoadMore}
+                                        onSearchChange={shipToPartySelect.onSearchChange}
                                         placeholder="Select customer"
                                     />
                                 )}
@@ -652,7 +662,12 @@ export function CustomerAdd({
                                     <Select
                                         value={String(field.value ?? '')}
                                         onChange={(e) => field.onChange(e.target.value)}
-                                        options={partnerCustomerOptions}
+                                        options={buildPartnerOptions(soldToPartySelect.options)}
+                                        isLoading={soldToPartySelect.isLoading}
+                                        isLoadingMore={soldToPartySelect.isLoadingMore}
+                                        hasMore={soldToPartySelect.hasMore}
+                                        onLoadMore={soldToPartySelect.onLoadMore}
+                                        onSearchChange={soldToPartySelect.onSearchChange}
                                         placeholder="Select customer"
                                     />
                                 )}
@@ -668,7 +683,12 @@ export function CustomerAdd({
                                     <Select
                                         value={String(field.value ?? '')}
                                         onChange={(e) => field.onChange(e.target.value)}
-                                        options={partnerCustomerOptions}
+                                        options={buildPartnerOptions(payerSelect.options)}
+                                        isLoading={payerSelect.isLoading}
+                                        isLoadingMore={payerSelect.isLoadingMore}
+                                        hasMore={payerSelect.hasMore}
+                                        onLoadMore={payerSelect.onLoadMore}
+                                        onSearchChange={payerSelect.onSearchChange}
                                         placeholder="Select customer"
                                     />
                                 )}
@@ -684,7 +704,12 @@ export function CustomerAdd({
                                     <Select
                                         value={String(field.value ?? '')}
                                         onChange={(e) => field.onChange(e.target.value)}
-                                        options={partnerCustomerOptions}
+                                        options={buildPartnerOptions(billToPartySelect.options)}
+                                        isLoading={billToPartySelect.isLoading}
+                                        isLoadingMore={billToPartySelect.isLoadingMore}
+                                        hasMore={billToPartySelect.hasMore}
+                                        onLoadMore={billToPartySelect.onLoadMore}
+                                        onSearchChange={billToPartySelect.onSearchChange}
                                         placeholder="Select customer"
                                     />
                                 )}
@@ -698,17 +723,28 @@ export function CustomerAdd({
                     <FormFieldLabel label="Profile Image" />
                     <div className="flex items-center gap-3">
                         <input
+                            ref={fileInputRef}
                             type="file"
                             accept="image/*"
                             onChange={handleImageChange}
                             className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600 file:text-sm file:font-medium file:bg-gray-50 dark:file:bg-gray-800 hover:file:bg-gray-100 dark:hover:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-200 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-lg p-1 bg-white dark:bg-gray-800"
                         />
                         {watch('image') && (
-                            <img
-                                src={watch('image')}
-                                alt="Profile Preview"
-                                className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0"
-                            />
+                            <div className="relative shrink-0">
+                                <img
+                                    src={watch('image')}
+                                    alt="Profile Preview"
+                                    className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleRemoveImage}
+                                    className="absolute cursor-pointer cursor-pointer -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gray-700 dark:bg-gray-600 text-white flex items-center justify-center hover:bg-gray-900 dark:hover:bg-gray-500 transition-colors"
+                                    title="Remove image"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>

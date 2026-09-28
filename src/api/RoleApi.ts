@@ -23,6 +23,11 @@ export const getRoleList = async (
   };
 };
 
+export const getAllRoles = async (): Promise<{ value: string; label: string }[]> => {
+  const response = await axiosInstance.get('/role/all');
+  return response.data.data ?? [];
+};
+
 export const createRole = async (data: UserRoleFormData): Promise<UserRole> => {
   const response = await axiosInstance.post('/role/add', data);
   return response.data.data;

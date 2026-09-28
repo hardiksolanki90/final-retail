@@ -25,6 +25,11 @@ export const updateVan = async (uuid: string, data: Record<string, any>) => {
   return response.data;
 };
 
+export const getVanDetails = async (uuid: string): Promise<any> => {
+  const response = await axiosInstance.get(`/van/view/${uuid}`);
+  return response.data.data;
+};
+
 export const deleteVan = async (uuid: string) => {
   await axiosInstance.delete(`/van/delete/${uuid}`);
   showToast.success('Van deleted successfully');

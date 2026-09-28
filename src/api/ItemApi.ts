@@ -50,6 +50,8 @@ export const getItemList = async (
 
 export const getAllItems = async (filters?: ItemFilters): Promise<ItemSelectOption[]> => {
   const params = new URLSearchParams();
+  params.append('page', '1');
+  params.append('per_page', '1000');
 
   if (filters?.itemCategoryId) {
     params.append('item_category_id', filters.itemCategoryId.toString());
@@ -59,7 +61,7 @@ export const getAllItems = async (filters?: ItemFilters): Promise<ItemSelectOpti
     params.append('brand_id', filters.brandId.toString());
   }
 
-  const response = await axiosInstance.get(`/item/all?${params.toString()}`);
+  const response = await axiosInstance.get(`/item/list?${params.toString()}`);
   return response.data.data || response.data;
 };
 
@@ -138,7 +140,7 @@ export const getItemCategoryList = async (
 };
 
 export const getItemCategories = async (): Promise<ItemCategory[]> => {
-  const response = await axiosInstance.get('/item-category/all');
+  const response = await axiosInstance.get('/item-category/list?page=1&per_page=1000');
   return response.data.data || response.data;
 };
 
@@ -176,7 +178,7 @@ export const getBrandList = async (
 };
 
 export const getBrands = async (): Promise<Brand[]> => {
-  const response = await axiosInstance.get('/brand/all');
+  const response = await axiosInstance.get('/brand/list?page=1&per_page=1000');
   return response.data.data || response.data;
 };
 
@@ -200,8 +202,21 @@ export const deleteBrand = async (uuid: string): Promise<void> => {
 };
 
 // Item UOM API
+export const getItemUomList = async (
+  page: number = 1,
+  perPage: number = 15,
+  searchTerm?: string
+): Promise<any> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+  if (searchTerm) params.append('search', searchTerm);
+  const response = await axiosInstance.get(`/item-uom/list?${params.toString()}`);
+  return unwrapPaginated(response.data, 'itemUoms', perPage);
+};
+
 export const getItemUoms = async (): Promise<ItemUom[]> => {
-  const response = await axiosInstance.get('/item-uom/all');
+  const response = await axiosInstance.get('/item-uom/list?page=1&per_page=1000');
   return response.data.data || response.data;
 };
 

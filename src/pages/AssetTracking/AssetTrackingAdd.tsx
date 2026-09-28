@@ -141,7 +141,7 @@ export function AssetTrackingAdd({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Asset Code <span className="text-red-500">*</span>
+              Asset Code <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
           </div>
           <div className="flex items-center gap-2 relative">
@@ -179,7 +179,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Title <span className="text-red-500">*</span>
+            Title <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             {...register('title', {
@@ -200,7 +200,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Description <span className="text-red-500">*</span>
+            Description <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             {...register('description', {
@@ -222,7 +222,7 @@ export function AssetTrackingAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              From Date <span className="text-red-500">*</span>
+              From Date <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <input
               type="date"
@@ -235,7 +235,7 @@ export function AssetTrackingAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              To Date <span className="text-red-500">*</span>
+              To Date <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <input
               type="date"
@@ -250,7 +250,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Model Name <span className="text-red-500">*</span>
+            Model Name <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             {...register('modelName', { required: 'Model Name is required' })}
@@ -264,7 +264,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Barcode <span className="text-red-500">*</span>
+            Barcode <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             {...register('barcode', { required: 'Barcode is required' })}
@@ -278,7 +278,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Category <span className="text-red-500">*</span>
+            Category <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <select
             {...register('category', { required: 'Category is required' })}
@@ -296,7 +296,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Location <span className="text-red-500">*</span>
+            Location <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             {...register('location', { required: 'Location is required' })}
@@ -310,7 +310,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Area <span className="text-red-500">*</span>
+            Area <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             {...register('area', { required: 'Area is required' })}
@@ -362,7 +362,7 @@ export function AssetTrackingAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Customer <span className="text-red-500">*</span>
+            Customer <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <select
             {...register('customerId', { required: 'Customer is required' })}

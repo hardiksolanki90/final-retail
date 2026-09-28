@@ -23,10 +23,10 @@ export function PortfolioManagementAdd({
 }: PortfolioManagementAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
-  const salesmen = data?.salesmen || [];
+  const salesman = data?.salesman || [];
   const customers = data?.customers || [];
   const items = data?.items || [];
-  
+
   const defaultValues: PortfolioManagementFormData = {
     salesmanId: '',
     customerId: '',
@@ -107,7 +107,7 @@ export function PortfolioManagementAdd({
         setError('items', { type: 'required', message: 'At least one item is required' });
         return;
       }
-      
+
       onEvent?.({
         eventType: initialData ? 'PortfolioManagementUpdated' : 'PortfolioManagementCreated',
         portfolioManagement: data,
@@ -116,9 +116,9 @@ export function PortfolioManagementAdd({
       console.error('Error saving portfolio management:', error);
       if (error.response?.data?.errors) {
         Object.entries(error.response.data.errors).forEach(([field, message]) => {
-          setError(field as keyof PortfolioManagementFormData, { 
-            type: 'server', 
-            message: Array.isArray(message) ? message[0] : message 
+          setError(field as keyof PortfolioManagementFormData, {
+            type: 'server',
+            message: Array.isArray(message) ? message[0] : message
           });
         });
       }
@@ -136,25 +136,25 @@ export function PortfolioManagementAdd({
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Portfolio Management' : 'Add Portfolio Management'}
-      width="w-[800px]"
+      width="w-[700px]"
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Portfolio Name</label>
-                  <OrderCodeSettingsIcon label="Portfolio Name" value="" onChange={() => {}} />
-                </div>
-                <Input
-          label="Portfolio Name"
-          {...register('portfolioName', {
-            required: 'Portfolio Name is required',
-            validate: (value) => value?.trim() || 'Portfolio Name is required'
-          })}
-          error={errors.portfolioName?.message}
-          placeholder="Enter portfolio name"
-          required
-        />
-              </div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Portfolio Name</label>
+            <OrderCodeSettingsIcon label="Portfolio Name" value="" onChange={() => { }} />
+          </div>
+          <Input
+            label="Portfolio Name"
+            {...register('portfolioName', {
+              required: 'Portfolio Name is required',
+              validate: (value) => value?.trim() || 'Portfolio Name is required'
+            })}
+            error={errors.portfolioName?.message}
+            placeholder="Enter portfolio name"
+            required
+          />
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <Select
@@ -163,7 +163,7 @@ export function PortfolioManagementAdd({
               required: 'Salesman is required'
             })}
             onChange={(e) => handleSelectChange('salesmanId', e.target.value)}
-            options={salesmen}
+            options={salesman}
             placeholder="Select salesman"
             error={errors.salesmanId?.message}
             required
@@ -254,7 +254,7 @@ export function PortfolioManagementAdd({
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="w-full h-full px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="w-full cursor-pointer h-full px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
               </button>

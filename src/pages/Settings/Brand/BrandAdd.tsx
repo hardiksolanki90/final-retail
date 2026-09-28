@@ -109,7 +109,7 @@ export function BrandAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('brandName', {
               required: 'Brand name is required',

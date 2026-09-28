@@ -111,7 +111,7 @@ export function GRNAdd() {
                 </select>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -147,7 +147,7 @@ export function GRNAdd() {
 
           {/* Items table */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-x-auto mb-4">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-sm min-w-[700px]">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-3 py-2 text-left w-12">#</th>
@@ -183,7 +183,7 @@ export function GRNAdd() {
                       </select>
                     </td>
                     <td className="px-3 py-2">
-                       <input
+                      <input
                         type="text"
                         {...register(`items.${index}.itemName`)}
                         className="w-full px-2 py-1 border rounded text-sm bg-gray-100 dark:bg-gray-800 disabled:opacity-75"
@@ -205,13 +205,13 @@ export function GRNAdd() {
                       />
                     </td>
                     <td className="px-3 py-2">
-                       <select {...register(`items.${index}.reason`)} className={selectClass}>
+                      <select {...register(`items.${index}.reason`)} className={selectClass}>
                         <option value="">Select</option>
                         {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </td>
                     <td className="px-3 py-2">
-                       <select {...register(`items.${index}.returnReason`)} className={selectClass}>
+                      <select {...register(`items.${index}.returnReason`)} className={selectClass}>
                         <option value="">Select</option>
                         {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
@@ -239,10 +239,10 @@ export function GRNAdd() {
               variant="secondary"
               className="flex items-center text-sm bg-gray-100 dark:bg-gray-700"
             >
-               <Plus className="w-4 h-4 mr-1" /> Add Item
+              <Plus className="w-4 h-4 mr-1" /> Add Item
             </Button>
           </div>
-          
+
           <div className="mt-8">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               GRN Remark
@@ -269,7 +269,7 @@ export function GRNAdd() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                GRN Settings  
+                GRN Settings
               </h3>
               <button
                 type="button"
@@ -353,10 +353,10 @@ export function GRNAdd() {
                 type="button"
                 onClick={() => {
                   if (grnMode === 'manual') {
-                     const combined = [grnPrefix, grnNumVal].filter(Boolean).join('-');
-                     setValue('grnNumber', combined || '');
+                    const combined = [grnPrefix, grnNumVal].filter(Boolean).join('-');
+                    setValue('grnNumber', combined || '');
                   } else {
-                     setValue('grnNumber', '');
+                    setValue('grnNumber', '');
                   }
                   setSettingsOpen(false);
                 }}

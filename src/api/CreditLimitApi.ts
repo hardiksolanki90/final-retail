@@ -1,6 +1,6 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
-import type { CreditLimitFormData, CreditLimitListResponse } from '../types/CreditLimit';
+import type { CreditLimit, CreditLimitFormData, CreditLimitListResponse } from '../types/CreditLimit';
 import { unwrapPaginated } from '../lib/paginatedResponse';
 
 export const getCreditLimitList = async (page = 1, perPage = 15): Promise<CreditLimitListResponse> => {
@@ -21,6 +21,11 @@ export const updateCreditLimit = async (uuid: string, data: CreditLimitFormData)
   const response = await axiosInstance.post(`/user-credit-limit/edit/${uuid}`, data);
   showToast.success('Credit limit updated successfully');
   return response.data;
+};
+
+export const getCreditLimitDetails = async (uuid: string): Promise<CreditLimit> => {
+  const response = await axiosInstance.get(`/user-credit-limit/edit/${uuid}`);
+  return response.data.data;
 };
 
 export const deleteCreditLimit = async (uuid: string) => {

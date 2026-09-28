@@ -181,7 +181,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
           {/* Mobile Close Button */}
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
+            className="p-2 cursor-pointer rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
             aria-label="Close sidebar"
           >
             <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />

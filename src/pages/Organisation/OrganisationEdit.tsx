@@ -178,7 +178,7 @@ export const OrganisationEdit: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <label className={formLabelClass}>Country *</label>
+                            <label className={formLabelClass}>Country <span className="text-red-500 font-bold ml-0.5">*</span></label>
                             <Controller
                                 name="country_master_id"
                                 control={control}
@@ -208,7 +208,7 @@ export const OrganisationEdit: React.FC = () => {
                         </div>
 
                         <div className="sm:col-span-2">
-                            <label className={formLabelClass}>Organisation Name *</label>
+                            <label className={formLabelClass}>Organisation Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
                             <input
                                 type="text"
                                 {...register('org_name', { required: 'Organisation name is required' })}
@@ -219,7 +219,7 @@ export const OrganisationEdit: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className={formLabelClass}>Company ID *</label>
+                            <label className={formLabelClass}>Company ID <span className="text-red-500 font-bold ml-0.5">*</span></label>
                             <input
                                 type="text"
                                 {...register('org_company_id', { required: 'Company ID is required' })}
@@ -265,7 +265,7 @@ export const OrganisationEdit: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <label className={formLabelClass}>Organisation Phone *</label>
+                            <label className={formLabelClass}>Organisation Phone <span className="text-red-500 font-bold ml-0.5">*</span></label>
                             <Controller
                                 name="org_phone"
                                 control={control}
@@ -299,7 +299,7 @@ export const OrganisationEdit: React.FC = () => {
                         </div>
 
                         <div className="sm:col-span-2">
-                            <label className={formLabelClass}>Street 1 *</label>
+                            <label className={formLabelClass}>Street 1 <span className="text-red-500 font-bold ml-0.5">*</span></label>
                             <input
                                 type="text"
                                 {...register('org_street1', { required: 'Street is required' })}

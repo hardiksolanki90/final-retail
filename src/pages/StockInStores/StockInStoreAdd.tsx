@@ -44,7 +44,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
   const [dateFrom, setDateFrom] = useState('2025-03-31');
   const [dateTo, setDateTo] = useState('2025-03-31');
   const [assignedCustomers, setAssignedCustomers] = useState<string[]>(['132299', '179630']);
-  
+
   // Item entry state
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedUom, setSelectedUom] = useState('');
@@ -77,7 +77,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
       alert('Please fill all item fields before adding.');
       return;
     }
-    
+
     const itemOption = ITEM_OPTIONS.find((i) => i.value === selectedItemId);
     const uomOption = UOM_OPTIONS.find((i) => i.value === selectedUom);
 
@@ -90,7 +90,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
     };
 
     setAddedItems([...addedItems, newItem]);
-    
+
     // Reset item form
     setSelectedItemId('');
     setSelectedUom('');
@@ -120,7 +120,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
       assignedCustomers,
       items: addedItems,
     });
-    
+
     onClose();
   };
 
@@ -129,18 +129,18 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
       isOpen={isOpen}
       onClose={onClose}
       title="Add Inventory"
-      width="w-[500px] md:w-[700px] lg:w-[800px]"
+      width="w-[500px] md:w-[700px] lg:w-[700px]"
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          
+
           {/* Main Form Fields */}
           <div className="space-y-4">
             <div className="grid grid-cols-[160px_1fr] items-center gap-4">
               <label className="text-sm text-[var(--text-secondary)]">
-                Activity Name<span className="text-red-500">*</span>
+                Activity Name<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
-              <Input 
+              <Input
                 value={activityName}
                 onChange={(e) => setActivityName(e.target.value)}
                 error={errors.activityName}
@@ -149,9 +149,9 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
 
             <div className="grid grid-cols-[160px_1fr] items-center gap-4">
               <label className="text-sm text-[var(--text-secondary)]">
-                Date From<span className="text-red-500">*</span>
+                Date From<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
-              <Input 
+              <Input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
@@ -161,9 +161,9 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
 
             <div className="grid grid-cols-[160px_1fr] items-center gap-4">
               <label className="text-sm text-[var(--text-secondary)]">
-                Date TO<span className="text-red-500">*</span>
+                Date TO<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
-              <Input 
+              <Input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
@@ -173,7 +173,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
 
             <div className="grid grid-cols-[160px_1fr] items-start gap-4">
               <label className="text-sm text-[var(--text-secondary)] mt-2">
-                Assign Customers<span className="text-red-500">*</span>
+                Assign Customers<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
               <div>
                 <MultiSelect
@@ -223,7 +223,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
                 <button
                   type="button"
                   onClick={handleAddItem}
-                  className="inline-flex items-center gap-1 px-4 py-2 bg-[#20B2AA] text-white text-sm font-medium rounded-md hover:bg-[#1C9B94] transition-colors"
+                  className="inline-flex cursor-pointer items-center gap-1 px-4 py-2 bg-[#20B2AA] text-white text-sm font-medium rounded-md hover:bg-[#1C9B94] transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   Add
@@ -260,7 +260,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
                         <div className="flex items-center justify-center gap-3">
                           <button
                             type="button"
-                            className="text-[var(--text-secondary)] hover:text-blue-600 transition-colors"
+                            className="text-[va cursor-pointerr(--text-secondary)] hover:text-blue-600 transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>

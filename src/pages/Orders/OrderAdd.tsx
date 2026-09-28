@@ -71,7 +71,7 @@ const defaultValues: OrderFormFields = {
 export function OrderAdd() {
   const data: any = {};
   const customers = (data?.customers || []) as SelectOption[];
-  const salesmen = (data?.salesmen || []) as SelectOption[];
+  const salesman = (data?.salesman || []) as SelectOption[];
   const items = (data?.items || []) as SelectOption[];
   const uomOptions = (data?.uomOptions || []) as SelectOption[];
 
@@ -199,7 +199,7 @@ export function OrderAdd() {
           <div className="grid grid-cols-2 gap-8 max-w-4xl">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Order Type <span className="text-red-500">*</span>
+                Order Type <span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
               <select
                 {...register('orderType', { required: 'Order Type is required' })}
@@ -216,18 +216,18 @@ export function OrderAdd() {
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="space-y-4">
               <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Customer <span className="text-red-500">*</span>
-              </label>
-              <select
-                {...register('customerId', { required: 'Customer is required' })}
-                className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">Select Customer</option>
-                {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
-            </div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Customer <span className="text-red-500 font-bold ml-0.5">*</span>
+                </label>
+                <select
+                  {...register('customerId', { required: 'Customer is required' })}
+                  className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Salesman
@@ -237,12 +237,12 @@ export function OrderAdd() {
                   className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select Salesman</option>
-                  {salesmen.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Payment Terms <span className="text-red-500">*</span>
+                  Payment Terms <span className="text-red-500 font-bold ml-0.5">*</span>
                 </label>
                 <select
                   {...register('paymentTerms', { required: 'Payment Terms is required' })}
@@ -434,7 +434,7 @@ export function OrderAdd() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Order Code  
+                Order Code
               </h3>
               <button
                 type="button"

@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 import type { RegionFormData } from '../../../types/Region';
 import { getAllCountries } from '../../../api/CountryApi';
 
@@ -46,6 +47,7 @@ export function RegionAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   const { data: countryOptions = [] } = useQuery({
     queryKey: ['country-options'],
@@ -63,6 +65,13 @@ export function RegionAdd({
 
   const onFormSubmit = async (formData: RegionFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('region', formData.regionCode);
+      if (resolvedCode !== formData.regionCode) {
+        formData.regionCode = resolvedCode ?? '';
+        setValue('regionCode', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onEvent?.({
         eventType: initialData ? 'RegionUpdated' : 'RegionCreated',
         region: formData,
@@ -119,18 +128,16 @@ export function RegionAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Region Code *</label>
+            <label className="block text-sm font-medium text-gray-700">Region Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('regionCode', {
-                required: 'Region code is required',
-                validate: value => value.trim() !== '' || 'Region code cannot be empty'
-              })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g. RG01"
+              {...register('regionCode')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Region Code" value={watch('regionCode') || ''} onChange={(v) => setValue('regionCode', v)} />
+            <OrderCodeSettingsIcon label="Region Code" value={watch('regionCode') || ''} onChange={(v) => setValue('regionCode', v)} entityKey="region" onLockChange={setCodeLocked} />
             {errors.regionCode && (
               <p className="text-red-600 text-xs mt-1">{errors.regionCode.message}</p>
             )}
@@ -138,7 +145,7 @@ export function RegionAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Region Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Region Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('regionName', {
               required: 'Region name is required',
@@ -153,7 +160,7 @@ export function RegionAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Country <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <select
             {...register('countryId', { required: 'Country is required', valueAsNumber: true })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

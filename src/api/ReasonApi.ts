@@ -26,6 +26,11 @@ export const updateReason = async (uuid: string, data: Record<string, any>) => {
   return response.data;
 };
 
+export const getReasonDetails = async (uuid: string): Promise<any> => {
+  const response = await axiosInstance.get(`/reason-type/view/${uuid}`);
+  return response.data.data;
+};
+
 export const deleteReason = async (uuid: string) => {
   await axiosInstance.delete(`/reason-type/delete/${uuid}`);
   showToast.success('Reason deleted successfully');

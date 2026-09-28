@@ -331,7 +331,7 @@ export const OrganisationAdd: React.FC = () => {
                         {step === 0 && (
                             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Country *</label>
+                                    <label className={labelClass}>Country <span className="text-red-500 font-bold ml-0.5">*</span></label>
                                     <Controller
                                         name="country_master_id"
                                         control={control}
@@ -359,7 +359,7 @@ export const OrganisationAdd: React.FC = () => {
                                 </div>
 
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Organisation Name *</label>
+                                    <label className={labelClass}>Organisation Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
                                     <input
                                         type="text"
                                         {...register('org_name', { required: 'Organisation name is required' })}
@@ -370,7 +370,7 @@ export const OrganisationAdd: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className={labelClass}>Company ID *</label>
+                                    <label className={labelClass}>Company ID <span className="text-red-500 font-bold ml-0.5">*</span></label>
                                     <input
                                         type="text"
                                         {...register('org_company_id', { required: 'Company ID is required' })}
@@ -412,7 +412,7 @@ export const OrganisationAdd: React.FC = () => {
                         {step === 1 && (
                             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Organisation Phone *</label>
+                                    <label className={labelClass}>Organisation Phone <span className="text-red-500 font-bold ml-0.5">*</span></label>
                                     <Controller
                                         name="org_phone"
                                         control={control}
@@ -446,7 +446,7 @@ export const OrganisationAdd: React.FC = () => {
                                 </div>
 
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Street 1 *</label>
+                                    <label className={labelClass}>Street 1 <span className="text-red-500 font-bold ml-0.5">*</span></label>
                                     <input
                                         type="text"
                                         {...register('org_street1', { required: 'Street is required' })}
@@ -583,7 +583,7 @@ export const OrganisationAdd: React.FC = () => {
                                 <button
                                     type="submit"
                                     disabled={updateMutation.isPending}
-                                    className="group flex items-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] px-6 py-3 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
+                                    className="g cursor-pointerroup flex items-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] px-6 py-3 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
                                 >
                                     {updateMutation.isPending ? 'SAVING…' : (
                                         <>
@@ -596,7 +596,7 @@ export const OrganisationAdd: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleNext}
-                                    className="group flex items-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] px-6 py-3 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
+                                    className="g cursor-pointerroup flex items-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] px-6 py-3 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
                                 >
                                     CONTINUE
                                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

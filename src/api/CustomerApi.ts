@@ -1,6 +1,6 @@
 import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
-import { unwrapPaginated } from '../lib/paginatedResponse';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 import type {
   Customer,
   CustomerFormData,
@@ -61,8 +61,19 @@ export const getCustomerList = async (
   return unwrapPaginated(response.data, 'customers', perPage) as CustomerListResponse;
 };
 
-export const getAllCustomers = async (filters?: CustomerFilters): Promise<CustomerSelectOption[]> => {
+export const getCustomerOptions = async (
+  page: number = 1,
+  search?: string,
+  perPage: number = 25,
+  filters?: CustomerFilters
+): Promise<NormalizedListResponse<CustomerSelectOption>> => {
   const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+
+  if (search) {
+    params.append('search', search);
+  }
 
   if (filters?.salesmanId) {
     params.append('salesman_id', filters.salesmanId.toString());
@@ -73,7 +84,7 @@ export const getAllCustomers = async (filters?: CustomerFilters): Promise<Custom
   }
 
   const response = await axiosInstance.get(`/customer/all?${params.toString()}`);
-  return response.data.data || response.data;
+  return unwrapPaginated(response.data, 'customers', perPage);
 };
 
 export const searchCustomers = async (
@@ -175,9 +186,21 @@ export const bulkActionCustomers = async (bulkAction: CustomerBulkAction): Promi
 };
 
 // Customer Types API
-export const getCustomerTypes = async (): Promise<CustomerType[]> => {
-  const response = await axiosInstance.get('/customer-type/all');
-  return response.data.data || response.data;
+export const getCustomerTypeOptions = async (
+  page: number = 1,
+  search?: string,
+  perPage: number = 25
+): Promise<NormalizedListResponse<CustomerType>> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+
+  if (search) {
+    params.append('search', search);
+  }
+
+  const response = await axiosInstance.get(`/customer-type/all?${params.toString()}`);
+  return unwrapPaginated(response.data, 'customerTypes', perPage);
 };
 
 export const getCustomerTypeDetails = async (uuid: string): Promise<CustomerType> => {

@@ -5,22 +5,28 @@ import {
   Plus, Shield, Columns3, Download, Upload, ChevronDown, Check, X, Menu
 } from 'lucide-react';
 import { UsersRolesAdd } from './UsersRolesAdd';
-import { UserAdd } from './UserAdd';
+import { UserAdd, type UserFormData } from './UserAdd';
 import { UsersList } from './UsersList';
+import { TableLoadingRow } from '../../../components/ui/TableLoadingRow';
+import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { Pagination } from '../../../components/ui/Pagination';
 import { Tabs } from '../../../components/ui/Tabs';
-import { useRoles, useRoleMutations } from '../../../hooks/UsersRoles/useRoles';
+import { useRoles, useRoleMutations, useAllRoles } from '../../../hooks/UsersRoles/useRoles';
+import { useInviteUserMutations } from '../../../hooks/UsersRoles/useInviteUsers';
 import type { UserRoleFormData } from '../../../types/UsersRoles';
+import type { InviteUser } from '../../../types/InviteUser';
+import { getInviteUserByUuid } from '../../../api/InviteUserApi';
 
 interface Column { key: string; label: string; visible: boolean; }
 
 export function UsersRolesList() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [activeTab, setActiveTab] = useState('users');
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [userAddDrawerOpen, setUserAddDrawerOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<InviteUser | null>(null);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -58,6 +64,8 @@ export function UsersRolesList() {
 
   const { roles, total, isLoading } = useRoles(currentPage);
   const { createMutation } = useRoleMutations();
+  const { roleOptions } = useAllRoles();
+  const { createMutation: createUserMutation, updateMutation: updateUserMutation } = useInviteUserMutations();
 
   const roleData = roles.map((r) => ({
     id: r.uuid ?? '',
@@ -132,91 +140,90 @@ export function UsersRolesList() {
             <>
               {/* Filter Button */}
               <button
-            onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
-          >
-            <Filter className="w-4 h-4" />
-            Filter
-            {Object.values(appliedFilter).some(Boolean) && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">
-                {Object.values(appliedFilter).filter(Boolean).length}
-              </span>
-            )}
-          </button>
-          <div className="relative" ref={columnsRef}>
-            <button
-              onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
-            >
-              <Columns3 className="w-4 h-4" />
-              Columns
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            {columnsDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
-                <div className="py-1">
-                  {columns.map((column) => (
-                    <button
-                      key={column.key}
-                      onClick={() => toggleColumn(column.key)}
-                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-                    >
-                      <span>{column.label}</span>
-                      {column.visible && <Check className="w-4 h-4 text-primary-600" />}
-                    </button>
-                  ))}
-                </div>
+                onClick={() => setFilterOpen(prev => !prev)}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
+                  ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                  : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+                  }`}
+              >
+                <Filter className="w-4 h-4" />
+                Filter
+                {Object.values(appliedFilter).some(Boolean) && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">
+                    {Object.values(appliedFilter).filter(Boolean).length}
+                  </span>
+                )}
+              </button>
+              <div className="relative" ref={columnsRef}>
+                <button
+                  onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+                >
+                  <Columns3 className="w-4 h-4" />
+                  Columns
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {columnsDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+                    <div className="py-1">
+                      {columns.map((column) => (
+                        <button
+                          key={column.key}
+                          onClick={() => toggleColumn(column.key)}
+                          className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                        >
+                          <span>{column.label}</span>
+                          {column.visible && <Check className="w-4 h-4 text-primary-600" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <button
-            onClick={() => setAddDrawerOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Create
-          </button>
+              <button
+                onClick={() => setAddDrawerOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Create
+              </button>
 
-          <div className="relative" ref={moreActionsRef}>
-            <button
-              onClick={() => setMoreActionsOpen(!moreActionsOpen)}
-              className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
-            >
-              <Menu className="w-5 h-5" />
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            {moreActionsOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
-                <div className="py-1">
-                  <button
-                    onClick={() => { setExportModalOpen(true); setMoreActionsOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export
-                  </button>
-                  <button
-                    onClick={() => { handleImport(); setMoreActionsOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Import
-                  </button>
-                </div>
+              <div className="relative" ref={moreActionsRef}>
+                <button
+                  onClick={() => setMoreActionsOpen(!moreActionsOpen)}
+                  className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+                >
+                  <Menu className="w-5 h-5" />
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {moreActionsOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={() => { setExportModalOpen(true); setMoreActionsOpen(false); }}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export
+                      </button>
+                      <button
+                        onClick={() => { handleImport(); setMoreActionsOpen(false); }}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Import
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
             </>
           )}
           {activeTab === 'users' && (
             <button
-              onClick={() => setUserAddDrawerOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              onClick={() => { setEditingUser(null); setUserAddDrawerOpen(true); }}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Create User
@@ -233,7 +240,11 @@ export function UsersRolesList() {
             {
               key: 'users',
               label: 'Users',
-              content: <UsersList />
+              content: <UsersList onEdit={async (user) => {
+                const uuid = user.uuid ?? String(user.id);
+                setEditingUser(uuid ? await getInviteUserByUuid(uuid).catch(() => user) : user);
+                setUserAddDrawerOpen(true);
+              }} />
             },
             {
               key: 'roles',
@@ -241,105 +252,104 @@ export function UsersRolesList() {
               content: (
                 <div className="mt-6 space-y-6">
 
-          {/* Filter Accordion */}
-          {filterOpen && (
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
-              <div className="flex flex-wrap items-end gap-3">
-            {([
-              { key: 'code', label: 'Code' },
-              { key: 'name', label: 'Name' },
-              { key: 'description', label: 'Description' },
-            ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
-              <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
-                <input
-                  type="text"
-                  value={filterDraft[key]}
-                  onChange={e => setFilterDraft(prev => ({ ...prev, [key]: e.target.value }))}
-                  placeholder={`Filter by ${label.toLowerCase()}...`}
-                  className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            ))}
-            <div className="flex items-end gap-2 pb-0.5">
-              <button
-                onClick={() => { setAppliedFilter({ ...filterDraft }); }}
-                className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
-              >
-                Apply
-              </button>
-              <button
-                onClick={() => {
-                  const empty = { code: '', name: '', description: '' };
-                  setFilterDraft(empty);
-                  setAppliedFilter(empty);
-                  setFilterOpen(false);
-                }}
-                className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors whitespace-nowrap"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  {/* Filter Accordion */}
+                  {filterOpen && (
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
+                      <div className="flex flex-wrap items-end gap-3">
+                        {([
+                          { key: 'code', label: 'Code' },
+                          { key: 'name', label: 'Name' },
+                          { key: 'description', label: 'Description' },
+                        ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
+                          <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                            <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
+                            <input
+                              type="text"
+                              value={filterDraft[key]}
+                              onChange={e => setFilterDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                              placeholder={`Filter by ${label.toLowerCase()}...`}
+                              className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                        ))}
+                        <div className="flex items-end gap-2 pb-0.5">
+                          <button
+                            onClick={() => { setAppliedFilter({ ...filterDraft }); }}
+                            className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
+                          >
+                            Apply
+                          </button>
+                          <button
+                            onClick={() => {
+                              const empty = { code: '', name: '', description: '' };
+                              setFilterDraft(empty);
+                              setAppliedFilter(empty);
+                              setFilterOpen(false);
+                            }}
+                            className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors whitespace-nowrap"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-          {/* Table */}
-          <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
-            <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
-                <th className="w-12 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.length === currentData.length && currentData.length > 0}
-                    onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                  />
-                </th>
-                {visibleColumns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
-                  >
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-color)]">
-              {isLoading ? (
-                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading roles…</td></tr>
-              ) : currentData.length === 0 ? (
-                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No roles yet.</td></tr>
-              ) : currentData.map((role) => (
-                <tr
-                  key={role.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${
-                    selectedRows.includes(role.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(role.id)}
-                      onChange={() => handleSelectRow(role.id)}
-                      className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                    />
-                  </td>
-                  {visibleColumns.map((column) => (
-                    <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                      {role[column.key as keyof typeof role]}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-            </div>
-            <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
-          </div>
+                  {/* Table */}
+                  <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
+                            <th className="w-12 px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedRows.length === currentData.length && currentData.length > 0}
+                                onChange={handleSelectAll}
+                                className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                              />
+                            </th>
+                            {visibleColumns.map((column) => (
+                              <th
+                                key={column.key}
+                                className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
+                              >
+                                {column.label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border-color)]">
+                          {isLoading ? (
+                            <TableLoadingRow colSpan={visibleColumns.length + 1} label="Loading roles…" />
+                          ) : currentData.length === 0 ? (
+                            <TableEmptyRow colSpan={visibleColumns.length + 1} label="No roles yet." />
+                          ) : currentData.map((role) => (
+                            <tr
+                              key={role.id}
+                              className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(role.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
+                                }`}
+                            >
+                              <td className="px-4 py-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedRows.includes(role.id)}
+                                  onChange={() => handleSelectRow(role.id)}
+                                  className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                                />
+                              </td>
+                              {visibleColumns.map((column) => (
+                                <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
+                                  {role[column.key as keyof typeof role]}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
+                  </div>
                 </div>
               )
             }
@@ -355,7 +365,7 @@ export function UsersRolesList() {
               <h2 className="text-xl font-semibold">Export User Roles</h2>
               <button
                 onClick={handleExportCancel}
-                className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"
+                className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
@@ -437,13 +447,13 @@ export function UsersRolesList() {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
               <button
                 onClick={handleExportCancel}
-                className="px-4 py-2 text-sm font-medium border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
               >
                 Export
               </button>
@@ -462,11 +472,23 @@ export function UsersRolesList() {
 
       <UserAdd
         isOpen={userAddDrawerOpen}
-        onClose={() => setUserAddDrawerOpen(false)}
-        onSubmit={async (data) => {
-          console.log('Creating user...', data);
+        onClose={() => { setUserAddDrawerOpen(false); setEditingUser(null); }}
+        onSubmit={async (data: UserFormData) => {
+          if (editingUser) {
+            await updateUserMutation.mutateAsync({ uuid: editingUser.uuid, data });
+          } else {
+            await createUserMutation.mutateAsync(data);
+          }
+          setEditingUser(null);
         }}
-        rolesOptions={roles.map(r => ({ value: r.id ?? '', label: r.name }))}
+        initialData={editingUser ? {
+          firstname: editingUser.firstname,
+          lastname: editingUser.lastname ?? '',
+          email: editingUser.email,
+          mobile: editingUser.mobile ?? '',
+          roleId: editingUser.roleId ?? '',
+        } : undefined}
+        rolesOptions={roleOptions}
       />
     </div>
   );

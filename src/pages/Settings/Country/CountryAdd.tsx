@@ -128,7 +128,7 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
             rules={{ required: 'Country is required' }}
             render={({ field }) => (
               <CountryMasterSelect
-                label="Country Master *"
+                label="Country Master"
                 value={field.value}
                 onChange={(master) => {
                   field.onChange(master?.id ?? '');
@@ -142,7 +142,7 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <input
               {...register('name', { required: 'Name is required' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -152,7 +152,7 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Country Code *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <input
               {...register('countryCode', { required: 'Country Code is required' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

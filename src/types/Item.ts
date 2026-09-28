@@ -2,7 +2,6 @@ export interface Item {
   id?: number;
   uuid?: string;
   itemCode: string;
-  erpCode?: string;
   itemName: string;
   description?: string;
   itemBarcode?: string;
@@ -32,9 +31,9 @@ export interface Item {
   createdAt?: string;
   updatedAt?: string;
   
-  // Relationships
-  brand?: Brand;
-  itemCategory?: ItemCategory;
+  // Relationships — lean {id,uuid,name} shape as sent by ItemList/ItemView
+  brand?: { id?: number; uuid?: string; name?: string };
+  category?: { id?: number; uuid?: string; name?: string };
   itemUom?: ItemUom;
 }
 
@@ -45,6 +44,7 @@ export interface SecondaryUom {
   upc?: number;
   isSku?: boolean;
   purchasePrice?: number;
+  uomName?: string;
 }
 
 export interface ItemUom {
@@ -63,7 +63,6 @@ export interface ItemFormData {
   brandId?: number | string;
   itemUomId?: number | string;
   itemCode?: string;
-  erpCode?: string;
   itemName: string;
   description?: string;
   itemBarcode?: string;

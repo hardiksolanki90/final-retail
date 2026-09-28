@@ -34,7 +34,7 @@ export default function CreditLimitProvider({ children }: { children: ReactNode 
   });
 
   const { data: salesmanOptions = [], isLoading: salesmanOptionsLoading } = useQuery({
-    queryKey: ['salesmen-all'],
+    queryKey: ['salesman-all'],
     queryFn: () => getAllSalesmen(),
     staleTime: 5 * 60 * 1000,
   });

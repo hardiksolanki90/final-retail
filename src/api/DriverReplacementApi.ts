@@ -38,6 +38,11 @@ export const updateDriverReplacement = async (uuid: string, data: DriverReplacem
   return response.data;
 };
 
+export const getDriverReplacementDetails = async (uuid: string): Promise<any> => {
+  const response = await axiosInstance.get(`/driver-replacement/edit/${uuid}`);
+  return response.data.data;
+};
+
 export const deleteDriverReplacement = async (uuid: string) => {
   await axiosInstance.delete(`/driver-replacement/delete/${uuid}`);
   showToast.success('Driver replacement deleted successfully');

@@ -1,298 +1,271 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Drawer } from '../../components/ui/Drawer';
-import { type SelectOption } from '../../components/ui/Select';
-import { SaveButton, CancelButton } from '../../components/ui/Button';
-import type { JourneyPlanFormData } from '../../types/JourneyPlan';
-import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { Check, Map, ChevronLeft } from 'lucide-react';
+import type { JourneyPlanFullFormData } from '../../types/JourneyPlan';
+import { getJourneyPlanByUuid } from '../../api/JourneyPlanApi';
+import { OverviewTab } from './tabs/OverviewTab';
+import { ScheduleTab } from './tabs/ScheduleTab';
+import { CustomersTab } from './tabs/CustomersTab';
+import { useJourneyPlanFormOptions, useJourneyPlanMutations } from '../../hooks/JourneyPlans/useJourneyPlans';
+import { CancelButton, SaveButton, Button } from '../../components/ui/Button';
 
-interface JourneyPlanAddProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: JourneyPlanFormData) => void | Promise<void>;
-  initialData?: JourneyPlanFormData;
-  isLoading?: boolean;
-  salesmen?: SelectOption[];
-  routes?: SelectOption[];
-  customers?: SelectOption[];
-}
+// ── Step definitions ────────────────────────────────────────────────────────
+type StepKey = 'overview' | 'schedule' | 'customers';
 
-export function JourneyPlanAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  salesmen = [],
-  routes = [],
+const STEPS: { key: StepKey; label: string; description: string }[] = [
+  { key: 'overview', label: 'Overview', description: 'Name & duration' },
+  { key: 'schedule', label: 'Schedule', description: 'Frequency & owner' },
+  { key: 'customers', label: 'Customers', description: 'Visit sequence' },
+];
 
-}: JourneyPlanAddProps) {
+// ── Default values ────────────────────────────────────────────────────────────
+const DEFAULT_VALUES: JourneyPlanFullFormData = {
+  journeyName: '',
+  description: '',
+  startDate: '',
+  noEnd: false,
+  endDate: '',
+  startTime: '',
+  endTime: '',
+  journeyPlanBase: 'day_wise',
+  selectedWeeks: [],
+  firstDayOfWeek: 'monday',
+  enforceFlag: false,
+  salesmanId: '',
+  dayCustomers: {},
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
+export function JourneyPlanAdd() {
+  const navigate = useNavigate();
+  const { uuid } = useParams<{ uuid: string }>();
+  const isEditing = Boolean(uuid);
+  const [activeStep, setActiveStep] = useState<StepKey>('overview');
+  const [visited, setVisited] = useState<Set<StepKey>>(new Set(['overview']));
+  const { createMutation, updateMutation } = useJourneyPlanMutations();
+
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    setError,
     watch,
-    setValue
-  } = useForm<JourneyPlanFormData>({
-    defaultValues: {
-      planCode: '',
-      planName: '',
-      salesmanId: '',
-      routeId: '',
-      startDate: '',
-      endDate: '',
-      customers: [],
-      visitFrequency: 'weekly',
-      notes: '',
-      status: true
-    }
-  });
+    setValue,
+    trigger,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<JourneyPlanFullFormData>({ defaultValues: DEFAULT_VALUES });
 
-  const watchedStatus = watch('status');
+  const selectedSalesmanId = watch('salesmanId');
+  const numericSalesmanId = selectedSalesmanId ? Number(selectedSalesmanId) : undefined;
+  const {
+    merchandisers,
+    merchandisersLoading,
+    merchandisersLoadingMore,
+    merchandisersHasMore,
+    onMerchandisersLoadMore,
+    onMerchandisersSearchChange,
+    customers,
+    customersLoading,
+    customersLoadingMore,
+    customersHasMore,
+    onCustomersLoadMore,
+    onCustomersSearchChange,
+  } = useJourneyPlanFormOptions(numericSalesmanId);
 
   useEffect(() => {
-    if (isOpen) {
-      reset(initialData || {
-        planCode: '',
-        planName: '',
-        salesmanId: '',
-        routeId: '',
-        startDate: '',
-        endDate: '',
-        customers: [],
-        visitFrequency: 'weekly',
-        notes: '',
-        status: true
-      });
-    }
-  }, [initialData, isOpen, reset]);
+    if (!uuid) return;
+    getJourneyPlanByUuid(uuid).then((plan) => {
+      reset(plan);
+    });
+  }, [uuid, reset]);
 
-  const onFormSubmit = async (data: JourneyPlanFormData) => {
+  const stepIndex = STEPS.findIndex((s) => s.key === activeStep);
+
+  function goToStep(key: StepKey) {
+    setActiveStep(key);
+    setVisited((prev) => new Set(prev).add(key));
+  }
+
+  async function goNext() {
+    let fieldsToValidate: (keyof JourneyPlanFullFormData)[] = [];
+    if (activeStep === 'overview') {
+      fieldsToValidate = ['journeyName', 'startDate', 'endDate'];
+    } else if (activeStep === 'schedule') {
+      fieldsToValidate = ['salesmanId'];
+    }
+    const valid = await trigger(fieldsToValidate);
+    if (!valid) return;
+    if (stepIndex < STEPS.length - 1) goToStep(STEPS[stepIndex + 1].key);
+  }
+
+  function goBack() {
+    if (stepIndex > 0) {
+      goToStep(STEPS[stepIndex - 1].key);
+    } else {
+      navigate(-1);
+    }
+  }
+
+  const onSubmit = async (data: JourneyPlanFullFormData) => {
     try {
-      // Trim string values before submission
-      const trimmedData: JourneyPlanFormData = {
-        ...data,
-        planCode: data.planCode?.trim() || '',
-        planName: data.planName?.trim() || '',
-        notes: data.notes?.trim() || ''
-      };
-      
-      await onSubmit(trimmedData);
-      onClose();
-    } catch (error: any) {
-      console.error('Error saving journey plan:', error);
-      setError('root', {
-        type: 'manual',
-        message: error?.message || 'Failed to save journey plan. Please try again.'
-      });
+      if (isEditing && uuid) {
+        await updateMutation.mutateAsync({ uuid, data });
+      } else {
+        await createMutation.mutateAsync(data);
+      }
+      navigate('/journey-plan');
+    } catch {
+      // toast already shown by the mutation's onError handler
     }
   };
 
-  const frequencyOptions: SelectOption[] = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'bi-weekly', label: 'Bi-Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-  ];
-
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Journey Plan' : 'Add Journey Plan'}
-      width="w-[600px]"
-    >
-      <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-        {errors.root && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <p className="text-red-600 dark:text-red-400 text-sm">{errors.root.message}</p>
-          </div>
-        )}
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      {/* Page Header */}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-card)]">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="flex items-center justify-center w-8 h-8 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
+          <Map className="w-4 h-4" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold text-[var(--text-primary)] leading-tight">
+            {isEditing ? 'Edit Journey Plan' : 'Add Journey Plan'}
+          </h1>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Define a recurring visit route for a merchandiser
+          </p>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Plan Code <span className="text-red-500">*</span>
-              </label>
-            </div>
-            <div className="flex items-center gap-2 relative">
-              <input
-                {...register('planCode', {
-                  required: 'Plan Code is required',
-                  validate: value => value?.trim() ? true : 'Plan Code is required'
+      {/* Card */}
+      <div className="px-6 py-6">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-sm">
+            {/* Stepper header */}
+            <div className="px-6 sm:px-10 py-6 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/40 rounded-t-xl">
+              <div className="flex items-start">
+                {STEPS.map((step, idx) => {
+                  const isActive = step.key === activeStep;
+                  const isDone = visited.has(step.key) && idx < stepIndex;
+                  const isClickable = visited.has(step.key);
+
+                  return (
+                    <div key={step.key} className="flex items-start flex-1 last:flex-none">
+                      <button
+                        type="button"
+                        onClick={() => isClickable && goToStep(step.key)}
+                        disabled={!isClickable}
+                        className={`flex items-center gap-3 text-left group ${isClickable ? 'cursor-pointer' : 'cursor-default'
+                          }`}
+                      >
+                        <span
+                          className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold shrink-0 border-2 transition-colors
+                            ${isDone
+                              ? 'bg-primary-600 border-primary-600 text-white'
+                              : isActive
+                                ? 'bg-primary-600 border-primary-600 text-white shadow-[0_0_0_4px_var(--color-primary-100)] dark:shadow-[0_0_0_4px_rgba(37,99,235,0.25)]'
+                                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)]'
+                            }`}
+                        >
+                          {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : idx + 1}
+                        </span>
+                        <span className="hidden sm:block">
+                          <span
+                            className={`block text-sm font-semibold ${isActive || isDone ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                              }`}
+                          >
+                            {step.label}
+                          </span>
+                          <span className="block text-xs text-[var(--text-secondary)]">
+                            {step.description}
+                          </span>
+                        </span>
+                      </button>
+
+                      {idx < STEPS.length - 1 && (
+                        <div className="flex-1 h-[2px] mt-[18px] mx-3 sm:mx-4 rounded-full bg-[var(--border-color)] relative overflow-hidden">
+                          <div
+                            className="absolute inset-y-0 left-0 bg-primary-600 rounded-full transition-all duration-300"
+                            style={{ width: idx < stepIndex ? '100%' : '0%' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
                 })}
-                className="block w-full px-3 py-2 rounded-lg border transition-colors
-                  bg-white dark:bg-gray-800
-                  text-gray-900 dark:text-gray-100
-                  border-gray-300 dark:border-gray-600
-                  focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Enter plan code"
-              />
-              <OrderCodeSettingsIcon label="Plan Code" value={watch('planCode') || ''} onChange={(v) => setValue('planCode', v)} />
-              {errors.planCode && (
-                <p className="text-red-600 text-xs mt-1">{errors.planCode.message}</p>
+              </div>
+            </div>
+
+            {/* Step content */}
+            <div className="px-6 sm:px-10 py-8 min-h-[420px]">
+              {activeStep === 'overview' && (
+                <OverviewTab
+                  control={control}
+                  register={register}
+                  errors={errors}
+                  watch={watch}
+                  setValue={setValue}
+                />
+              )}
+              {activeStep === 'schedule' && (
+                <ScheduleTab
+                  control={control}
+                  errors={errors}
+                  watch={watch}
+                  setValue={setValue}
+                  merchandisers={merchandisers}
+                  merchandisersLoading={merchandisersLoading}
+                  merchandisersLoadingMore={merchandisersLoadingMore}
+                  merchandisersHasMore={merchandisersHasMore}
+                  onMerchandisersLoadMore={onMerchandisersLoadMore}
+                  onMerchandisersSearchChange={onMerchandisersSearchChange}
+                />
+              )}
+              {activeStep === 'customers' && (
+                <CustomersTab
+                  watch={watch}
+                  setValue={setValue}
+                  customers={customers}
+                  customersLoading={customersLoading}
+                  customersLoadingMore={customersLoadingMore}
+                  customersHasMore={customersHasMore}
+                  onCustomersLoadMore={onCustomersLoadMore}
+                  onCustomersSearchChange={onCustomersSearchChange}
+                />
               )}
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Plan Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              {...register('planName', {
-                required: 'Plan Name is required',
-                validate: value => value?.trim() ? true : 'Plan Name is required'
-              })}
-              className="block w-full px-3 py-2 rounded-lg border transition-colors
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                border-gray-300 dark:border-gray-600
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Enter plan name"
-            />
-            {errors.planName && (
-              <p className="text-red-600 text-xs mt-1">{errors.planName.message}</p>
-            )}
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Salesman <span className="text-red-500">*</span>
-            </label>
-            <select
-              {...register('salesmanId', { required: 'Salesman is required' })}
-              className="block w-full px-3 py-2 rounded-lg border transition-colors
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                border-gray-300 dark:border-gray-600
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select salesman</option>
-              {salesmen.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-            {errors.salesmanId && (
-              <p className="text-red-600 text-xs mt-1">{errors.salesmanId.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Route <span className="text-red-500">*</span>
-            </label>
-            <select
-              {...register('routeId', { required: 'Route is required' })}
-              className="block w-full px-3 py-2 rounded-lg border transition-colors
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                border-gray-300 dark:border-gray-600
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select route</option>
-              {routes.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-            {errors.routeId && (
-              <p className="text-red-600 text-xs mt-1">{errors.routeId.message}</p>
-            )}
-          </div>
-        </div>
+            {/* Footer actions */}
+            <div className="flex items-center justify-between gap-3 px-6 sm:px-10 py-4 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/40 rounded-b-xl">
+              <span className="text-xs text-[var(--text-secondary)]">
+                Step {stepIndex + 1} of {STEPS.length}
+              </span>
+              <div className="flex items-center gap-3">
+                <CancelButton type="button" onClick={goBack}>
+                  {stepIndex === 0 ? 'Cancel' : 'Back'}
+                </CancelButton>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Start Date <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              {...register('startDate', { required: 'Start Date is required' })}
-              className="block w-full px-3 py-2 rounded-lg border transition-colors
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                border-gray-300 dark:border-gray-600
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            {errors.startDate && (
-              <p className="text-red-600 text-xs mt-1">{errors.startDate.message}</p>
-            )}
+                {activeStep !== 'customers' ? (
+                  <Button type="button" onClick={goNext}>
+                    Next
+                  </Button>
+                ) : (
+                  <SaveButton type="submit" isLoading={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : isEditing ? 'Update Journey' : 'Add Journey'}
+                  </SaveButton>
+                )}
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              End Date <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              {...register('endDate', { required: 'End Date is required' })}
-              className="block w-full px-3 py-2 rounded-lg border transition-colors
-                bg-white dark:bg-gray-800
-                text-gray-900 dark:text-gray-100
-                border-gray-300 dark:border-gray-600
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            {errors.endDate && (
-              <p className="text-red-600 text-xs mt-1">{errors.endDate.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visit Frequency</label>
-          <select
-            {...register('visitFrequency')}
-            className="block w-full px-3 py-2 rounded-lg border transition-colors
-              bg-white dark:bg-gray-800
-              text-gray-900 dark:text-gray-100
-              border-gray-300 dark:border-gray-600
-              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="">Select frequency</option>
-            {frequencyOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label>
-          <textarea
-            {...register('notes')}
-            placeholder="Enter notes"
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
-            <button
-              type="button"
-              onClick={() => setValue('status', !watchedStatus)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-                watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                  watchedStatus ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-          <div className="flex gap-3">
-            <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>Cancel</CancelButton>
-            <SaveButton type="submit" disabled={isSubmitting || isLoading}>
-              {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
-            </SaveButton>
-          </div>
-        </div>
-      </form>
-    </Drawer>
+        </form>
+      </div>
+    </div>
   );
 }

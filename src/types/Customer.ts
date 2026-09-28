@@ -38,7 +38,6 @@ export interface Customer {
   salesOrganisationId?: number;
   countryId?: number;
   regionId?: number;
-  merchandiserId?: number;
   shipToPartyId?: number;
   soldToPartyId?: number;
   payerId?: number;
@@ -125,7 +124,6 @@ export interface CustomerFormData {
   salesOrganisationId?: number | string;
   countryId?: number | string;
   regionId?: number | string;
-  merchandiserId?: number | string;
   shipToPartyId?: number | string;
   soldToPartyId?: number | string;
   payerId?: number | string;
@@ -261,4 +259,5 @@ export interface CustomerBulkAction {
 export interface CustomerSelectOption {
   value: string;
   label: string;
+  code?: string | null;
 }

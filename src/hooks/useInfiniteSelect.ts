@@ -8,12 +8,29 @@ export interface UseInfiniteSelectProps<T> {
   }>;
   mapItemToOption: (item: T) => SelectOption;
   selectedValue?: string | number;
+  /**
+   * Gate the initial fetch — for a Select that lives inside a modal/drawer
+   * still mounted (just hidden) while closed, so it doesn't fire a request
+   * before the user ever opens it. Defaults to true (fetch on mount, the
+   * original behavior). Refetches page 1 whenever it flips false -> true.
+   */
+  enabled?: boolean;
+  /**
+   * Forces a fresh page-1 fetch whenever this value changes (in addition to
+   * the enabled false->true trigger) — for a filter parameter baked into
+   * `fetchPage`'s closure (e.g. a salesmanId) that can change while the
+   * component stays mounted and enabled, which `fetchPage` changing alone
+   * doesn't trigger a refetch for.
+   */
+  resetKey?: string | number;
 }
 
 export function useInfiniteSelect<T>({
   fetchPage,
   mapItemToOption,
   selectedValue,
+  enabled = true,
+  resetKey,
 }: UseInfiniteSelectProps<T>) {
   const [options, setOptions] = useState<SelectOption[]>([]);
   const [hasMore, setHasMore] = useState(true);
@@ -84,10 +101,14 @@ export function useInfiniteSelect<T>({
     }
   }, []);
 
-  // Initial load runs strictly once on mount
+  // Initial load runs once on mount, again whenever `enabled` flips false ->
+  // true, and again whenever `resetKey` changes (e.g. a filter param baked
+  // into fetchPage's closure, like a selected salesmanId).
   useEffect(() => {
+    if (!enabled) return;
+    searchRef.current = '';
     loadData(1, '', false);
-  }, [loadData]);
+  }, [enabled, resetKey, loadData]);
 
   // Sync selectedOptionRef when options change or selectedValue changes
   useEffect(() => {

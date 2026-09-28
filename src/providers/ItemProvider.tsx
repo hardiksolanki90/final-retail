@@ -7,23 +7,13 @@ import {
   deleteItem,
   createItem,
   updateItem,
-  getItemCategories,
-  getBrands,
-  getItemUoms,
   bulkActionItems,
-  createItemCategory,
-  createBrand,
 } from '../api/ItemApi';
-import { getAllItemGroups, createItemGroup } from '../api/ItemGroupApi';
 import { showToast } from '../lib/toast';
-import type { SelectOption } from '../components/ui/Select';
 import type {
   Item,
   ItemFormData,
   ItemListResponse,
-  ItemCategory,
-  Brand,
-  ItemUom,
   ItemWithStock,
   ItemFilters,
   ItemBulkAction,
@@ -60,19 +50,6 @@ interface ItemContextType {
   isUpdating: boolean;
   deleteItemData: (uuid: string) => void;
   isDeleting: boolean;
-
-  // Related data
-  categories: ItemCategory[];
-  brands: Brand[];
-  uoms: ItemUom[];
-  groups: any[];
-  isLoadingCategories: boolean;
-  isLoadingBrands: boolean;
-  isLoadingUoms: boolean;
-  isLoadingGroups: boolean;
-  createCategoryOption: (values: Record<string, any>) => Promise<SelectOption>;
-  createBrandOption: (values: Record<string, any>) => Promise<SelectOption>;
-  createGroupOption: (values: Record<string, any>) => Promise<SelectOption>;
 
   // Additional queries
   itemsWithStock: ItemWithStock[] | undefined;
@@ -122,35 +99,6 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Related data queries
-  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
-    queryKey: ['item-categories'],
-    queryFn: getItemCategories,
-    staleTime: 10 * 60 * 1000,
-    enabled: isItemModalVisible,
-  });
-
-  const { data: brands = [], isLoading: isLoadingBrands } = useQuery({
-    queryKey: ['brands'],
-    queryFn: getBrands,
-    staleTime: 10 * 60 * 1000,
-    enabled: isItemModalVisible,
-  });
-
-  const { data: uoms = [], isLoading: isLoadingUoms } = useQuery({
-    queryKey: ['item-uoms'],
-    queryFn: getItemUoms,
-    staleTime: 10 * 60 * 1000,
-    enabled: isItemModalVisible,
-  });
-
-  const { data: groups = [], isLoading: isLoadingGroups } = useQuery({
-    queryKey: ['item-groups'],
-    queryFn: getAllItemGroups,
-    staleTime: 10 * 60 * 1000,
-    enabled: isItemModalVisible,
-  });
-
   // All items query (for dropdowns)
   const { data: allItems } = useQuery({
     queryKey: ['all-items', filters],
@@ -165,36 +113,6 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     queryFn: () => getItemsWithStock(filters.warehouseId),
     staleTime: 5 * 60 * 1000,
     enabled: false, // Only fetch when needed
-  });
-
-  // Mutations
-  const createCategoryMutation = useMutation({
-    mutationFn: (values: Record<string, any>) => createItemCategory({
-      categoryName: values.categoryName,
-      parentId: values.parentId ? Number(values.parentId) : undefined,
-      status: values.status ?? true,
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['item-categories'] });
-    },
-  });
-
-  const createBrandMutation = useMutation({
-    mutationFn: (values: Record<string, any>) => createBrand({
-      brandName: values.brandName,
-      parentId: values.parentId ? Number(values.parentId) : undefined,
-      status: values.status ?? true,
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['brands'] });
-    },
-  });
-
-  const createGroupMutation = useMutation({
-    mutationFn: (values: Record<string, any>) => createItemGroup({ groupName: values.groupName, status: true }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['item-groups'] });
-    },
   });
 
   const addItemMutation = useMutation({
@@ -315,26 +233,6 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     isUpdating: updateItemMutation.isPending,
     deleteItemData,
     isDeleting: deleteItemMutation.isPending,
-    categories,
-    brands,
-    uoms,
-    groups,
-    isLoadingCategories,
-    isLoadingBrands,
-    isLoadingUoms,
-    isLoadingGroups,
-    createCategoryOption: async (values: Record<string, any>) => {
-      const created = await createCategoryMutation.mutateAsync(values);
-      return { value: created.id?.toString() || '', label: created.categoryName };
-    },
-    createBrandOption: async (values: Record<string, any>) => {
-      const created = await createBrandMutation.mutateAsync(values);
-      return { value: created.id?.toString() || '', label: created.brandName };
-    },
-    createGroupOption: async (values: Record<string, any>) => {
-      const created = await createGroupMutation.mutateAsync(values);
-      return { value: created.id?.toString() || '', label: created.groupName };
-    },
     itemsWithStock,
     allItems,
     refetchItems: () => refetchItems(),

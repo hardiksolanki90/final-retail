@@ -93,7 +93,7 @@ export function CreditNoteAdd() {
 
         <div className="bg-gray-200 dark:bg-gray-700 px-4 py-4">
           <div className="max-w-md">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <select {...register('customerId', { required: 'Customer is required' })} className={fieldClass} disabled={optionsLoading}>
               <option value="">{optionsLoading ? 'Loading…' : 'Select Customer'}</option>
               {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -106,7 +106,7 @@ export function CreditNoteAdd() {
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('invoiceId', { required: 'Invoice is required' })} className={fieldClass} disabled={optionsLoading}>
                   <option value="">{optionsLoading ? 'Loading…' : 'Select Invoice'}</option>
                   {invoices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -114,7 +114,7 @@ export function CreditNoteAdd() {
                 {errors.invoiceId && <p className="text-sm text-red-500 mt-1">{errors.invoiceId.message}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('reason', { required: 'Reason is required' })} className={fieldClass}>
                   <option value="">Select Reason</option>
                   {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

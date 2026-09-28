@@ -8,6 +8,7 @@ import { ItemList } from "../pages/Items/ItemList";
 import { ItemAdd } from "../pages/Items/ItemAdd";
 import { SalesmanList } from "../pages/Salesman/SalesmanList";
 import SalesmanAdd from "../pages/Salesman/SalesmanAdd";
+import SalesmanView from "../pages/Salesman/SalesmanView";
 import SalesmanProvider from "../providers/SalesmanProvider";
 import CustomerProvider from "../providers/CustomerProvider";
 import ItemProvider from "../providers/ItemProvider";
@@ -16,7 +17,8 @@ import OrderProvider from "../providers/OrderProvider";
 import DeliveryProvider from "../providers/DeliveryProvider";
 import InvoiceProvider from "../providers/InvoiceProvider";
 import { JourneyPlanList } from "../pages/JourneyPlans/JourneyPlanList";
-import { JourneyPlanAddPage } from "../pages/JourneyPlans/JourneyPlanAddPage";
+import { JourneyPlanAdd } from "../pages/JourneyPlans/JourneyPlanAdd";
+import { JourneyPlanView } from "../pages/JourneyPlans/JourneyPlanView";
 import { OrderList } from "../pages/Orders/OrderList";
 import { PricingList } from "../pages/Pricings/PricingList";
 import { PricingAdd } from "../pages/Pricings/PricingAdd";
@@ -211,6 +213,16 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/salesman/view/:uuid",
+    element: (
+      <Layout>
+        <SalesmanProvider>
+          <SalesmanView />
+        </SalesmanProvider>
+      </Layout>
+    ),
+  },
+  {
     path: "/journey-plan",
     element: (
       <Layout>
@@ -222,7 +234,23 @@ export const router = createBrowserRouter([
     path: "/journey-plan/add",
     element: (
       <Layout>
-        <JourneyPlanAddPage />
+        <JourneyPlanAdd />
+      </Layout>
+    ),
+  },
+  {
+    path: "/journey-plan/edit/:uuid",
+    element: (
+      <Layout>
+        <JourneyPlanAdd />
+      </Layout>
+    ),
+  },
+  {
+    path: "/journey-plan/view/:uuid",
+    element: (
+      <Layout>
+        <JourneyPlanView />
       </Layout>
     ),
   },
@@ -254,6 +282,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/pricing/edit/:uuid",
+    element: (
+      <Layout>
+        <PricingAdd />
+      </Layout>
+    ),
+  },
+  {
     path: "/promotion",
     element: (
       <Layout>
@@ -270,6 +306,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/promotion/edit/:uuid",
+    element: (
+      <Layout>
+        <PromotionAdd />
+      </Layout>
+    ),
+  },
+  {
     path: "/discount",
     element: (
       <Layout>
@@ -279,6 +323,14 @@ export const router = createBrowserRouter([
   },
   {
     path: "/discount/add",
+    element: (
+      <Layout>
+        <DiscountAdd />
+      </Layout>
+    ),
+  },
+  {
+    path: "/discount/edit/:uuid",
     element: (
       <Layout>
         <DiscountAdd />

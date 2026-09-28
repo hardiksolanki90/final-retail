@@ -11,6 +11,7 @@ export interface AreaSelectProps {
   error?: string;
   className?: string;
   disabled?: boolean;
+  required?: boolean;
 }
 
 export function AreaSelect({
@@ -21,6 +22,7 @@ export function AreaSelect({
   error,
   className,
   disabled = false,
+  required = false,
 }: AreaSelectProps) {
   const {
     options,
@@ -72,6 +74,7 @@ export function AreaSelect({
       value={String(value ?? '')}
       onChange={(val) => onChange(val ? Number(val) : '')}
       options={options}
+      required={required}
       placeholder={placeholder}
       className={className}
       createLabel="Add New Area"

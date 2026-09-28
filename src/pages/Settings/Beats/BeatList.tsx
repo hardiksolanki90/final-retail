@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Filter, Plus, Columns3, ChevronDown, Check, Menu, Download, Upload, Pencil, Trash2, Navigation } from 'lucide-react';
 import { BeatAdd } from './BeatAdd';
 import { Pagination } from '../../../components/ui/Pagination';
+import { TableLoadingRow } from '../../../components/ui/TableLoadingRow';
+import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { useBeat } from '../../../providers/BeatProvider';
 import { AreaSelect } from '../../../components/ui/AreaSelect';
 
@@ -124,9 +126,9 @@ export function BeatList() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setFilterOpen((prev) => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${filterOpen || activeFilterCount > 0
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || activeFilterCount > 0
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
               }`}
           >
             <Filter className="w-4 h-4" />
@@ -136,7 +138,7 @@ export function BeatList() {
           <div className="relative" ref={columnsRef}>
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -164,7 +166,7 @@ export function BeatList() {
               setEditingItem(null);
               setAddDrawerOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -222,13 +224,13 @@ export function BeatList() {
             <div className="flex items-end gap-2 pb-0.5">
               <button
                 onClick={applySearch}
-                className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
               >
                 Apply
               </button>
               <button
                 onClick={clearSearch}
-                className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
               >
                 Clear
               </button>
@@ -238,12 +240,7 @@ export function BeatList() {
       )}
 
       {/* Table Container */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[200px] mx-6">
-        {isLoading && (
-          <div className="absolute inset-0 z-10 bg-white/50 dark:bg-black/20 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-          </div>
-        )}
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6 relative min-h-[200px] mx-6">
         {error && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="text-red-500 font-medium">Error: {error.message}</div>
@@ -288,14 +285,11 @@ export function BeatList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {!isLoading && beats.length === 0 && (
-                <tr>
-                  <td colSpan={visibleColCount} className="px-4 py-12 text-center text-[var(--text-muted)]">
-                    No beats found.
-                  </td>
-                </tr>
-              )}
-              {beats.map((item: any) => {
+              {isLoading ? (
+                <TableLoadingRow colSpan={visibleColCount} label="Loading beats…" />
+              ) : beats.length === 0 ? (
+                <TableEmptyRow colSpan={visibleColCount} label="No beats found." />
+              ) : beats.map((item: any) => {
                 const id = item.uuid ?? String(item.id);
                 return (
                   <tr
@@ -343,14 +337,14 @@ export function BeatList() {
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
+                          className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
                           onClick={() => handleEditClick(item)}
                         >
                           <Pencil size={14} strokeWidth={2.5} />
                           <span>Edit</span>
                         </button>
                         <button
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                          className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
                           onClick={() => handleDeleteWithConfirmation(id)}
                         >
                           <Trash2 size={14} strokeWidth={2.5} />

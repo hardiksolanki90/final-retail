@@ -26,7 +26,7 @@ export function StockInStoreViewDrawer({ isOpen, onClose, selectedItem }: StockI
       title={selectedItem.activityName}
       width="w-[80vw]"
       headerActions={
-        <button className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors text-[var(--text-primary)]">
+        <button className="flex cursor-pointer items-center gap-1 px-3 py-1.5 text-sm font-medium border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors text-[var(--text-primary)]">
           More
           <ChevronDown className="w-4 h-4" />
         </button>

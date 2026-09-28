@@ -1,12 +1,28 @@
 import { useState } from 'react';
 import { Settings, Sparkles, Keyboard, X } from 'lucide-react';
 import { SaveButton, CancelButton } from './Button';
+import { useCodeSetting } from '../../hooks/CodeSetting/useCodeSetting';
 
 interface OrderCodeModalProps {
   label?: string;
   value: string;
   onChange: (val: string) => void;
   className?: string;
+  /**
+   * When set, the modal persists its auto/manual numbering scheme to the
+   * backend (CodeSettingService) instead of being purely local UI — the
+   * real "auto" code is then assigned server-side at create time. Omit for
+   * the previous local-only behavior.
+   */
+  entityKey?: string;
+  /**
+   * Called with true once an auto-generated code has been reserved and
+   * written into value — the consumer should disable its code Input while
+   * true (the number is already claimed server-side, editing it here
+   * wouldn't change what got reserved). Called with false when the field
+   * is cleared back to manual entry.
+   */
+  onLockChange?: (locked: boolean) => void;
 }
 
 /**
@@ -14,24 +30,36 @@ interface OrderCodeModalProps {
  * Clicking it opens a modal to configure a code/number field
  * either via auto-generate or manual prefix+number entry.
  */
-export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }: OrderCodeModalProps) {
+export function OrderCodeSettingsIcon({ label, value, onChange, className = '', entityKey, onLockChange }: OrderCodeModalProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'auto' | 'manual'>('auto');
   const [prefix, setPrefix] = useState('');
   const [num, setNum] = useState('');
+  const { codeSetting, save } = useCodeSetting(entityKey);
 
-  const handleSave = () => {
-    if (mode === 'manual') {
-      const combined = [prefix, num].filter(Boolean).join('-');
-      onChange(combined || '');
-    } else {
-      onChange('');
+  const handleSave = async () => {
+    if (entityKey) {
+      await save({
+        isCodeAuto: mode === 'auto',
+        prefixCode: mode === 'auto' ? (prefix || undefined) : undefined,
+        startCode: mode === 'auto' ? (num || undefined) : undefined,
+      });
     }
+
+    // Auto/manual is a preference only — the code itself is reserved right
+    // when the parent form's Create/Update button is clicked (see
+    // reserveCodeIfAuto in CodeSettingApi.ts), not here.
+    onLockChange?.(false);
+    onChange('');
     setOpen(false);
   };
 
   const handleOpen = () => {
-    if (value) {
+    if (entityKey && codeSetting) {
+      setMode(codeSetting.isCodeAuto ? 'auto' : 'manual');
+      setPrefix(codeSetting.prefixCode ?? '');
+      setNum((codeSetting.isLocked ? codeSetting.nextCommingNumber : codeSetting.startCode) ?? '');
+    } else if (value) {
       const [existingPrefix, ...rest] = value.split('-');
       setMode('manual');
       setPrefix(existingPrefix ?? '');
@@ -45,6 +73,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
   };
 
   const previewCode = [prefix, num].filter(Boolean).join('-');
+  const isLocked = !!codeSetting?.isLocked;
 
   return (
     <>
@@ -99,7 +128,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
             </div>
 
             {/* Body */}
-            <div className="px-6 pb-2">
+            <div className={`px-6 ${isLocked ? 'pb-6' : 'pb-2'}`}>
               {/* Segmented mode toggle */}
               <div className="relative grid grid-cols-2 p-1 rounded-xl bg-gray-100 dark:bg-gray-800">
                 <div
@@ -108,8 +137,9 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
                 />
                 <button
                   type="button"
-                  onClick={() => setMode('auto')}
-                  className={`relative z-10 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  onClick={() => !isLocked && setMode('auto')}
+                  disabled={isLocked}
+                  className={`relative z-10 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
                     mode === 'auto'
                       ? 'text-primary-600 dark:text-primary-400'
                       : 'text-gray-500 dark:text-gray-400'
@@ -120,8 +150,9 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMode('manual')}
-                  className={`relative z-10 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  onClick={() => !isLocked && setMode('manual')}
+                  disabled={isLocked}
+                  className={`relative z-10 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
                     mode === 'manual'
                       ? 'text-primary-600 dark:text-primary-400'
                       : 'text-gray-500 dark:text-gray-400'
@@ -134,11 +165,13 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
 
               <p className="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
                 {mode === 'auto'
-                  ? `${label || 'This code'} generates automatically each time — no setup needed.`
-                  : `Compose ${label || 'the code'} from a fixed prefix and a running number.`}
+                  ? codeSetting?.isLocked
+                    ? `Auto-generation is active — prefix and next number are locked. Switch to Manual to stop auto-generating.`
+                    : `Compose ${label || 'the code'} from a fixed prefix and a running number.`
+                  : `${label || 'This code'} must be entered manually each time.`}
               </p>
 
-              {mode === 'manual' && (
+              {mode === 'auto' && (
                 <div className="mt-4 space-y-3">
                   {/* Joined prefix + number capsule */}
                   <div className="flex items-stretch rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
@@ -151,7 +184,8 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
                         value={prefix}
                         onChange={(e) => setPrefix(e.target.value)}
                         placeholder="ORD"
-                        className="w-full px-3 pb-1.5 bg-transparent text-sm font-mono text-gray-900 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 focus:outline-none"
+                        disabled={codeSetting?.isLocked}
+                        className="w-full px-3 pb-1.5 bg-transparent text-sm font-mono text-gray-900 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800"
                       />
                     </div>
                     <div className="flex items-center px-1 text-gray-300 dark:text-gray-600 font-mono select-none">–</div>
@@ -164,7 +198,8 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
                         value={num}
                         onChange={(e) => setNum(e.target.value)}
                         placeholder="10000"
-                        className="w-full px-3 pb-1.5 bg-transparent text-sm font-mono text-gray-900 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 focus:outline-none"
+                        disabled={codeSetting?.isLocked}
+                        className="w-full px-3 pb-1.5 bg-transparent text-sm font-mono text-gray-900 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800"
                       />
                     </div>
                   </div>
@@ -182,15 +217,17 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '' }
               )}
             </div>
 
-            {/* Footer */}
-            <div className="flex gap-3 px-6 py-4 mt-4 border-t border-gray-100 dark:border-gray-800">
-              <SaveButton onClick={handleSave} className="flex-1">
-                Save
-              </SaveButton>
-              <CancelButton onClick={() => setOpen(false)} className="flex-1">
-                Cancel
-              </CancelButton>
-            </div>
+            {/* Footer — hidden while locked, nothing left to save/cancel */}
+            {!isLocked && (
+              <div className="flex gap-3 px-6 py-4 mt-4 border-t border-gray-100 dark:border-gray-800">
+                <SaveButton onClick={handleSave} className="flex-1">
+                  Save
+                </SaveButton>
+                <CancelButton onClick={() => setOpen(false)} className="flex-1">
+                  Cancel
+                </CancelButton>
+              </div>
+            )}
           </div>
         </div>
       )}

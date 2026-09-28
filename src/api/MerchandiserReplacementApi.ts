@@ -36,6 +36,11 @@ export const updateMerchandiserReplacement = async (uuid: string, data: Merchand
   return response.data;
 };
 
+export const getMerchandiserReplacementDetails = async (uuid: string): Promise<MerchandiserReplacement> => {
+  const response = await axiosInstance.get(`/merchandiser-replacement/edit/${uuid}`);
+  return response.data.data;
+};
+
 export const deleteMerchandiserReplacement = async (uuid: string) => {
   await axiosInstance.delete(`/merchandiser-replacement/delete/${uuid}`);
   showToast.success('Merchandiser replacement deleted successfully');

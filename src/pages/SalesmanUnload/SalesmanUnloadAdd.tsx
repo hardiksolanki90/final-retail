@@ -34,7 +34,7 @@ const unloadTypeOptions = [
 
 export function SalesmanUnloadAdd() {
   const navigate = useNavigate();
-  const { salesmen, items, routes, vans, warehouses, reasons, isLoading: optionsLoading } = useSalesmanUnloadFormOptions();
+  const { salesman, items, routes, vans, warehouses, reasons, isLoading: optionsLoading } = useSalesmanUnloadFormOptions();
   const { createMutation } = useSalesmanUnloadMutations();
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, control } =
@@ -71,10 +71,10 @@ export function SalesmanUnloadAdd() {
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salesman <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salesman <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('salesmanId', { required: 'Salesman is required' })} className={fieldClass} disabled={optionsLoading}>
                   <option value="">{optionsLoading ? 'Loading…' : 'Select Salesman'}</option>
-                  {salesmen.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
                 {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
               </div>

@@ -51,7 +51,7 @@ export function CreditLimitAdd({ isOpen, onClose, onSubmit, editData, salesmanOp
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">User *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">User <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <select
             {...register('userId', { required: 'User is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -64,7 +64,7 @@ export function CreditLimitAdd({ isOpen, onClose, onSubmit, editData, salesmanOp
           {errors.userId && <p className="text-red-600 text-xs mt-1">{errors.userId.message}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit Type *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit Type <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <select
             {...register('creditLimitType', { required: 'Credit limit type is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

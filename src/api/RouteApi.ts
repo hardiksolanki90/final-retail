@@ -33,6 +33,11 @@ export const updateRoute = async (uuid: string, data: Record<string, any>) => {
   return response.data;
 };
 
+export const getRouteDetails = async (uuid: string): Promise<any> => {
+  const response = await axiosInstance.get(`/route/view/${uuid}`);
+  return response.data.data;
+};
+
 export const deleteRoute = async (uuid: string) => {
   await axiosInstance.delete(`/route/delete/${uuid}`);
   showToast.success('Route deleted successfully');

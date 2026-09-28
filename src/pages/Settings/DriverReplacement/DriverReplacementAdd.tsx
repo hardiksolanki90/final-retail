@@ -103,7 +103,7 @@ export function DriverReplacementAdd({
             rules={{ required: 'Old Salesman is required' }}
             render={({ field }) => (
               <Select
-                label="Old Salesman *"
+                label="Old Salesman" required
                 placeholder="Select salesman"
                 searchable
                 options={salesmanOptions}
@@ -122,7 +122,7 @@ export function DriverReplacementAdd({
             rules={{ required: 'New Salesman is required' }}
             render={({ field }) => (
               <Select
-                label="New Salesman *"
+                label="New Salesman" required
                 placeholder="Select salesman"
                 searchable
                 options={salesmanOptions}
@@ -189,7 +189,7 @@ export function DriverReplacementAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input type="date" {...register('date', { required: 'Date is required' })} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           {errors.date && <p className="text-red-600 text-xs mt-1">{errors.date.message}</p>}
         </div>

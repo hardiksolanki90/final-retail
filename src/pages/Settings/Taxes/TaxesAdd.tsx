@@ -91,7 +91,7 @@ export function TaxesAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('name', {
               required: 'Name is required',
@@ -106,7 +106,7 @@ export function TaxesAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Rate *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Rate <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('rate', {
               required: 'Rate is required',

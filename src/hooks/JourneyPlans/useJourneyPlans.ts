@@ -5,9 +5,10 @@ import {
   updateJourneyPlan,
   bulkActionJourneyPlans,
 } from '../../api/JourneyPlanApi';
-import { getAllSalesmen } from '../../api/SalesmanApi';
-import { getAllCustomers } from '../../api/CustomerApi';
+import { getSalesmanOptions } from '../../api/SalesmanApi';
+import { getCustomerOptions } from '../../api/CustomerApi';
 import { showToast } from '../../lib/toast';
+import { useInfiniteSelect } from '../useInfiniteSelect';
 import type { JourneyPlanFullFormData } from '../../types/JourneyPlan';
 
 export function useJourneyPlans(page: number = 1, searchTerm: string = '') {
@@ -44,27 +45,55 @@ export function useJourneyPlans(page: number = 1, searchTerm: string = '') {
   };
 }
 
-/** Select-option data needed by the Journey Plan Add form. */
-export function useJourneyPlanFormOptions() {
-  const merchandisersQuery = useQuery({
-    queryKey: ['journey-plan-merchandisers'],
-    queryFn: () => getAllSalesmen(),
-    staleTime: 5 * 60 * 1000,
+/**
+ * Salesman + customer select-option data needed by the Journey Plan Add
+ * form. Customers are fetched here (mounted for the whole Add flow, not
+ * just the Customers tab) so picking a salesman on the Schedule step fires
+ * the customer fetch immediately — not deferred until the Customers tab's
+ * "Add Customer" modal happens to be opened.
+ */
+export function useJourneyPlanFormOptions(salesmanId?: number) {
+  // Journey plans link salesmanId to the users table directly, so the option
+  // value must be the salesman's underlying userId, not the SalesmanInfo
+  // row's own uuid. Paginated + searchable so orgs with more than one page
+  // of salesman see all of them, not just the first `per_page`.
+  const merchandiserSelect = useInfiniteSelect({
+    fetchPage: async (page, search) => {
+      const res = await getSalesmanOptions(page, search);
+      return { items: res.data, hasMore: res.meta.has_more_pages };
+    },
+    mapItemToOption: (s: any) => ({ value: String(s.userId), label: s.name }),
   });
 
-  const customersQuery = useQuery({
-    queryKey: ['journey-plan-customers'],
-    queryFn: () => getAllCustomers(),
-    staleTime: 5 * 60 * 1000,
+  // resetKey: salesmanId re-fetches page 1 the moment a salesman is picked
+  // (or changed), so the request fires right away instead of waiting for
+  // the Customers tab's modal to be opened. Once scoped to one salesman the
+  // result set is small (their own customer base), so fetch it in one shot
+  // instead of paginating — only the unfiltered "no salesman yet" case
+  // (potentially every customer in the org) keeps a bounded page size.
+  const customerSelect = useInfiniteSelect({
+    resetKey: salesmanId,
+    fetchPage: async (page, search) => {
+      const perPage = salesmanId ? 1000 : 25;
+      const res = await getCustomerOptions(page, search, perPage, salesmanId ? { salesmanId } : undefined);
+      return { items: res.data, hasMore: res.meta.has_more_pages };
+    },
+    mapItemToOption: (c) => ({ value: c.value, label: c.label, code: c.code }),
   });
 
   return {
-    // Journey plans link merchandiser_id to the users table directly, so the
-    // option value must be the salesman's underlying userId, not the
-    // SalesmanInfo row's own uuid.
-    merchandisers: (merchandisersQuery.data ?? []).map((s) => ({ value: String(s.userId), label: s.name })),
-    customers: customersQuery.data ?? [],
-    isLoading: merchandisersQuery.isLoading || customersQuery.isLoading,
+    merchandisers: merchandiserSelect.options,
+    merchandisersLoading: merchandiserSelect.isLoading,
+    merchandisersLoadingMore: merchandiserSelect.isLoadingMore,
+    merchandisersHasMore: merchandiserSelect.hasMore,
+    onMerchandisersLoadMore: merchandiserSelect.onLoadMore,
+    onMerchandisersSearchChange: merchandiserSelect.onSearchChange,
+    customers: customerSelect.options,
+    customersLoading: customerSelect.isLoading,
+    customersLoadingMore: customerSelect.isLoadingMore,
+    customersHasMore: customerSelect.hasMore,
+    onCustomersLoadMore: customerSelect.onLoadMore,
+    onCustomersSearchChange: customerSelect.onSearchChange,
   };
 }
 

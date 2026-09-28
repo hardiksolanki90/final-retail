@@ -49,14 +49,14 @@ export const salesmanService = {
 ```tsx
 import { salesmanService } from '@/services/salesmanService';
 
-const [salesmen, setSalesmen] = useState([]);
+const [salesman, setSalesmen] = useState([]);
 const [loading, setLoading] = useState(false);
 
 useEffect(() => {
   setLoading(true);
   salesmanService.getAll({ page: 1, per_page: 15 })
     .then(res => setSalesmen(res.data.data))
-    .catch(err => message.error('Failed to load salesmen'))
+    .catch(err => message.error('Failed to load salesman'))
     .finally(() => setLoading(false));
 }, []);
 ```

@@ -35,7 +35,7 @@ export function InvoiceAdd() {
   const data: any = {};
   const customers = (data?.customers || []) as SelectOption[];
   const customerLobs = (data?.customerLobs || []) as SelectOption[];
-  const salesmen = (data?.salesmen || []) as SelectOption[];
+  const salesman = (data?.salesman || []) as SelectOption[];
   const items = (data?.items || []) as SelectOption[];
   const navigate = useNavigate();
 
@@ -73,13 +73,13 @@ export function InvoiceAdd() {
       const qty = Number(item.quantity) || 0, price = Number(item.price) || 0;
       const discount = Number(item.discount) || 0, vatAmt = Number(item.vat) || 0, exciseAmt = Number(item.excise) || 0;
       const subtotal = qty * price, net = subtotal - discount, total = net + vatAmt + exciseAmt;
-      
+
       const newNet = parseFloat(net.toFixed(2));
       const newTotal = parseFloat(total.toFixed(2));
-      
+
       if (currentItems[index]?.net !== newNet) setValue(`items.${index}.net`, newNet);
       if (currentItems[index]?.total !== newTotal) setValue(`items.${index}.total`, newTotal);
-      
+
       gross += subtotal; vat += vatAmt; excise += exciseAmt; disc += discount;
     });
     const net = gross - disc, fin = net + vat + excise;
@@ -124,7 +124,7 @@ export function InvoiceAdd() {
         <div className="bg-gray-200 dark:bg-gray-700 px-4 py-4">
           <div className="grid grid-cols-2 gap-8 max-w-4xl">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice Type <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice Type <span className="text-red-500 font-bold ml-0.5">*</span></label>
               <select {...register('invoiceType', { required: true })} className={fieldClass}>
                 {invoiceTypes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -136,29 +136,29 @@ export function InvoiceAdd() {
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="space-y-4">
               <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer <span className="text-red-500">*</span></label>
-              <select {...register('customerId', { required: 'Customer is required' })} className={fieldClass}>
-                <option value="">Select Customer</option>
-                {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
-            </div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                <select {...register('customerId', { required: 'Customer is required' })} className={fieldClass}>
+                  <option value="">Select Customer</option>
+                  {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer LOB <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer LOB <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('customerLob', { required: true })} className={fieldClass}>
                   <option value="">Select Customer LOB</option>
                   {customerLobs.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salesman <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salesman <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('salesmanId', { required: true })} className={fieldClass}>
                   <option value="">Select Salesman</option>
-                  {salesmen.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Terms <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Terms <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <select {...register('paymentTerms', { required: true })} className={fieldClass}>
                   <option value="">Select Payment Terms</option>
                   {paymentTermsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -168,7 +168,7 @@ export function InvoiceAdd() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Input label="Invoice Number" {...register('invoiceNumber')} placeholder="Auto-generated" disabled />
-                <OrderCodeSettingsIcon label="Invoice Number" value="" onChange={() => {}} />
+                <OrderCodeSettingsIcon label="Invoice Number" value="" onChange={() => { }} />
               </div>
               <Input label="Invoice Date" type="date" {...register('invoiceDate', { required: true })} required />
               <Input label="Due Date" type="date" {...register('dueDate', { required: true })} required />
@@ -179,7 +179,7 @@ export function InvoiceAdd() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  {['#','Item','UOM','Qty','Price','Excise','Discount','VAT','Net','Total','Action'].map(h => (
+                  {['#', 'Item', 'UOM', 'Qty', 'Price', 'Excise', 'Discount', 'VAT', 'Net', 'Total', 'Action'].map(h => (
                     <th key={h} className="px-3 py-2 text-left">{h}</th>
                   ))}
                 </tr>

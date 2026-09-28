@@ -6,10 +6,10 @@ import { CountryPhoneInput } from '../../../components/ui/CountryPhoneInput';
 import { Select } from '../../../components/ui/Select';
 
 export interface UserFormData {
-  firstName: string;
-  lastName: string;
+  firstname: string;
+  lastname: string;
   email: string;
-  phone: string;
+  mobile: string;
   roleId: string | number;
 }
 
@@ -22,10 +22,10 @@ interface UserAddProps {
 }
 
 const initialFormData: UserFormData = {
-  firstName: '',
-  lastName: '',
+  firstname: '',
+  lastname: '',
   email: '',
-  phone: '',
+  mobile: '',
   roleId: '',
 };
 
@@ -93,37 +93,37 @@ export function UserAdd({
 
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">First Name*</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <input
-              {...register('firstName', {
+              {...register('firstname', {
                 required: 'First name is required',
                 validate: value => value.trim() !== '' || 'First name cannot be empty'
               })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter first name"
             />
-            {errors.firstName && (
-              <p className="text-red-600 text-xs mt-1">{errors.firstName.message}</p>
+            {errors.firstname && (
+              <p className="text-red-600 text-xs mt-1">{errors.firstname.message}</p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name*</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <input
-              {...register('lastName', {
+              {...register('lastname', {
                 required: 'Last name is required',
                 validate: value => value.trim() !== '' || 'Last name cannot be empty'
               })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter last name"
             />
-            {errors.lastName && (
-              <p className="text-red-600 text-xs mt-1">{errors.lastName.message}</p>
+            {errors.lastname && (
+              <p className="text-red-600 text-xs mt-1">{errors.lastname.message}</p>
             )}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email*</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             type="email"
             {...register('email', {
@@ -143,15 +143,15 @@ export function UserAdd({
 
         <div>
           <Controller
-            name="phone"
+            name="mobile"
             control={control}
             rules={{ required: 'Phone number is required' }}
             render={({ field }) => (
               <CountryPhoneInput
-                label="Phone*"
+                label="Phone" required
                 value={field.value || ''}
                 onChange={field.onChange}
-                error={errors.phone?.message}
+                error={errors.mobile?.message}
               />
             )}
           />
@@ -164,7 +164,7 @@ export function UserAdd({
             rules={{ required: 'Role is required' }}
             render={({ field }) => (
               <Select
-                label="Roles*"
+                label="Roles" required
                 placeholder="Select a role"
                 searchable
                 options={rolesOptions}

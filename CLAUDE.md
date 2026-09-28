@@ -122,6 +122,27 @@ api/{Module}Api.ts       ← API class
 
 ---
 
+## List Page Loading & Empty States
+
+Every `{Module}List.tsx` table body MUST use these two shared components (`src/components/ui/`) instead of ad-hoc "Loading…" text or overlay spinners:
+
+```tsx
+<tbody>
+  {isLoading ? (
+    <TableLoadingRow colSpan={N} label="Loading {modules}…" />
+  ) : items.length === 0 ? (
+    <TableEmptyRow colSpan={N} label="No {modules} found." />
+  ) : items.map((item) => (
+    <tr key={item.id}>...</tr>
+  ))}
+</tbody>
+```
+
+- `TableLoadingRow` — spinner + label, one `<tr>`.
+- `TableEmptyRow` — dashed icon badge + uppercase label, one `<tr>`.
+- `colSpan` = total `<th>` count in that table's `<thead>`.
+- No separate overlay-spinner `<div className="absolute inset-0 ...animate-spin...">` over the table — the in-row loader is the only loading UI.
+
 ## Non-Negotiable Conventions
 
 1. **TypeScript**: All files `.tsx`/`.ts`, proper types — NO `any`

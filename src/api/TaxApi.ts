@@ -30,6 +30,11 @@ export const updateTax = async (uuid: string, data: Record<string, any>) => {
   return response.data;
 };
 
+export const getTaxDetails = async (uuid: string): Promise<any> => {
+  const response = await axiosInstance.get(`/tax-rate/edit/${uuid}`);
+  return response.data.data;
+};
+
 export const deleteTax = async (uuid: string) => {
   await axiosInstance.delete(`/tax-rate/delete/${uuid}`);
   showToast.success('Tax deleted successfully');

@@ -58,7 +58,8 @@ export function MultiSelect({
     <div className="w-full" ref={containerRef}>
       {label && (
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {label} {required && <span className="text-red-500">*</span>}
+          {label}
+          {required && <span className="text-red-500 font-bold ml-0.5">*</span>}
         </label>
       )}
       <div className="relative">

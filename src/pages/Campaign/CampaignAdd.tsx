@@ -37,7 +37,7 @@ export function CampaignAdd({
     defaultValues: {
       campaignCode: '',
       date: '',
-      merchandiserId: '',
+      salesmanId: '',
       customerId: '',
       feedback: '',
       image: null
@@ -51,7 +51,7 @@ export function CampaignAdd({
       reset(initialData || {
         campaignCode: '',
         date: '',
-        merchandiserId: '',
+        salesmanId: '',
         customerId: '',
         feedback: '',
         image: null
@@ -76,7 +76,7 @@ export function CampaignAdd({
         campaignCode: data.campaignCode?.trim() || '',
         feedback: data.feedback?.trim() || ''
       };
-      
+
       await onSubmit(trimmedData);
       onClose();
     } catch (error: any) {
@@ -104,7 +104,7 @@ export function CampaignAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Date <span className="text-red-500">*</span>
+            Date <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             type="datetime-local"
@@ -123,7 +123,7 @@ export function CampaignAdd({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Campaign Code <span className="text-red-500">*</span>
+              Campaign Code <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
           </div>
           <div className="flex items-center gap-2 relative">
@@ -148,10 +148,10 @@ export function CampaignAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Merchandiser <span className="text-red-500">*</span>
+            Merchandiser <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <select
-            {...register('merchandiserId', { required: 'Merchandiser is required' })}
+            {...register('salesmanId', { required: 'Merchandiser is required' })}
             className="block w-full px-3 py-2 rounded-lg border transition-colors
               bg-white dark:bg-gray-800
               text-gray-900 dark:text-gray-100
@@ -163,14 +163,14 @@ export function CampaignAdd({
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-          {errors.merchandiserId && (
-            <p className="text-red-600 text-xs mt-1">{errors.merchandiserId.message}</p>
+          {errors.salesmanId && (
+            <p className="text-red-600 text-xs mt-1">{errors.salesmanId.message}</p>
           )}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Customer <span className="text-red-500">*</span>
+            Customer <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <select
             {...register('customerId', { required: 'Customer is required' })}
@@ -192,7 +192,7 @@ export function CampaignAdd({
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Feedback <span className="text-red-500">*</span>
+            Feedback <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <textarea
             {...register('feedback', {

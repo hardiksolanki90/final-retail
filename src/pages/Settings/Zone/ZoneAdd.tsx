@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { ZoneFormData } from '../../../types/Zone';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 
 interface ZoneAddProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export function ZoneAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -54,6 +56,13 @@ export function ZoneAdd({
 
   const onFormSubmit = async (formData: ZoneFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('zone', formData.zoneCode);
+      if (resolvedCode !== formData.zoneCode) {
+        formData.zoneCode = resolvedCode ?? '';
+        setValue('zoneCode', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onEvent?.({
         eventType: initialData ? 'ZoneUpdated' : 'ZoneCreated',
         zone: formData,
@@ -110,18 +119,16 @@ export function ZoneAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Zone Code *</label>
+            <label className="block text-sm font-medium text-gray-700">Zone Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('zoneCode', {
-                required: 'Zone code is required',
-                validate: value => value.trim() !== '' || 'Zone code cannot be empty'
-              })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g. ZN01"
+              {...register('zoneCode')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Zone Code" value={watch('zoneCode') || ''} onChange={(v) => setValue('zoneCode', v)} />
+            <OrderCodeSettingsIcon label="Zone Code" value={watch('zoneCode') || ''} onChange={(v) => setValue('zoneCode', v)} entityKey="zone" onLockChange={setCodeLocked} />
             {errors.zoneCode && (
               <p className="text-red-600 text-xs mt-1">{errors.zoneCode.message}</p>
             )}
@@ -129,7 +136,7 @@ export function ZoneAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('name', {
               required: 'Name is required',

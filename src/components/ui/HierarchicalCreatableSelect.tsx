@@ -6,6 +6,7 @@ export interface HierarchicalCreatableSelectProps {
   error?: string;
   placeholder?: string;
   options: SelectOption[];
+  parentOptions?: SelectOption[];
   value: string;
   onChange: (value: string) => void;
   createLabel: string;
@@ -17,6 +18,10 @@ export interface HierarchicalCreatableSelectProps {
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  onSearchChange?: (query: string) => void;
 }
 
 /**
@@ -29,6 +34,7 @@ export function HierarchicalCreatableSelect({
   error,
   placeholder,
   options,
+  parentOptions,
   value,
   onChange,
   createLabel,
@@ -39,6 +45,10 @@ export function HierarchicalCreatableSelect({
   isLoading,
   disabled,
   className,
+  isLoadingMore,
+  hasMore,
+  onLoadMore,
+  onSearchChange,
 }: HierarchicalCreatableSelectProps) {
   return (
     <CreatableSelect
@@ -51,11 +61,15 @@ export function HierarchicalCreatableSelect({
       createLabel={createLabel}
       onCreate={onCreate}
       isLoading={isLoading}
+      isLoadingMore={isLoadingMore}
+      hasMore={hasMore}
+      onLoadMore={onLoadMore}
+      onSearchChange={onSearchChange}
       disabled={disabled}
       className={className}
       fields={[
         { type: 'text', name: nameField, label: nameLabel, required: true },
-        { type: 'select', name: 'parentId', label: parentLabel, options, placeholder: 'Select Parent (optional)' },
+        { type: 'select', name: 'parentId', label: parentLabel, options: parentOptions || options, placeholder: 'Select Parent (optional)' },
         { type: 'toggle', name: 'status', label: 'Active' },
       ]}
     />

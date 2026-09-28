@@ -103,8 +103,8 @@ export function ReturnAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Return Number *</label>
-                  <OrderCodeSettingsIcon label="Return Number *" value="" onChange={() => {}} />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Return Number <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                  <OrderCodeSettingsIcon label="Return Number" value="" onChange={() => {}} />
           <input
             {...register('returnNo', {
               required: 'Return number is required',
@@ -119,7 +119,7 @@ export function ReturnAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Order Number *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Order Number <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('orderNo', {
               required: 'Order number is required',
@@ -134,7 +134,7 @@ export function ReturnAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Customer <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('customer', {
               required: 'Customer is required',
@@ -149,7 +149,7 @@ export function ReturnAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('date', {
               required: 'Date is required'
@@ -198,7 +198,7 @@ export function ReturnAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Reason <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('reason', {
               required: 'Reason is required',

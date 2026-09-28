@@ -7,6 +7,8 @@ export interface SelectOption {
   disabled?: boolean;
   /** Optional leading visual (flag emoji, icon) rendered larger than the label text. */
   prefix?: ReactNode;
+  /** Optional passthrough for consumers that need the entity's own code alongside value/label. */
+  code?: string | null;
 }
 
 export interface SelectCreateAction {
@@ -97,14 +99,17 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
           setIsOpen(false);
           setSearchQuery('');
-          (onBlur as (() => void) | undefined)?.();
+          onBlur?.({
+            target: { value: currentValue, name: name || selectId },
+            currentTarget: { value: currentValue, name: name || selectId },
+          } as any);
         }
       }
       if (isOpen) {
         document.addEventListener('mousedown', handleClickOutside);
       }
       return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen, onBlur]);
+    }, [isOpen, onBlur, currentValue, name, selectId]);
 
     // Auto-focus search input when dropdown opens
     useEffect(() => {
@@ -217,6 +222,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             {label}
+            {props.required && <span className="text-red-500 font-bold ml-0.5">*</span>}
           </label>
         )}
 

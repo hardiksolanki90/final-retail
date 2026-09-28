@@ -23,7 +23,7 @@ interface Column {
 export function ComplaintFeedbackList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
 
   const [columns, setColumns] = useState<Column[]>([
@@ -88,11 +88,10 @@ export function ComplaintFeedbackList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -105,7 +104,7 @@ export function ComplaintFeedbackList() {
           <div className="relative">
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -131,7 +130,7 @@ export function ComplaintFeedbackList() {
 
           <button
             onClick={() => console.log('Create')}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -139,7 +138,7 @@ export function ComplaintFeedbackList() {
         </div>
       </div>
 
-            {/* Filter Accordion */}
+      {/* Filter Accordion */}
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
@@ -185,7 +184,7 @@ export function ComplaintFeedbackList() {
         </div>
       )}
 
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -212,9 +211,8 @@ export function ComplaintFeedbackList() {
               {currentData.map((item) => (
                 <tr
                   key={item.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${
-                    selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                  }`}
+                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
+                    }`}
                 >
                   <td className="px-4 py-3">
                     <input
@@ -227,23 +225,21 @@ export function ComplaintFeedbackList() {
                   {visibleColumns.map((column) => (
                     <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
                       {column.key === 'type' ? (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          item.type === 'Complaint'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.type === 'Complaint'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          }`}>
                           {item.type}
                         </span>
                       ) : column.key === 'priority' ? (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          item.priority === 'Urgent'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                            : item.priority === 'High'
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.priority === 'Urgent'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                          : item.priority === 'High'
                             ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
                             : item.priority === 'Medium'
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                        }`}>
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                          }`}>
                           {item.priority}
                         </span>
                       ) : (

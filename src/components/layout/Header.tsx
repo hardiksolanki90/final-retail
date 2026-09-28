@@ -72,7 +72,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             {/* Mobile Menu Toggle */}
             <button
               onClick={onMenuToggle}
-              className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 lg:hidden transition-colors"
+              className="p-2 cursor-pointer rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 lg:hidden transition-colors"
               aria-label="Toggle menu"
             >
               <Menu className="w-5 h-5 text-[var(--text-secondary)]" />

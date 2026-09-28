@@ -46,6 +46,7 @@ export interface RegionSelectProps {
   error?: string;
   className?: string;
   disabled?: boolean;
+  required?: boolean;
 }
 
 export function RegionSelect({
@@ -56,6 +57,7 @@ export function RegionSelect({
   error,
   className,
   disabled = false,
+  required = false,
 }: RegionSelectProps) {
   const [countryOptions, setCountryOptions] = useState<SelectOption[]>(cachedCountryOptions || []);
 
@@ -117,6 +119,7 @@ export function RegionSelect({
       value={String(value ?? '')}
       onChange={(val) => onChange(val ? Number(val) : '')}
       options={options}
+      required={required}
       placeholder={placeholder}
       className={className}
       createLabel="Add New Region"

@@ -13,6 +13,11 @@ export const getItemUomList = async (page = 1, perPage = 15, searchTerm?: string
   return unwrapPaginated(response.data, 'itemUoms', perPage);
 };
 
+export const getAllItemUoms = async (): Promise<{ value: string; label: string }[]> => {
+  const response = await axiosInstance.get('/item-uom/list?page=1&per_page=1000');
+  return response.data.data || response.data;
+};
+
 export const createItemUom = async (data: Record<string, any>) => {
   const response = await axiosInstance.post('/item-uom/add', data);
   showToast.success('UOM created successfully');

@@ -4,7 +4,7 @@ export interface ShareOfShelf {
   code: string;
   customerId: string;
   customerName: string;
-  merchandiserId: string;
+  salesmanId: string;
   merchandiserName: string;
   date: string;
   category: string;

@@ -18,6 +18,8 @@ import { ItemAdd } from './ItemAdd';
 import { ItemViewDrawer } from './ItemViewDrawer';
 import { useItem } from '../../providers/ItemProvider';
 import type { Item } from '../../types/Item';
+import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
 
 interface Column {
@@ -74,7 +76,6 @@ export function ItemList() {
     { key: 'name', label: 'Name', visible: true },
     { key: 'category', label: 'Category', visible: true },
     { key: 'brand', label: 'Brand', visible: true },
-    { key: 'price', label: 'Price', visible: true },
     { key: 'stock', label: 'Stock', visible: true },
   ]);
 
@@ -190,7 +191,7 @@ export function ItemList() {
             <div className="relative" ref={bulkActionRef}>
               <button
                 onClick={() => setBulkActionOpen(!bulkActionOpen)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
@@ -205,7 +206,7 @@ export function ItemList() {
                       <button
                         key={item.label}
                         onClick={item.action}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                        className="w-full cursor-pointer flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                       >
                         <item.icon className="w-4 h-4" />
                         {item.label}
@@ -220,9 +221,9 @@ export function ItemList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${filterOpen || searchTerm
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
               }`}
           >
             <Filter className="w-4 h-4" />
@@ -236,7 +237,7 @@ export function ItemList() {
           <div className="relative" ref={columnsRef}>
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -263,7 +264,7 @@ export function ItemList() {
           {/* Create Button */}
           <button
             onClick={() => { setSelectedItem(null); setIsAddOpen(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -318,13 +319,13 @@ export function ItemList() {
             <div className="flex items-end gap-2 pb-0.5">
               <button
                 onClick={applySearch}
-                className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
               >
                 Apply
               </button>
               <button
                 onClick={clearSearch}
-                className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
               >
                 Clear
               </button>
@@ -334,12 +335,7 @@ export function ItemList() {
       )}
 
       {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[200px] mx-6">
-        {isLoading && (
-          <div className="absolute inset-0 z-10 bg-white/50 dark:bg-black/20 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-          </div>
-        )}
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6 relative min-h-[200px] mx-6">
         {error && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="text-red-500 font-medium">Error loading items: {error.message}</div>
@@ -357,15 +353,15 @@ export function ItemList() {
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Category</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Brand</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Price</th>
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {!isLoading && items.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-[var(--text-muted)]">No items found.</td></tr>
-              )}
-              {items.map((item: any) => (
+              {isLoading ? (
+                <TableLoadingRow colSpan={7} label="Loading items…" />
+              ) : items.length === 0 ? (
+                <TableEmptyRow colSpan={7} label="No items found." />
+              ) : items.map((item: any) => (
                 <tr
                   key={item?.uuid}
                   onClick={() => { setViewItem(item); setIsViewOpen(true); }}
@@ -384,28 +380,24 @@ export function ItemList() {
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm text-[var(--text-secondary)]">{item?.itemCategory?.categoryName ?? '—'}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{item?.category?.name ?? '—'}</span>
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm text-[var(--text-secondary)]">{item?.brand?.brandName ?? '—'}</span>
-                  </td>
-
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-green-600 dark:text-green-400">{item?.itemPrice != null ? `$${Number(item.itemPrice).toFixed(2)}` : item?.price != null ? `$${Number(item.price).toFixed(2)}` : '—'}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{item?.brand?.name ?? '—'}</span>
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
+                        className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
                         onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}
                       >
                         <Pencil size={14} strokeWidth={2.5} />
                         <span>Edit</span>
                       </button>
                       <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                        className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
                         onClick={(e) => { e.stopPropagation(); handleDeleteWithConfirmation(item?.uuid ?? ""); }}
                       >
                         <Trash2 size={14} strokeWidth={2.5} />
@@ -431,6 +423,10 @@ export function ItemList() {
           setViewItem(null);
         }}
         data={viewItem}
+        onEdit={() => {
+          setIsViewOpen(false);
+          if (viewItem) handleEditClick(viewItem);
+        }}
       />
 
       {/* Add / Edit Drawer */}
@@ -510,7 +506,7 @@ export function ItemList() {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
               <button
                 onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
               >
                 Export
               </button>

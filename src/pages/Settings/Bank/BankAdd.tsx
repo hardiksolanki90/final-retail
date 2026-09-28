@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { BankFormData } from '../../../types/Bank';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 import { useAuth } from '../../../context/AuthContext';
 
 interface BankAddProps {
@@ -54,6 +55,7 @@ export function BankAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -65,6 +67,13 @@ export function BankAdd({
 
   const onFormSubmit = async (formData: BankFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('bank_information', formData.bankCode);
+      if (resolvedCode !== formData.bankCode) {
+        formData.bankCode = resolvedCode ?? '';
+        setValue('bankCode', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onEvent?.({
         eventType: initialData ? 'BankUpdated' : 'BankCreated',
         bank: formData,
@@ -121,18 +130,16 @@ export function BankAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Bank Code *</label>
+            <label className="block text-sm font-medium text-gray-700">Bank Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('bankCode', {
-                required: 'Bank code is required',
-                validate: value => value.trim() !== '' || 'Bank code cannot be empty'
-              })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter bank code"
+              {...register('bankCode')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Bank Code" value={watch('bankCode') || ''} onChange={(v) => setValue('bankCode', v)} />
+            <OrderCodeSettingsIcon label="Bank Code" value={watch('bankCode') || ''} onChange={(v) => setValue('bankCode', v)} entityKey="bank_information" onLockChange={setCodeLocked} />
             {errors.bankCode && (
               <p className="text-red-600 text-xs mt-1">{errors.bankCode.message}</p>
             )}
@@ -140,7 +147,7 @@ export function BankAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('bankName', {
               required: 'Bank name is required',
@@ -155,7 +162,7 @@ export function BankAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Account Number *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Account Number <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('accountNumber', {
               required: 'Account number is required',
@@ -172,7 +179,7 @@ export function BankAdd({
         {countryCode === 'AE' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">IBAN *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">IBAN <span className="text-red-500 font-bold ml-0.5">*</span></label>
               <input
                 {...register('iban', {
                   required: 'IBAN is required for UAE'
@@ -183,7 +190,7 @@ export function BankAdd({
               {errors.iban && <p className="text-red-600 text-xs mt-1">{errors.iban.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Swift Code *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Swift Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
               <input
                 {...register('swiftCode', {
                   required: 'Swift Code is required for UAE'
@@ -198,7 +205,7 @@ export function BankAdd({
         
         {countryCode === 'IN' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <input
               {...register('ifscCode', {
                 required: 'IFSC Code is required for India'
@@ -212,7 +219,7 @@ export function BankAdd({
 
         {countryCode === 'US' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Routing Number *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Routing Number <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <input
               {...register('routingNumber', {
                 required: 'Routing Number is required for US'
@@ -226,7 +233,7 @@ export function BankAdd({
 
         {countryCode === 'GB' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sort Code *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sort Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
             <input
               {...register('sortCode', {
                 required: 'Sort Code is required for UK'
@@ -248,7 +255,7 @@ export function BankAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Address *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Address <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('bankAddress', {
               required: 'Bank address is required',

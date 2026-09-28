@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Drawer } from '../../components/ui/Drawer';
-import { Mail, Phone, ExternalLink, ChevronDown, ChevronRight, Edit, Plus, Printer, Download, Send, MessageSquare } from 'lucide-react';
+import { Mail, Phone, ExternalLink, ChevronDown, ChevronRight, Edit, Plus, Printer, Download, Send } from 'lucide-react';
 import type { Customer } from '../../types/Customer';
 
 interface CustomerViewDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   data: Customer | null;
+  onEdit?: (customer: Customer) => void;
 }
 
-export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawerProps) {
+export function CustomerViewDrawer({ isOpen, onClose, data, onEdit }: CustomerViewDrawerProps) {
   const [activeDetailTab, setActiveDetailTab] = useState('overview');
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -36,10 +37,8 @@ export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawer
 
   const detailTabs = [
     { id: 'overview', label: 'Overview' },
-    { id: 'comments', label: 'Comments' },
     { id: 'sales', label: 'Sales' },
     { id: 'statement', label: 'Statement' },
-    { id: 'custom-fields', label: 'Custom Fields' },
   ];
 
   if (!data) return null;
@@ -56,7 +55,10 @@ export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawer
       width="w-[70%]"
       headerActions={
         <div className="flex items-center gap-2">
-          <button className="p-2 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          <button
+            onClick={() => onEdit?.(data)}
+            className="p-2 cursor-pointer border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
             <Edit className="w-4 h-4 text-gray-600 dark:text-gray-300" />
           </button>
           <div className="relative" ref={moreRef}>
@@ -315,7 +317,7 @@ export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawer
                       <ChevronRight className="w-4 h-4 text-gray-400" />
                       {type}
                     </div>
-                    <button className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
+                    <button className="flex cursor-pointer cursor-pointer items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
                       <Plus className="w-4 h-4" /> Add New
                     </button>
                   </div>
@@ -340,13 +342,13 @@ export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawer
                 </select>
 
                 <div className="flex items-center gap-3">
-                  <button className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <button className="p-2 cursor-pointer cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <Printer className="w-4 h-4" />
                   </button>
-                  <button className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <button className="p-2 cursor-pointer cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <Download className="w-4 h-4" />
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 transition-colors">
+                  <button className="flex cursor-pointer cursor-pointer items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 transition-colors">
                     <Send className="w-4 h-4" /> Send Email
                   </button>
                 </div>
@@ -419,43 +421,8 @@ export function CustomerViewDrawer({ isOpen, onClose, data }: CustomerViewDrawer
           </div>
         )}
 
-        {/* Comments Tab Content */}
-        {activeDetailTab === 'comments' && (
-          <div className="flex-1 p-6 bg-gray-50 dark:bg-gray-900">
-            <div className="max-w-3xl mx-auto space-y-6">
-              
-              {/* Add Comment Box */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Add a Note</h3>
-                <textarea 
-                  rows={3} 
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 mb-3"
-                  placeholder="Enter your comment or note here..."
-                ></textarea>
-                <div className="flex justify-end">
-                  <button className="px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 transition-colors">
-                    Post Comment
-                  </button>
-                </div>
-              </div>
-
-              {/* Comments List */}
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-700 pb-2">Recent Comments</h3>
-                
-                {/* Empty State */}
-                <div className="flex flex-col items-center justify-center py-8 text-gray-500 text-sm">
-                  <MessageSquare className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-3" />
-                  <p>No comments yet. Be the first to leave a note on this customer!</p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
-
         {/* Other Tabs Empty State */}
-        {activeDetailTab !== 'overview' && activeDetailTab !== 'sales' && activeDetailTab !== 'statement' && activeDetailTab !== 'comments' && (
+        {activeDetailTab !== 'overview' && activeDetailTab !== 'sales' && activeDetailTab !== 'statement' && (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 capitalize">{activeDetailTab}</h3>
             <p>This section is under construction.</p>

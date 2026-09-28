@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Filter, Plus, RefreshCw, Columns3, ChevronDown, Check, Menu, Download, Upload, Pencil, Trash2 } from 'lucide-react';
 import { MerchandiserReplacementAdd } from './MerchandiserReplacementAdd';
 import { Pagination } from '../../../components/ui/Pagination';
+import { TableLoadingRow } from '../../../components/ui/TableLoadingRow';
+import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { useMerchandiserReplacement } from '../../../providers/MerchandiserReplacementProvider';
-import { createMerchandiserReplacement, updateMerchandiserReplacement } from '../../../api/MerchandiserReplacementApi';
+import { createMerchandiserReplacement, updateMerchandiserReplacement, getMerchandiserReplacementDetails } from '../../../api/MerchandiserReplacementApi';
 import type { MerchandiserReplacementFormData } from '../../../types/MerchandiserReplacement';
 
 interface Column { key: string; label: string; visible: boolean; }
@@ -47,7 +49,11 @@ export function MerchandiserReplacementList() {
   const handleSelectAll = () => setSelectedRowKeys(allSelected ? [] : replacements.map(c => c.uuid));
   const handleSelectRow = (id: string) => setSelectedRowKeys(selectedRowKeys.includes(id) ? selectedRowKeys.filter(k => k !== id) : [...selectedRowKeys, id]);
 
-  const handleEditClick = (item: any) => { setEditingItem(item); setAddDrawerOpen(true); };
+  const handleEditClick = async (item: any) => {
+    const uuid = item.uuid ?? item.id;
+    setEditingItem(uuid ? await getMerchandiserReplacementDetails(String(uuid)).catch(() => item) : item);
+    setAddDrawerOpen(true);
+  };
   const handleDrawerClose = () => { setAddDrawerOpen(false); setEditingItem(null); };
   const handleSaved = () => { handleDrawerClose(); refetch(); };
 
@@ -75,13 +81,13 @@ export function MerchandiserReplacementList() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${filterOpen ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
               }`}
           >
             <Filter className="w-4 h-4" />Filter
           </button>
           <div className="relative" ref={columnsRef}>
-            <button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
+            <button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer">
               <Columns3 className="w-4 h-4" />Columns<ChevronDown className="w-4 h-4" />
             </button>
             {columnsDropdownOpen && (
@@ -96,7 +102,7 @@ export function MerchandiserReplacementList() {
               </div>
             )}
           </div>
-          <button onClick={() => { setEditingItem(null); setAddDrawerOpen(true); }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          <button onClick={() => { setEditingItem(null); setAddDrawerOpen(true); }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer">
             <Plus className="w-4 h-4" />Create
           </button>
           <div className="relative" ref={moreActionsRef}>
@@ -123,12 +129,7 @@ export function MerchandiserReplacementList() {
       )}
 
       {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[200px] mx-6">
-        {isLoading && (
-          <div className="absolute inset-0 z-10 bg-white/50 dark:bg-black/20 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-          </div>
-        )}
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6 relative min-h-[200px] mx-6">
         {error && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="text-red-500 font-medium">Error: {error.message}</div>
@@ -148,10 +149,11 @@ export function MerchandiserReplacementList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {!isLoading && replacements.length === 0 && (
-                <tr><td colSpan={visibleColumns.length + 2} className="px-4 py-12 text-center text-[var(--text-muted)]">No replacements found.</td></tr>
-              )}
-              {replacements.map(item => (
+              {isLoading ? (
+                <TableLoadingRow colSpan={visibleColumns.length + 2} label="Loading replacements…" />
+              ) : replacements.length === 0 ? (
+                <TableEmptyRow colSpan={visibleColumns.length + 2} label="No replacements found." />
+              ) : replacements.map(item => (
                 <tr key={item.uuid} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
                   <td className="px-4 py-4 whitespace-nowrap">
                     <input type="checkbox" checked={selectedRowKeys.includes(item.uuid)} onChange={() => handleSelectRow(item.uuid)} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" />
@@ -166,10 +168,10 @@ export function MerchandiserReplacementList() {
                   ))}
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
-                      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200" onClick={() => handleEditClick(item)}>
+                      <button className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200" onClick={() => handleEditClick(item)}>
                         <Pencil size={14} strokeWidth={2.5} /><span>Edit</span>
                       </button>
-                      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200" onClick={() => handleDeleteWithConfirmation(item.uuid)}>
+                      <button className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200" onClick={() => handleDeleteWithConfirmation(item.uuid)}>
                         <Trash2 size={14} strokeWidth={2.5} /><span>Delete</span>
                       </button>
                     </div>

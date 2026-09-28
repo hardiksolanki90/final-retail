@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
-import { Select, type SelectOption } from '../../components/ui/Select';
-import { HierarchicalCreatableSelect } from '../../components/ui/HierarchicalCreatableSelect';
-import { useItem } from '../../providers/ItemProvider';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
 import { ItemGroupSelect } from '../../components/shared/ItemGroupSelect';
+import { ItemCategorySelect } from '../../components/ui/ItemCategorySelect';
+import { BrandSelect } from '../../components/ui/BrandSelect';
+import { ItemUomSelect } from '../../components/ui/ItemUomSelect';
 import { SectionLabel } from '../../components/ui/SectionLabel';
 import { TwoOptionToggle } from '../../components/ui/TwoOptionToggle';
-import { Plus, Trash2, Upload } from 'lucide-react';
-import type { ItemFormData, ItemCategory, Brand, ItemUom } from '../../types/Item';
+import { Plus, Trash2, Upload, Edit } from 'lucide-react';
+import type { ItemFormData } from '../../types/Item';
 
 interface ItemAddProps {
   isOpen: boolean;
@@ -19,9 +20,6 @@ interface ItemAddProps {
   onSubmit: (data: ItemFormData) => void | Promise<void>;
   initialData?: ItemFormData;
   isLoading?: boolean;
-  categories?: ItemCategory[];
-  brands?: Brand[];
-  uoms?: ItemUom[];
 }
 
 const defaultValues: ItemFormData = {
@@ -30,7 +28,6 @@ const defaultValues: ItemFormData = {
   itemGroupId: '',
   itemUomId: '', // Base UOM
   itemCode: '',
-  erpCode: '',
   itemName: '',
   description: '',
   itemBarcode: '',
@@ -80,23 +77,8 @@ export function ItemAdd({
   onSubmit,
   initialData,
   isLoading = false,
-  categories: propCategories = [],
-  brands: propBrands = [],
-  uoms: propUoms = [],
 }: ItemAddProps) {
   const [activeTab, setActiveTab] = useState<'item' | 'uom' | 'catalog'>('item');
-
-  const {
-    categories: contextCategories,
-    brands: contextBrands,
-    uoms: contextUoms,
-    createCategoryOption,
-    createBrandOption,
-  } = useItem();
-
-  const categories = propCategories.length > 0 ? propCategories : contextCategories;
-  const brands = propBrands.length > 0 ? propBrands : contextBrands;
-  const uoms = propUoms.length > 0 ? propUoms : contextUoms;
 
   const {
     register,
@@ -108,10 +90,23 @@ export function ItemAdd({
     formState: { errors, isSubmitting },
   } = useForm<ItemFormData>({ defaultValues });
 
-  const { fields, append, remove } = useFieldArray({
+  const [codeLocked, setCodeLocked] = useState(false);
+
+  const { fields, append, remove, update } = useFieldArray({
     control,
     name: 'secondaryUoms',
   });
+
+  const [stagedUom, setStagedUom] = useState<any>({
+    uomId: 0,
+    conversionFactor: 1,
+    price: 0,
+    upc: 0,
+    isSku: false,
+    purchasePrice: 0,
+    uomName: '',
+  });
+  const [editingUomIndex, setEditingUomIndex] = useState<number | null>(null);
 
   const [itemImageFile, setItemImageFile] = useState<File | null>(null);
   const [itemImagePreview, setItemImagePreview] = useState<string>('');
@@ -132,8 +127,15 @@ export function ItemAdd({
   }, [initialData, isOpen, reset]);
 
   const onFormSubmit = async (data: ItemFormData) => {
+    const resolvedCode = await reserveCodeIfAuto('item', data.itemCode);
+    if (resolvedCode !== data.itemCode) {
+      setValue('itemCode', resolvedCode ?? '');
+      setCodeLocked(true);
+    }
+
     const formData = {
       ...data,
+      itemCode: resolvedCode ?? data.itemCode,
       itemImage: itemImageFile ? itemImageFile.name : data.itemImage,
     };
     await onSubmit(formData);
@@ -152,32 +154,31 @@ export function ItemAdd({
     }
   };
 
-  const addSecondaryUom = () => {
-    append({
+  const handleAddStagedUom = () => {
+    if (!stagedUom.uomId) {
+      return;
+    }
+    if (editingUomIndex !== null) {
+      update(editingUomIndex, stagedUom);
+      setEditingUomIndex(null);
+    } else {
+      append(stagedUom);
+    }
+    setStagedUom({
       uomId: 0,
       conversionFactor: 1,
       price: 0,
       upc: 0,
       isSku: false,
       purchasePrice: 0,
+      uomName: '',
     });
   };
 
-  // Convert options
-  const categoryOptions: SelectOption[] = categories.map(cat => ({
-    value: cat.id?.toString() || '',
-    label: cat.categoryName,
-  }));
-
-  const brandOptions: SelectOption[] = brands.map(brand => ({
-    value: brand.id?.toString() || '',
-    label: brand.brandName,
-  }));
-
-  const uomOptions: SelectOption[] = uoms.map(uom => ({
-    value: uom.id?.toString() || '',
-    label: `${uom.name} (${uom.code})`,
-  }));
+  const handleEditStagedUom = (index: number) => {
+    setStagedUom(fields[index]);
+    setEditingUomIndex(index);
+  };
 
   return (
     <Drawer
@@ -207,8 +208,8 @@ export function ItemAdd({
                 type="button"
                 onClick={() => setActiveTab(tab as any)}
                 className={`py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === tab
-                    ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                   }`}
               >
                 {tab === 'item' ? 'Item' : tab === 'uom' ? 'UOM' : 'Product Catalog'}
@@ -229,18 +230,20 @@ export function ItemAdd({
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Code*</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
                     </div>
                     <div className="flex items-center gap-2 relative">
                       <Input
-                        {...register('itemCode', { required: 'Code is required' })}
+                        {...register('itemCode')}
+                        placeholder="Auto-generated if empty"
                         error={errors.itemCode?.message}
+                        disabled={codeLocked}
                       />
-                      <OrderCodeSettingsIcon label="Item Code" value={watch('itemCode') || ''} onChange={(v) => setValue('itemCode', v)} />
+                      <OrderCodeSettingsIcon label="Item Code" value={watch('itemCode') || ''} onChange={(v) => setValue('itemCode', v)} entityKey="item" onLockChange={setCodeLocked} />
                     </div>
                   </div>
                   <Input
-                    label="Item Name*"
+                    label="Item Name" required
                     {...register('itemName', { required: 'Name is required' })}
                     error={errors.itemName?.message}
                   />
@@ -250,29 +253,15 @@ export function ItemAdd({
                   />
 
                   <div className="grid grid-cols-2 gap-4">
-                    <HierarchicalCreatableSelect
-                      label="Category*"
+                    <ItemCategorySelect
                       value={watch('itemCategoryId')?.toString() || ''}
                       onChange={(value) => setValue('itemCategoryId', value)}
-                      options={categoryOptions}
-                      placeholder="Select Category"
-                      createLabel="Add New Category"
-                      onCreate={createCategoryOption}
-                      nameField="categoryName"
-                      nameLabel="Category Name"
-                      parentLabel="Parent Category"
+                      error={errors.itemCategoryId?.message}
                     />
-                    <HierarchicalCreatableSelect
-                      label="Brand*"
+                    <BrandSelect
                       value={watch('brandId')?.toString() || ''}
                       onChange={(value) => setValue('brandId', value)}
-                      options={brandOptions}
-                      placeholder="Select Brand"
-                      createLabel="Add New Brand"
-                      onCreate={createBrandOption}
-                      nameField="brandName"
-                      nameLabel="Brand Name"
-                      parentLabel="Parent Brand"
+                      error={errors.brandId?.message}
                     />
                   </div>
 
@@ -310,17 +299,12 @@ export function ItemAdd({
                       step="0.01"
                       {...register('volume', { valueAsNumber: true })}
                     />
-                    <Input
-                      label="ERP Code"
-                      {...register('erpCode')}
-                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-                        Is Promotional*
-                      </label>
+                        Is Promotional <span className="text-red-500 font-bold ml-0.5">*</span></label>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
@@ -387,19 +371,16 @@ export function ItemAdd({
             <div className="space-y-8 max-w-4xl mx-auto">
 
               {/* Base UOM */}
-              <div className="space-y-4">
-                <SectionLabel title="Base UOM" />
-
+              <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <Select
-                    label="Base UOM*"
+                  <ItemUomSelect
+                    label="Base UOM"
                     value={watch('itemUomId')?.toString() || ''}
-                    onChange={(e) => setValue('itemUomId', e.target.value)}
-                    options={uomOptions}
+                    onChange={(val) => setValue('itemUomId', val)}
                     required
                   />
                   <Input
-                    label="Base UOM Purchase Price*"
+                    label="Base UOM Purchase Price" required
                     type="number"
                     step="0.01"
                     {...register('baseUomPurchasePrice', { valueAsNumber: true, required: 'Required' })}
@@ -407,97 +388,159 @@ export function ItemAdd({
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Is stock keeping unit ?</label>
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="baseUomIsSku"
+                        className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                        checked={watchIsBaseUomSku === true}
+                        onChange={() => setValue('isBaseUomSku', true)}
+                      />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="baseUomIsSku"
+                        className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                        checked={watchIsBaseUomSku === false}
+                        onChange={() => setValue('isBaseUomSku', false)}
+                      />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">No</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Base UOM UPC*"
+                    label="Base UOM UPC" required
                     type="number"
                     {...register('baseUomUpc', { valueAsNumber: true, required: 'Required' })}
                     error={errors.baseUomUpc?.message}
                   />
                   <Input
-                    label="Base UOM Price*"
+                    label="Base UOM Price" required
                     type="number"
                     step="0.01"
                     {...register('baseUomPrice', { valueAsNumber: true, required: 'Required' })}
                     error={errors.baseUomPrice?.message}
                   />
                 </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Stock keeping unit</label>
-                  <TwoOptionToggle value={watchIsBaseUomSku === true} onChange={(v) => setValue('isBaseUomSku', v)} />
-                </div>
               </div>
 
+              <hr className="border-gray-200 dark:border-gray-700" />
+
               {/* Secondary UOM */}
-              <div className="space-y-4">
-                <SectionLabel
-                  title="Secondary UOM"
-                  action={
-                    <button
-                      type="button"
-                      onClick={addSecondaryUom}
-                      className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add UOM
-                    </button>
-                  }
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Secondary UOM</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <ItemUomSelect
+                    label="UOM"
+                    value={stagedUom.uomId || ''}
+                    onChange={(val) => setStagedUom((prev: any) => ({ ...prev, uomId: parseInt(val) }))}
+                    onSelectOption={(opt) => setStagedUom((prev: any) => ({ ...prev, uomName: opt.label }))}
+                  />
+                  <Input
+                    label="UPC"
+                    type="number"
+                    value={stagedUom.upc || ''}
+                    onChange={(e) => setStagedUom((prev: any) => ({ ...prev, upc: Number(e.target.value) }))}
+                  />
+                </div>
+
+                <Input
+                  label="Price"
+                  type="number"
+                  step="0.01"
+                  value={stagedUom.price || ''}
+                  onChange={(e) => setStagedUom((prev: any) => ({ ...prev, price: Number(e.target.value) }))}
                 />
 
-                {fields.length === 0 && (
-                  <p className="text-sm text-gray-400 dark:text-gray-500 py-2">No secondary UOMs added yet.</p>
-                )}
-
-                {fields.map((field, index) => (
-                  <div key={field.id} className="relative space-y-4 p-4 border border-gray-200 dark:border-gray-800 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                        UOM {index + 1}
-                      </span>
-                      <button type="button" onClick={() => remove(index)} className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <Select
-                        label="UOM"
-                        value={watch(`secondaryUoms.${index}.uomId`)?.toString() || ''}
-                        onChange={(e) => setValue(`secondaryUoms.${index}.uomId`, parseInt(e.target.value))}
-                        options={uomOptions}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Is stock keeping unit ?</label>
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="secUomIsSku"
+                        className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                        checked={stagedUom.isSku === true}
+                        onChange={() => setStagedUom((prev: any) => ({ ...prev, isSku: true }))}
                       />
-                      <Input
-                        label="UPC"
-                        type="number"
-                        {...register(`secondaryUoms.${index}.upc`, { valueAsNumber: true })}
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="secUomIsSku"
+                        className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                        checked={stagedUom.isSku === false}
+                        onChange={() => setStagedUom((prev: any) => ({ ...prev, isSku: false }))}
                       />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input
-                        label="Price"
-                        type="number"
-                        step="0.01"
-                        {...register(`secondaryUoms.${index}.price`, { valueAsNumber: true })}
-                      />
-                      <Input
-                        label="Purchase Price"
-                        type="number"
-                        step="0.01"
-                        {...register(`secondaryUoms.${index}.purchasePrice`, { valueAsNumber: true })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Stock keeping unit</label>
-                      <TwoOptionToggle
-                        value={watch(`secondaryUoms.${index}.isSku`) === true}
-                        onChange={(v) => setValue(`secondaryUoms.${index}.isSku`, v)}
-                      />
-                    </div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">No</span>
+                    </label>
                   </div>
-                ))}
+                </div>
+
+                <Input
+                  label="Purchase Price"
+                  type="number"
+                  step="0.01"
+                  value={stagedUom.purchasePrice || ''}
+                  onChange={(e) => setStagedUom((prev: any) => ({ ...prev, purchasePrice: Number(e.target.value) }))}
+                />
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleAddStagedUom}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-md transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {editingUomIndex !== null ? 'Update' : 'Add'}
+                  </button>
+                </div>
+
+                {/* Table */}
+                {fields.length > 0 && (
+                  <div className="overflow-x-auto rounded-lg shadow-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mt-6">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">UOM</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">UPC</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Price</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Stock Keeping Unit</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Purchase Price</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {fields.map((field: any, idx) => (
+                          <tr key={field.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-300">{field.uomName || field.uomId}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{field.upc}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{field.price}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{field.isSku ? 'Yes' : 'No'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{field.purchasePrice}</td>
+                            <td className="px-4 py-3 text-sm text-right space-x-2 whitespace-nowrap">
+                              <button type="button" onClick={() => handleEditStagedUom(idx)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                                <Edit className="w-4 h-4 inline-block" />
+                              </button>
+                              <button type="button" onClick={() => remove(idx)} className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                                <Trash2 className="w-4 h-4 inline-block" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -508,7 +551,7 @@ export function ItemAdd({
             <div className="space-y-6 max-w-4xl mx-auto pb-8">
 
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Is Product Catalog*</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Is Product Catalog <span className="text-red-500 font-bold ml-0.5">*</span></label>
                 <TwoOptionToggle value={watchIsProductCatalog === true} onChange={(v) => setValue('isProductCatalog', v)} />
               </div>
 

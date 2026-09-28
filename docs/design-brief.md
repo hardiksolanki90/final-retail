@@ -22,7 +22,7 @@ This is a B2B operations tool used by people who live in it for 8+ hours a day. 
 ### Principle 2 — **Status at a Glance**
 > *"The user must never have to read to know the state."*
 
-Every entity in this system has a status: orders (pending / confirmed / delivered / cancelled), salesmen (active / inactive), promotions (live / expired). These statuses must be visually resolved — colour-coded badges with dot indicators — before the user reads a word. Trend arrows, progress bars, and colour-coded numbers (green for positive, red for negative) must communicate direction without text.
+Every entity in this system has a status: orders (pending / confirmed / delivered / cancelled), salesman (active / inactive), promotions (live / expired). These statuses must be visually resolved — colour-coded badges with dot indicators — before the user reads a word. Trend arrows, progress bars, and colour-coded numbers (green for positive, red for negative) must communicate direction without text.
 
 **Why it matters here**: With 40 modules and data across thousands of rows, the eye must be able to scan before the brain catches up.
 

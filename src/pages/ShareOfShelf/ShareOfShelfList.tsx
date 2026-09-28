@@ -58,7 +58,7 @@ export function ShareOfShelfList() {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -204,7 +204,7 @@ export function ShareOfShelfList() {
             <div className="relative" ref={bulkActionRef}>
               <button
                 onClick={() => setBulkActionOpen(!bulkActionOpen)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
@@ -237,11 +237,10 @@ export function ShareOfShelfList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -256,7 +255,7 @@ export function ShareOfShelfList() {
           <div className="relative" ref={columnsRef}>
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -283,7 +282,7 @@ export function ShareOfShelfList() {
           {/* Create Button */}
           <button
             onClick={handleCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex cursor-pointer items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -328,7 +327,7 @@ export function ShareOfShelfList() {
         </div>
       </div>
 
-            {/* Filter Accordion */}
+      {/* Filter Accordion */}
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
@@ -375,7 +374,7 @@ export function ShareOfShelfList() {
       )}
 
       {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -402,9 +401,8 @@ export function ShareOfShelfList() {
               {currentData.map((record) => (
                 <tr
                   key={record.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${
-                    selectedRows.includes(record.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                  }`}
+                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(record.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
+                    }`}
                 >
                   <td className="px-4 py-3">
                     <input
@@ -421,11 +419,10 @@ export function ShareOfShelfList() {
                     >
                       {column.key === 'status' ? (
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            record.status === 'completed'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                          }`}
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${record.status === 'completed'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            }`}
                         >
                           {record.status}
                         </span>
@@ -459,7 +456,7 @@ export function ShareOfShelfList() {
               </h2>
               <button
                 onClick={handleExportCancel}
-                className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"
+                className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
@@ -553,13 +550,13 @@ export function ShareOfShelfList() {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
               <button
                 onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
               >
                 Export
               </button>
               <button
                 onClick={handleExportCancel}
-                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 Cancel
               </button>

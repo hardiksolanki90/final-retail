@@ -22,7 +22,7 @@ interface ShelfDisplayAddProps {
 const defaultValues: ShelfDisplayFormData = {
   displayCode: '',
   customerId: '',
-  merchandiserId: '',
+  salesmanId: '',
   date: '',
   category: '',
   brandId: '',
@@ -111,7 +111,7 @@ export function ShelfDisplayAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Customer <span className="text-red-500">*</span>
+              Customer <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('customerId', { required: 'Customer is required' })} className={selectClass}>
               <option value="">Select customer</option>
@@ -121,13 +121,13 @@ export function ShelfDisplayAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Merchandiser <span className="text-red-500">*</span>
+              Merchandiser <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
-            <select {...register('merchandiserId', { required: 'Merchandiser is required' })} className={selectClass}>
+            <select {...register('salesmanId', { required: 'Merchandiser is required' })} className={selectClass}>
               <option value="">Select merchandiser</option>
               {merchandisers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            {errors.merchandiserId && <p className="text-sm text-red-500 mt-1">{errors.merchandiserId.message}</p>}
+            {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
           </div>
         </div>
 
@@ -142,7 +142,7 @@ export function ShelfDisplayAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Category <span className="text-red-500">*</span>
+              Category <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('category', { required: 'Category is required' })} className={selectClass}>
               <option value="">Select category</option>

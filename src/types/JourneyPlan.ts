@@ -1,43 +1,3 @@
-export interface JourneyPlan {
-  id?: string;
-  uuid?: string;
-  planCode: string;
-  planName: string;
-  salesmanId: string;
-  routeId: string;
-  startDate: string;
-  endDate: string;
-  customers: string[];
-  visitFrequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
-  notes?: string;
-  status?: 'active' | 'inactive' | 'completed';
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface JourneyPlanFormData {
-  planCode: string;
-  planName: string;
-  salesmanId: string;
-  routeId: string;
-  startDate: string;
-  endDate: string;
-  customers: string[];
-  visitFrequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
-  notes?: string;
-  status?: boolean;
-}
-
-export interface JourneyPlanListResponse {
-  data: JourneyPlan[];
-  total: number;
-  currentPage: number;
-  perPage: number;
-  lastPage: number;
-}
-
-// ─── New types for the multi-step Add form ────────────────────────────────────
-
 export type JourneyPlanBase = 'day_wise' | 'week_wise';
 
 export type WeekNumber = 'week1' | 'week2' | 'week3' | 'week4' | 'week5';
@@ -63,8 +23,11 @@ export interface JourneyPlanCustomerRow {
   endTime: string;         // "HH:MM"
 }
 
-/** All customer rows keyed by day */
-export type DayCustomersMap = Record<DayOfWeek, JourneyPlanCustomerRow[]>;
+/**
+ * All customer rows keyed by day (Day Wise: `"monday"`) or by week+day
+ * (Week Wise: `"week1-monday"`) — see `dayCustomerKey()` in CustomersTab.
+ */
+export type DayCustomersMap = Record<string, JourneyPlanCustomerRow[]>;
 
 /** Full form state across all 3 tabs */
 export interface JourneyPlanFullFormData {
@@ -82,7 +45,7 @@ export interface JourneyPlanFullFormData {
   selectedWeeks: WeekNumber[];
   firstDayOfWeek: DayOfWeek;
   enforceFlag: boolean;
-  merchandiserId: string;
+  salesmanId: string;
 
   // Tab 3 – Customers (per-day lists)
   dayCustomers: DayCustomersMap;

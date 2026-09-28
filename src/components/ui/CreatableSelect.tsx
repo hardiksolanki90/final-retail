@@ -23,6 +23,7 @@ export interface CreatableSelectProps {
   onLoadMore?: () => void;
   onSearchChange?: (query: string) => void;
   pageSize?: number;
+  required?: boolean;
 }
 
 export function CreatableSelect({
@@ -44,6 +45,7 @@ export function CreatableSelect({
   onLoadMore,
   onSearchChange,
   pageSize,
+  required = false,
 }: CreatableSelectProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -70,6 +72,7 @@ export function CreatableSelect({
         onLoadMore={onLoadMore}
         onSearchChange={onSearchChange}
         pageSize={pageSize}
+        required={required}
         createAction={{
           label: createLabel,
           onClick: () => setIsModalOpen(true),

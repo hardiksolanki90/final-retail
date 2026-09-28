@@ -120,7 +120,7 @@ export function PreSaleReachCoverageDashboard() {
               <option>All Merchandisers</option>
             </select>
           </div>
-          <button className="btn-primary w-full">Apply</button>
+          <button className="btn-p cursor-pointerrimary w-full">Apply</button>
         </div>
       </Card>
 

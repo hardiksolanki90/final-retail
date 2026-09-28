@@ -144,7 +144,7 @@ export function RegistrationForm() {
             {/* Register Button */}
             <button
               type="submit"
-              className="w-full py-4 mt-8 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              className="w-full cursor-pointer py-4 mt-8 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             >
               Register
             </button>

@@ -1,10 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import { REASON_TYPE_OPTIONS, type ReasonFormData } from '../../../types/Reason';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 
 interface ReasonAddProps {
   isOpen: boolean;
@@ -46,6 +47,7 @@ export function ReasonAdd({
   });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   const typeOptions = useMemo(
     () => REASON_TYPE_OPTIONS.map((option) => ({ value: option, label: option })),
@@ -62,8 +64,14 @@ export function ReasonAdd({
 
   const onFormSubmit = async (formData: ReasonFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('reason', formData.code?.trim() || undefined);
+      if (resolvedCode) {
+        setValue('code', resolvedCode);
+        setCodeLocked(true);
+      }
+
       const trimmedData: ReasonFormData = {
-        code: formData.code?.trim() || undefined,
+        code: resolvedCode ?? formData.code?.trim() ?? undefined,
         name: formData.name?.trim() || '',
         type: formData.type,
         status: formData.status,
@@ -131,10 +139,11 @@ export function ReasonAdd({
           <div className="flex items-center gap-2 relative">
             <input
               {...register('code')}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter reason code"
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} />
+            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="reason" onLockChange={setCodeLocked} />
             {errors.code && (
               <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
             )}
@@ -142,7 +151,7 @@ export function ReasonAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('name', {
               required: 'Name is required',
@@ -163,7 +172,7 @@ export function ReasonAdd({
             rules={{ required: 'Type is required' }}
             render={({ field }) => (
               <Select
-                label="Type *"
+                label="Type" required
                 value={field.value ?? ''}
                 onChange={(e) => field.onChange(e.target.value)}
                 options={typeOptions}

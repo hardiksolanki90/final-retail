@@ -125,7 +125,7 @@ hooks/{Module}/
 | Question | Answer |
 |---|---|
 | **Product Status** | Early development — no real users yet |
-| **Target Users** | All roles: field salesmen, managers, back-office, retail customers, merchandisers |
+| **Target Users** | All roles: field salesman, managers, back-office, retail customers, merchandisers |
 | **Mobile / Desktop** | Desktop/laptop only (office use) |
 | **Offline support** | Critical for field reps — strategy TBD (decide together) |
 | **Multi-tenancy** | Yes — each Organisation is a separate isolated tenant |

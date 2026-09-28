@@ -15,6 +15,8 @@ import {
   Menu,
 } from 'lucide-react';
 import { PalletAdd } from './PalletAdd';
+import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
 import { createPallet } from '../../api/PalletApi';
 import { showToast } from '../../lib/toast';
@@ -30,7 +32,7 @@ interface Column {
 export function PalletList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -76,7 +78,7 @@ export function PalletList() {
   }, []);
 
   const { pallets, total, isLoading, refetch } = usePallets(currentPage);
-  const { salesmen, items, divisions, warehouses, isLoading: optionsLoading } = usePalletFormOptions();
+  const { salesman, items, divisions, warehouses, isLoading: optionsLoading } = usePalletFormOptions();
 
   const palletData = useMemo(
     () => pallets.map((row, index) => ({ id: index, ...row })),
@@ -168,7 +170,7 @@ export function PalletList() {
             <div className="relative" ref={bulkActionRef}>
               <button
                 onClick={() => setBulkActionOpen(!bulkActionOpen)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
@@ -201,11 +203,10 @@ export function PalletList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -218,7 +219,7 @@ export function PalletList() {
           <div className="relative" ref={columnsRef}>
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -244,7 +245,7 @@ export function PalletList() {
 
           <button
             onClick={() => setIsAddOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -289,7 +290,7 @@ export function PalletList() {
         </div>
       </div>
 
-            {/* Filter Accordion */}
+      {/* Filter Accordion */}
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
@@ -334,7 +335,7 @@ export function PalletList() {
         </div>
       )}
 
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -359,15 +360,14 @@ export function PalletList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading pallets…</td></tr>
+                <TableLoadingRow colSpan={visibleColumns.length + 1} label="Loading pallets…" />
               ) : currentData.length === 0 ? (
-                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No pallet records yet.</td></tr>
+                <TableEmptyRow colSpan={visibleColumns.length + 1} label="No pallet records yet." />
               ) : currentData.map((item) => (
                 <tr
                   key={item.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${
-                    selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                  }`}
+                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
+                    }`}
                 >
                   <td className="px-4 py-3">
                     <input
@@ -400,7 +400,7 @@ export function PalletList() {
         onClose={() => setIsAddOpen(false)}
         onSubmit={handleAddPallet}
         isLoading={isAddLoading || optionsLoading}
-        salesmen={salesmen}
+        salesman={salesman}
         items={items}
         divisions={divisions}
         warehouses={warehouses}
@@ -412,7 +412,7 @@ export function PalletList() {
           <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Pallet</h2>
-              <button onClick={handleExportCancel} className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors">
+              <button onClick={handleExportCancel} className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors">
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
             </div>
@@ -489,13 +489,13 @@ export function PalletList() {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
               <button
                 onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
               >
                 Export
               </button>
               <button
                 onClick={handleExportCancel}
-                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 Cancel
               </button>

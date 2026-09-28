@@ -73,7 +73,7 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
             {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
           </span>
           <div className="flex gap-2">
-            <button className="p-2 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors flex items-center gap-1">
+            <button className="p-2 cursor-pointer text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors flex items-center gap-1">
               <Check className="w-4 h-4" />
               <span>Mark all read</span>
             </button>
@@ -108,7 +108,7 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
                         <p className={`text-sm font-medium ${!notification.read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                           {notification.title}
                         </p>
-                        <button className="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors">
+                        <button className="p-1 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors">
                           <Trash2 className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                         </button>
                       </div>
@@ -128,7 +128,7 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-[var(--border-color)]">
-          <button className="w-full py-2 text-sm text-center text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
+          <button className="w-full cursor-pointer py-2 text-sm text-center text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
             View all notifications
           </button>
         </div>

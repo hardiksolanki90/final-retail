@@ -19,9 +19,9 @@ interface Column {
 export function StockInStoreList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
-  
+
   // Drawer state
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
@@ -81,11 +81,10 @@ export function StockInStoreList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -99,7 +98,7 @@ export function StockInStoreList() {
           <div className="relative">
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -125,7 +124,7 @@ export function StockInStoreList() {
 
           <button
             onClick={() => setIsAddDrawerOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -175,7 +174,7 @@ export function StockInStoreList() {
         </div>
       )}
 
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -211,9 +210,8 @@ export function StockInStoreList() {
                       setIsViewDrawerOpen(true);
                     }
                   }}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer ${
-                    selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                  }`}
+                  className={`hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
+                    }`}
                 >
                   <td className="px-4 py-3">
                     <input
@@ -237,10 +235,10 @@ export function StockInStoreList() {
         <Pagination currentPage={currentPage} totalPages={totalPages} total={stockInStoresData.length} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
       <StockInStoreAdd isOpen={isAddDrawerOpen} onClose={() => setIsAddDrawerOpen(false)} />
-      <StockInStoreViewDrawer 
-        isOpen={isViewDrawerOpen} 
-        onClose={() => setIsViewDrawerOpen(false)} 
-        selectedItem={selectedViewItem} 
+      <StockInStoreViewDrawer
+        isOpen={isViewDrawerOpen}
+        onClose={() => setIsViewDrawerOpen(false)}
+        selectedItem={selectedViewItem}
       />
     </div>
   );

@@ -1,69 +1,81 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import type {
-  ModuleType,
-  SelectKeyCombinationData,
-  KeyValueData,
-  ModuleDetailData,
-} from '../../../types/PricingPromoDiscount';
-import { SelectKeyCombinationTab } from './tabs/SelectKeyCombinationTab';
-import { KeyValueTab } from './tabs/KeyValueTab';
-import { ModuleDetailTab } from './tabs/ModuleDetailTab';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import type { RuleType, RuleFormData } from '../../../types/PricingPromoDiscount';
+import { DetailsTab } from './tabs/DetailsTab';
+import { ItemsTab } from './tabs/ItemsTab';
+import { useRuleFormOptions, useRuleMutations } from '../../../hooks/usePricingPromotionRules';
+import { pricingApi, promotionApi, discountApi } from '../../../api/PricingPromotionApi';
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
-type TabKey = 'keys' | 'keyValue' | 'module';
+type TabKey = 'details' | 'items';
 
-interface TabDef {
-  key: TabKey;
-  label: (moduleType: ModuleType) => string;
-}
-
-const TABS: TabDef[] = [
-  { key: 'keys', label: () => 'Select Key Combination' },
-  { key: 'keyValue', label: () => 'Key Value' },
-  { key: 'module', label: (m) => m }, // dynamic: "Promotion" | "Pricing" | "Discount"
-];
-
-// ── Default state per-tab ─────────────────────────────────────────────────────
-const DEFAULT_KEYS: SelectKeyCombinationData = {
-  selectedCombination: 'customer_material',
-  location: { country: false, region: false, area: false, route: false },
-  customer: { salesOrganisation: false, channel: false, customerCategory: false, customer: true },
-  item: { majorCategory: false, itemGroup: false },
+const LABELS: Record<RuleType, string> = {
+  pricing: 'Pricing',
+  promotion: 'Promotion',
+  discount: 'Discount',
 };
 
-const DEFAULT_KEY_VALUE: KeyValueData = { customerId: 'c1', itemGroupId: 'ig1' };
-
-const DEFAULT_MODULE: ModuleDetailData = {
+const DEFAULT_FORM: RuleFormData = {
   name: '',
+  customerId: '',
+  itemGroupId: '',
   startDate: '',
   endDate: '',
-  orderType: '',
+  price: '',
   offerType: '',
-  orderItems: [
-    { id: '1', itemName: 'item1', quantity: '2', uom: '', price: '33' },
-    { id: '2', itemName: '', quantity: '', uom: '', price: '' },
-  ],
-  offerItems: [
-    { id: '3', itemName: 'item2', uom: '', offeredQuantity: '2' },
-    { id: '4', itemName: '', uom: '', offeredQuantity: '' },
-  ],
+  offerValue: '',
+  status: true,
+  items: [],
 };
+
+function apiFor(type: RuleType) {
+  if (type === 'pricing') return pricingApi;
+  if (type === 'promotion') return promotionApi;
+  return discountApi;
+}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface Props {
-  moduleType: ModuleType;
+  moduleType: RuleType;
   listPath: string; // e.g. "/promotion"
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function PricingPromoDiscountAdd({ moduleType, listPath }: Props) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabKey>('keys');
-  const [keysData, setKeysData] = useState<SelectKeyCombinationData>(DEFAULT_KEYS);
-  const [keyValueData, setKeyValueData] = useState<KeyValueData>(DEFAULT_KEY_VALUE);
-  const [moduleData, setModuleData] = useState<ModuleDetailData>(DEFAULT_MODULE);
+  const { uuid } = useParams<{ uuid: string }>();
+  const isEditing = Boolean(uuid);
+  const hasItemsTab = moduleType !== 'pricing';
 
+  const [activeTab, setActiveTab] = useState<TabKey>('details');
+  const [formData, setFormData] = useState<RuleFormData>(DEFAULT_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { customers, itemGroups, items, itemUoms } = useRuleFormOptions();
+  const { createMutation, updateMutation } = useRuleMutations(moduleType);
+
+  useEffect(() => {
+    if (!uuid) return;
+    apiFor(moduleType).getByUuid(uuid).then((rule) => {
+      setFormData({
+        name: rule.name,
+        customerId: rule.customerId ?? '',
+        itemGroupId: rule.itemGroupId ?? '',
+        startDate: rule.startDate,
+        endDate: rule.endDate,
+        price: rule.price != null ? String(rule.price) : '',
+        offerType: rule.offerType ?? '',
+        offerValue: rule.offerValue != null ? String(rule.offerValue) : '',
+        status: rule.status,
+        items: rule.items ?? [],
+      });
+    });
+  }, [uuid, moduleType]);
+
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: 'details', label: 'Details' },
+    ...(hasItemsTab ? [{ key: 'items' as TabKey, label: 'Items' }] : []),
+  ];
   const tabIndex = TABS.findIndex((t) => t.key === activeTab);
   const isLastTab = tabIndex === TABS.length - 1;
 
@@ -79,10 +91,20 @@ export function PricingPromoDiscountAdd({ moduleType, listPath }: Props) {
     }
   }
 
-  function handleSave() {
-    console.log('Saving', moduleType, { keysData, keyValueData, moduleData });
-    // TODO: call API
-    navigate(listPath);
+  async function handleSave() {
+    setIsSubmitting(true);
+    try {
+      if (isEditing && uuid) {
+        await updateMutation.mutateAsync({ uuid, data: formData });
+      } else {
+        await createMutation.mutateAsync(formData);
+      }
+      navigate(listPath);
+    } catch {
+      // toast already shown by the mutation's onError handler
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   // ── Tab header style ────────────────────────────────────────────────────────
@@ -114,7 +136,7 @@ export function PricingPromoDiscountAdd({ moduleType, listPath }: Props) {
           />
         </svg>
         <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-          Add {moduleType}
+          {isEditing ? 'Edit' : 'Add'} {LABELS[moduleType]}
         </h1>
       </div>
 
@@ -130,25 +152,24 @@ export function PricingPromoDiscountAdd({ moduleType, listPath }: Props) {
                 onClick={() => setActiveTab(tab.key)}
                 className={tabCls(tab.key)}
               >
-                {tab.label(moduleType)}
+                {tab.label}
               </button>
             ))}
           </div>
 
           {/* Tab content */}
           <div className="px-6 py-6 min-h-[380px]">
-            {activeTab === 'keys' && (
-              <SelectKeyCombinationTab data={keysData} onChange={setKeysData} />
-            )}
-            {activeTab === 'keyValue' && (
-              <KeyValueTab data={keyValueData} onChange={setKeyValueData} />
-            )}
-            {activeTab === 'module' && (
-              <ModuleDetailTab
+            {activeTab === 'details' && (
+              <DetailsTab
                 moduleType={moduleType}
-                data={moduleData}
-                onChange={setModuleData}
+                data={formData}
+                onChange={setFormData}
+                customers={customers}
+                itemGroups={itemGroups}
               />
+            )}
+            {activeTab === 'items' && hasItemsTab && (
+              <ItemsTab data={formData} onChange={setFormData} items={items} itemUoms={itemUoms} />
             )}
           </div>
 
@@ -160,7 +181,7 @@ export function PricingPromoDiscountAdd({ moduleType, listPath }: Props) {
             <button
               type="button"
               onClick={goBack}
-              className="px-5 py-2 text-sm font-medium rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="px-5 cursor-pointer py-2 text-sm font-medium rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               Back
             </button>
@@ -169,15 +190,16 @@ export function PricingPromoDiscountAdd({ moduleType, listPath }: Props) {
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-5 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                disabled={isSubmitting}
+                className="px-5 cursor-pointer py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-60"
               >
-                Save
+                {isSubmitting ? 'Saving...' : 'Save'}
               </button>
             ) : (
               <button
                 type="button"
                 onClick={goNext}
-                className="px-5 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                className="px-5 cursor-pointer py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
               >
                 Next
               </button>

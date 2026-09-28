@@ -13,7 +13,7 @@ interface CompetitorInfoAddProps {
   initialData?: CompetitorInfoFormData;
   isLoading?: boolean;
   customers?: SelectOption[];
-  salesmen?: SelectOption[];
+  salesman?: SelectOption[];
   categories?: SelectOption[];
 }
 
@@ -24,7 +24,7 @@ export function CompetitorInfoAdd({
   initialData,
   isLoading = false,
   customers = [],
-  salesmen = [],
+  salesman = [],
   categories = [],
 }: CompetitorInfoAddProps) {
   const {
@@ -103,7 +103,7 @@ export function CompetitorInfoAdd({
         opportunities: data.opportunities?.trim() || '',
         notes: data.notes?.trim() || ''
       };
-      
+
       await onSubmit(trimmedData);
       onClose();
     } catch (error: any) {
@@ -153,9 +153,9 @@ export function CompetitorInfoAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Competitor Name <span className="text-red-500">*</span>
+              Competitor Name <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
-                  <OrderCodeSettingsIcon label="Price" value="" onChange={() => {}} />
+            <OrderCodeSettingsIcon label="Price" value="" onChange={() => { }} />
             <input
               {...register('competitorName', {
                 required: 'Competitor Name is required',
@@ -174,7 +174,7 @@ export function CompetitorInfoAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Competitor Brand <span className="text-red-500">*</span>
+              Competitor Brand <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <input
               {...register('competitorBrand', {
@@ -197,7 +197,7 @@ export function CompetitorInfoAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Customer <span className="text-red-500">*</span>
+              Customer <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select
               {...register('customerId', { required: 'Customer is required' })}
@@ -218,7 +218,7 @@ export function CompetitorInfoAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Salesman <span className="text-red-500">*</span>
+              Salesman <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select
               {...register('salesmanId', { required: 'Salesman is required' })}
@@ -229,7 +229,7 @@ export function CompetitorInfoAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">Select salesman</option>
-              {salesmen.map((option) => (
+              {salesman.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
@@ -241,7 +241,7 @@ export function CompetitorInfoAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Observation Date <span className="text-red-500">*</span>
+            Observation Date <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
             type="datetime-local"
@@ -260,7 +260,7 @@ export function CompetitorInfoAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Product Name <span className="text-red-500">*</span>
+              Product Name <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <input
               {...register('productName', {
@@ -280,7 +280,7 @@ export function CompetitorInfoAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Product Category <span className="text-red-500">*</span>
+              Product Category <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select
               {...register('productCategory', { required: 'Product Category is required' })}
@@ -460,14 +460,12 @@ export function CompetitorInfoAdd({
             <button
               type="button"
               onClick={() => setValue('status', watchedStatus === 'active' ? 'inactive' : 'active')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-                watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                  watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'
-                }`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'
+                  }`}
               />
             </button>
           </div>

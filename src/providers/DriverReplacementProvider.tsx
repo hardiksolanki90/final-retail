@@ -51,7 +51,7 @@ export default function DriverReplacementProvider({ children }: { children: Reac
   });
 
   const { data: salesmenRaw = [] } = useQuery({
-    queryKey: ['salesmen-all'],
+    queryKey: ['salesman-all'],
     queryFn: () => getAllSalesmen(),
     staleTime: 10 * 60 * 1000,
   });

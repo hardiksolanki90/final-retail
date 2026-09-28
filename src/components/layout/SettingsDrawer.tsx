@@ -22,6 +22,7 @@ import {
   UserCheck,
   Download,
   Map,
+  GitBranch,
   type LucideIcon,
 } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
@@ -57,6 +58,7 @@ const iconMap: Record<string, LucideIcon> = {
   'user-check': UserCheck,
   download: Download,
   map: Map,
+  'git-branch': GitBranch,
 };
 
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {

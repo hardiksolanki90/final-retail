@@ -86,7 +86,7 @@ export function MerchandiserReplacementAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Old Salesman *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Old Salesman <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <select
             {...register('oldSalesmanId', { required: 'Old Salesman is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -100,7 +100,7 @@ export function MerchandiserReplacementAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Salesman *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Salesman <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <select
             {...register('newSalesmanId', { required: 'New Salesman is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -114,7 +114,7 @@ export function MerchandiserReplacementAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('type', { required: 'Type is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -124,7 +124,7 @@ export function MerchandiserReplacementAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Added On *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Added On <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('addedOn', { required: 'Added On date is required' })}
             type="date"

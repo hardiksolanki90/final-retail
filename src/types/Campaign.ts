@@ -3,7 +3,7 @@ export interface Campaign {
   uuid?: string;
   campaignCode: string;
   date: string;
-  merchandiserId: string;
+  salesmanId: string;
   customerId: string;
   feedback: string;
   image?: string;
@@ -15,7 +15,7 @@ export interface Campaign {
 export interface CampaignFormData {
   campaignCode: string;
   date: string;
-  merchandiserId: string;
+  salesmanId: string;
   customerId: string;
   feedback: string;
   image?: File | null;

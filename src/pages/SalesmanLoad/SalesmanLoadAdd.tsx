@@ -13,7 +13,7 @@ interface SalesmanLoadAddProps {
   onSubmit: (data: SalesmanLoadFormData) => void | Promise<void>;
   initialData?: SalesmanLoadFormData;
   isLoading?: boolean;
-  salesmen?: SelectOption[];
+  salesman?: SelectOption[];
   vans?: SelectOption[];
   warehouses?: SelectOption[];
 }
@@ -35,7 +35,7 @@ export function SalesmanLoadAdd({
   onSubmit,
   initialData,
   isLoading = false,
-  salesmen = [],
+  salesman = [],
   vans = [],
   warehouses = [],
 }: SalesmanLoadAddProps) {
@@ -84,11 +84,11 @@ export function SalesmanLoadAdd({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Salesman <span className="text-red-500">*</span>
+            Salesman <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <select {...register('salesmanId', { required: 'Salesman is required' })} className={selectClass}>
             <option value="">Select salesman</option>
-            {salesmen.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
         </div>
@@ -96,7 +96,7 @@ export function SalesmanLoadAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Van <span className="text-red-500">*</span>
+              Van <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('vanId', { required: 'Van is required' })} className={selectClass}>
               <option value="">Select van</option>
@@ -106,7 +106,7 @@ export function SalesmanLoadAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Warehouse <span className="text-red-500">*</span>
+              Warehouse <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('warehouseId', { required: 'Warehouse is required' })} className={selectClass}>
               <option value="">Select warehouse</option>

@@ -7,15 +7,19 @@ import type {
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { TwoOptionToggle } from '../../../components/ui/TwoOptionToggle';
 import { SectionLabel } from '../../../components/ui/SectionLabel';
-import { Select } from '../../../components/ui/Select';
+import { Select, type SelectOption } from '../../../components/ui/Select';
 
 interface Props {
   control: Control<JourneyPlanFullFormData>;
   errors: FieldErrors<JourneyPlanFullFormData>;
   watch: UseFormWatch<JourneyPlanFullFormData>;
   setValue: UseFormSetValue<JourneyPlanFullFormData>;
-  merchandisers: { value: string; label: string }[];
+  merchandisers: SelectOption[];
   merchandisersLoading?: boolean;
+  merchandisersLoadingMore?: boolean;
+  merchandisersHasMore?: boolean;
+  onMerchandisersLoadMore?: () => void;
+  onMerchandisersSearchChange?: (query: string) => void;
 }
 
 const WEEKS: { key: WeekNumber; label: string }[] = [
@@ -36,7 +40,18 @@ const DAYS: { key: DayOfWeek; label: string; short: string }[] = [
   { key: 'sunday', label: 'Sunday', short: 'Sun' },
 ];
 
-export function ScheduleTab({ control, errors, watch, setValue, merchandisers, merchandisersLoading }: Props) {
+export function ScheduleTab({
+  control,
+  errors,
+  watch,
+  setValue,
+  merchandisers,
+  merchandisersLoading,
+  merchandisersLoadingMore,
+  merchandisersHasMore,
+  onMerchandisersLoadMore,
+  onMerchandisersSearchChange,
+}: Props) {
   const journeyPlanBase = watch('journeyPlanBase');
   const selectedWeeks = watch('selectedWeeks') ?? [];
   const firstDayOfWeek = watch('firstDayOfWeek');
@@ -51,7 +66,7 @@ export function ScheduleTab({ control, errors, watch, setValue, merchandisers, m
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="space-y-8">
       {/* Recurrence base */}
       <div className="space-y-3">
         <SectionLabel title="Recurrence" />
@@ -63,21 +78,22 @@ export function ScheduleTab({ control, errors, watch, setValue, merchandisers, m
         />
       </div>
 
-      {/* Weeks of month — only relevant for Week Wise */}
-      <div className={`space-y-3 transition-opacity ${journeyPlanBase !== 'week_wise' ? 'opacity-40 pointer-events-none' : ''}`}>
-        <SectionLabel title="Weeks of a Month" />
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          {WEEKS.map(({ key, label }) => (
-            <Checkbox
-              key={key}
-              label={label}
-              checked={selectedWeeks.includes(key)}
-              onChange={() => toggleWeek(key)}
-              disabled={journeyPlanBase !== 'week_wise'}
-            />
-          ))}
+      {/* Weeks of month — Week Wise only */}
+      {journeyPlanBase === 'week_wise' && (
+        <div className="space-y-3">
+          <SectionLabel title="Weeks of a Month" />
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {WEEKS.map(({ key, label }) => (
+              <Checkbox
+                key={key}
+                label={label}
+                checked={selectedWeeks.includes(key)}
+                onChange={() => toggleWeek(key)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* First day of week — chip selector */}
       <div className="space-y-3">
@@ -91,11 +107,10 @@ export function ScheduleTab({ control, errors, watch, setValue, merchandisers, m
                 type="button"
                 onClick={() => setValue('firstDayOfWeek', key)}
                 title={label}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  isActive
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${isActive
                     ? 'bg-primary-600 border-primary-600 text-white'
                     : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary-400 hover:text-primary-600'
-                }`}
+                  }`}
               >
                 {short}
               </button>
@@ -119,18 +134,22 @@ export function ScheduleTab({ control, errors, watch, setValue, merchandisers, m
       <div className="space-y-3">
         <SectionLabel title="Assignment" />
         <Controller
-          name="merchandiserId"
+          name="salesmanId"
           control={control}
           rules={{ required: 'Merchandiser is required' }}
           render={({ field }) => (
             <Select
-              label="Select Merchandiser*"
+              label="Select Salesman" required
               value={field.value}
               onChange={(e) => field.onChange(String(e.target.value))}
               options={merchandisers}
               placeholder="Select merchandiser"
               isLoading={merchandisersLoading}
-              error={errors.merchandiserId?.message}
+              isLoadingMore={merchandisersLoadingMore}
+              hasMore={merchandisersHasMore}
+              onLoadMore={onMerchandisersLoadMore}
+              onSearchChange={onMerchandisersSearchChange}
+              error={errors.salesmanId?.message}
             />
           )}
         />

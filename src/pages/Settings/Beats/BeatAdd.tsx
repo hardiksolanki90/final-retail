@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 import { AreaSelect } from '../../../components/ui/AreaSelect';
 import { createBeat, updateBeat } from '../../../api/BeatApi';
 import type { BeatFormData } from '../../../types/Beat';
@@ -74,6 +75,13 @@ export function BeatAdd({ isOpen, onClose, onSubmit, editData }: BeatAddProps) {
   }, [editData, isOpen, reset]);
 
   const onFormSubmit = async (data: BeatFormData) => {
+    const resolvedCode = await reserveCodeIfAuto('beat', data.beatCode);
+    if (resolvedCode !== data.beatCode) {
+      data.beatCode = resolvedCode ?? '';
+      setValue('beatCode', resolvedCode ?? '');
+      setCodeLocked(true);
+    }
+
     if (editData?.uuid) {
       await updateMutation.mutateAsync(data);
     } else {
@@ -82,6 +90,7 @@ export function BeatAdd({ isOpen, onClose, onSubmit, editData }: BeatAddProps) {
   };
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   const footerContent = (
     <div className="flex items-center justify-between gap-3 w-full">
@@ -124,28 +133,28 @@ export function BeatAdd({ isOpen, onClose, onSubmit, editData }: BeatAddProps) {
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Beat Code *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Beat Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('beatCode', {
-                required: 'Beat code is required',
-                validate: (value) => (value && value.trim() !== '') || 'Beat code cannot be empty',
-              })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g. BT01"
+              {...register('beatCode')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
             <OrderCodeSettingsIcon
               label="Beat Code"
               value={watch('beatCode') || ''}
               onChange={(v) => setValue('beatCode', v)}
+              entityKey="beat"
+              onLockChange={setCodeLocked}
             />
           </div>
           {errors.beatCode && <p className="text-red-600 text-xs mt-1">{errors.beatCode.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beat Name *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beat Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('beatName', {
               required: 'Beat name is required',

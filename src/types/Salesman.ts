@@ -44,15 +44,21 @@ export interface Salesman {
   };
   salesmanType?: {
     id: number;
-    uuid: string;
     name: string;
   };
   salesmanRole?: {
     id: number;
-    uuid: string;
+    name: string;
+  };
+  salesmanCategory?: {
+    id: number;
     name: string;
   };
   supervisor?: {
+    id: number;
+    name: string;
+  };
+  organisation?: {
     id: number;
     name: string;
   };
@@ -71,6 +77,7 @@ export interface SalesmanFormData {
   routeId?: number | string;
   salesmanTypeId?: number | string;
   salesmanRoleId?: number | string;
+  salesmanCategoryId?: number | string;
   supervisorId?: number | string;
   employeeCode?: string;
   salesmanCode?: string;
@@ -78,6 +85,9 @@ export interface SalesmanFormData {
   designation?: string;
   joiningDate?: string;
   status?: boolean;
+  isBlock?: boolean;
+  blockStartDate?: string;
+  blockEndDate?: string;
 }
 
 export interface SalesmanListResponse {
@@ -114,26 +124,6 @@ export interface SalesmanLoginHistory {
   appVersion?: string;
   loginAt?: string;
   logoutAt?: string;
-}
-
-export interface SalesmanType {
-  id: number;
-  uuid: string;
-  code?: string;
-  name: string;
-  status: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface SalesmanRole {
-  id: number;
-  uuid: string;
-  code?: string;
-  name: string;
-  status: boolean;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface SalesmanFilters {

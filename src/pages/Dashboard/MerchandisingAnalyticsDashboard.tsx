@@ -99,7 +99,7 @@ export function MerchandisingAnalyticsDashboard() {
       <div className="bg-white dark:bg-gray-900 rounded-b-xl border border-t-0 border-gray-200 dark:border-gray-800 px-5 py-4 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Merchandising
+            Salesman
           </h2>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500 dark:text-gray-400">Select Filter</span>

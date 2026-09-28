@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Filter,
   Plus,
@@ -15,8 +16,9 @@ import {
   Pencil,
 } from 'lucide-react';
 import SalesmanAdd from './SalesmanAdd';
-import { SalesmanViewDrawer } from './SalesmanViewDrawer';
 import { Pagination } from '../../components/ui/Pagination';
+import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { useSalesman } from '../../providers/SalesmanProvider';
 import type { Salesman } from '../../types/Salesman';
 
@@ -27,6 +29,8 @@ interface Column {
 }
 
 export function SalesmanList() {
+  const navigate = useNavigate();
+
   // ── Context ──────────────────────────────────────────────────────────────
   const {
     salesmanData,
@@ -46,14 +50,12 @@ export function SalesmanList() {
     setIsSalesmanModalVisible: setIsAddOpen,
   } = useSalesman();
 
-  const salesmen: Salesman[] = salesmanData?.data ?? [];
+  const salesman: Salesman[] = salesmanData?.data ?? [];
   const meta = salesmanData?.meta;
   const totalPages = meta ? Math.ceil(meta.total / meta.per_page) : 1;
 
   // ── Local UI State ────────────────────────────────────────────────────────
-  const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [selectedSalesman, setSelectedSalesman] = useState<Salesman | null>(null);
-  const [viewSalesman, setViewSalesman] = useState<Salesman | null>(null);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -70,9 +72,9 @@ export function SalesmanList() {
   const [columns, setColumns] = useState<Column[]>([
     { key: 'code', label: 'Code', visible: true },
     { key: 'name', label: 'Name', visible: true },
+    { key: 'email', label: 'Email', visible: true },
     { key: 'mobile', label: 'Mobile', visible: true },
     { key: 'route', label: 'Route', visible: true },
-    { key: 'warehouse', label: 'Warehouse', visible: true },
     { key: 'status', label: 'Status', visible: true },
   ]);
 
@@ -102,10 +104,10 @@ export function SalesmanList() {
 
 
 
-  const allSelected = salesmen.length > 0 && selectedRowKeys.length === salesmen.length;
+  const allSelected = salesman.length > 0 && selectedRowKeys.length === salesman.length;
 
   const handleSelectAll = () =>
-    setSelectedRowKeys(allSelected ? [] : salesmen.map(s => s.uuid!));
+    setSelectedRowKeys(allSelected ? [] : salesman.map(s => s.uuid!));
 
   const handleSelectRow = (uuid: string) =>
     setSelectedRowKeys(
@@ -143,7 +145,7 @@ export function SalesmanList() {
         <div className="flex flex-wrap items-center gap-2">
           {selectedRowKeys.length > 0 && (
             <div className="relative" ref={bulkActionRef}>
-              <button onClick={() => setBulkActionOpen(!bulkActionOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
+              <button onClick={() => setBulkActionOpen(!bulkActionOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
                 Bulk Action
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRowKeys.length}</span>
                 <ChevronDown className="w-4 h-4" />
@@ -152,7 +154,7 @@ export function SalesmanList() {
                 <div className="absolute right-0 mt-2 w-52 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
                   <div className="py-1">
                     {bulkActionItems.map(item => (
-                      <button key={item.label} onClick={item.action} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors">
+                      <button key={item.label} onClick={item.action} className="w-full cursor-pointer flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors">
                         <item.icon className="w-4 h-4" />{item.label}
                       </button>
                     ))}
@@ -162,13 +164,13 @@ export function SalesmanList() {
             </div>
           )}
 
-          <button onClick={() => setFilterOpen(prev => !prev)} className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${filterOpen || searchTerm ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}>
+          <button onClick={() => setFilterOpen(prev => !prev)} className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}>
             <Filter className="w-4 h-4" />Filter
             {searchTerm && <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">1</span>}
           </button>
 
           <div className="relative" ref={columnsRef}>
-            <button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
+            <button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer">
               <Columns3 className="w-4 h-4" />Columns<ChevronDown className="w-4 h-4" />
             </button>
             {columnsDropdownOpen && (
@@ -185,7 +187,7 @@ export function SalesmanList() {
             )}
           </div>
 
-          <button onClick={() => { setSelectedSalesman(null); setIsAddOpen(true); }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          <button onClick={() => { setSelectedSalesman(null); setIsAddOpen(true); }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer">
             <Plus className="w-4 h-4" />Create
           </button>
 
@@ -214,23 +216,18 @@ export function SalesmanList() {
               <input type="text" value={searchDraft} onChange={e => setSearchDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && applySearch()} placeholder="Search by name, code, phone…" className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
             </div>
             <div className="flex items-end gap-2 pb-0.5">
-              <button onClick={applySearch} className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">Apply</button>
-              <button onClick={clearSearch} className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors">Clear</button>
+              <button onClick={applySearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">Apply</button>
+              <button onClick={clearSearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors">Clear</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[200px] mx-6">
-        {isLoading && (
-          <div className="absolute inset-0 z-10 bg-white/50 dark:bg-black/20 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-          </div>
-        )}
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6 relative min-h-[200px] mx-6">
         {error && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="text-red-500 font-medium">Error loading salesmen: {error.message}</div>
+            <div className="text-red-500 font-medium">Error loading salesman: {error.message}</div>
           </div>
         )}
 
@@ -243,20 +240,21 @@ export function SalesmanList() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Code</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Email</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Mobile</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Route</th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Warehouse</th>
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {!isLoading && salesmen.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-[var(--text-muted)]">No salesmen found.</td></tr>
-              )}
-              {salesmen.map((salesman: any) => (
+              {isLoading ? (
+                <TableLoadingRow colSpan={7} label="Loading salesman…" />
+              ) : salesman.length === 0 ? (
+                <TableEmptyRow colSpan={7} label="No salesman found." />
+              ) : salesman.map((salesman: any) => (
                 <tr
                   key={salesman?.uuid}
-                  onClick={() => { setViewSalesman(salesman); setViewDrawerOpen(true); }}
+                  onClick={() => navigate(`/salesman/view/${salesman?.uuid}`)}
                   className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
                 >
                   <td className="px-4 py-4 whitespace-nowrap">
@@ -268,32 +266,32 @@ export function SalesmanList() {
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{salesman?.firstname ?? salesman?.salesmanName} {salesman?.lastname ?? ''}</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">{salesman?.user?.firstname} {salesman?.user?.lastname ?? ''}</span>
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-[var(--text-secondary)]">{salesman?.phone ?? '—'}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{salesman?.user?.email ?? '—'}</span>
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm text-[var(--text-secondary)]">{salesman?.route?.name ?? salesman?.route?.route_name ?? '—'}</span>
+                    <span className="text-sm font-mono text-[var(--text-secondary)]">{salesman?.user?.mobile ?? '—'}</span>
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm text-[var(--text-secondary)]">{salesman?.warehouse?.name ?? '—'}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{salesman?.route?.name ?? '—'}</span>
                   </td>
 
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
+                        className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
                         onClick={(e) => { e.stopPropagation(); handleEditClick(salesman); }}
                       >
                         <Pencil size={14} strokeWidth={2.5} />
                         <span>Edit</span>
                       </button>
                       <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                        className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
                         onClick={(e) => { e.stopPropagation(); handleDeleteWithConfirmation(salesman?.uuid ?? ""); }}
                       >
                         <Trash2 size={14} strokeWidth={2.5} />
@@ -309,9 +307,6 @@ export function SalesmanList() {
 
         <Pagination currentPage={currentPage} totalPages={totalPages} total={meta?.total ?? 0} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
-
-      {/* View Drawer */}
-      <SalesmanViewDrawer isOpen={viewDrawerOpen} onClose={() => { setViewDrawerOpen(false); setViewSalesman(null); }} data={viewSalesman} />
 
       {/* Add / Edit Drawer */}
       <SalesmanAdd
@@ -360,7 +355,7 @@ export function SalesmanList() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
-              <button onClick={handleExportSubmit} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">Export</button>
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">Export</button>
               <button onClick={() => setExportModalOpen(false)} className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors">Cancel</button>
             </div>
           </div>

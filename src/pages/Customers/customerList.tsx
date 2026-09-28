@@ -17,7 +17,11 @@ import {
 import { CustomerAdd } from './customerAdd';
 import { CustomerViewDrawer } from './CustomerViewDrawer';
 import { useCustomer } from '../../providers/CustomerProvider';
+import { getCustomerDetails } from '../../api/CustomerApi';
 import type { Customer } from '../../types/Customer';
+import { showToast } from '../../lib/toast';
+import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
+import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
 import { Pagination } from '../../components/ui/Pagination';
 
 interface Column {
@@ -126,10 +130,29 @@ export function CustomerList() {
     setFilterOpen(false);
   };
 
-  // Edit
-  const handleEditClick = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsAddOpen(true);
+  // Edit — fetch full detail so fields the trimmed list row doesn't carry
+  // (address, credit limit, category, channel, ...) aren't blanked out.
+  const handleEditClick = async (customer: Customer) => {
+    if (!customer.uuid) return;
+    try {
+      const full = await getCustomerDetails(customer.uuid);
+      setSelectedCustomer(full);
+      setIsAddOpen(true);
+    } catch {
+      showToast.error('Failed to load customer details');
+    }
+  };
+
+  // View — same reasoning as handleEditClick.
+  const handleViewClick = async (customer: Customer) => {
+    if (!customer.uuid) return;
+    try {
+      const full = await getCustomerDetails(customer.uuid);
+      setViewCustomer(full);
+      setIsViewOpen(true);
+    } catch {
+      showToast.error('Failed to load customer details');
+    }
   };
 
   // Add / close drawer
@@ -188,7 +211,7 @@ export function CustomerList() {
             <div className="relative" ref={bulkActionRef}>
               <button
                 onClick={() => setBulkActionOpen(!bulkActionOpen)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
@@ -203,7 +226,7 @@ export function CustomerList() {
                       <button
                         key={item.label}
                         onClick={item.action}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                        className="w-full cursor-pointer cursor-pointer flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                       >
                         <item.icon className="w-4 h-4" />
                         {item.label}
@@ -218,9 +241,9 @@ export function CustomerList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${filterOpen || searchTerm
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
               }`}
           >
             <Filter className="w-4 h-4" />
@@ -234,7 +257,7 @@ export function CustomerList() {
           <div className="relative" ref={columnsRef}>
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -261,7 +284,7 @@ export function CustomerList() {
           {/* Create Button */}
           <button
             onClick={() => { setSelectedCustomer(null); setIsAddOpen(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -316,13 +339,13 @@ export function CustomerList() {
             <div className="flex items-end gap-2 pb-0.5">
               <button
                 onClick={applySearch}
-                className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                className="px-4 cursor-pointer cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
               >
                 Apply
               </button>
               <button
                 onClick={clearSearch}
-                className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
+                className="px-4 cursor-pointer cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
               >
                 Clear
               </button>
@@ -332,12 +355,7 @@ export function CustomerList() {
       )}
 
       {/* Table */}
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme relative min-h-[200px] mx-6">
-        {isLoading && (
-          <div className="absolute inset-0 z-10 bg-white/50 dark:bg-black/20 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-          </div>
-        )}
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6 relative min-h-[200px] mx-6">
         {error && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="text-red-500 font-medium">Error loading customers: {error.message}</div>
@@ -364,20 +382,14 @@ export function CustomerList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {!isLoading && customers.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-[var(--text-muted)]">
-                    No customers found.
-                  </td>
-                </tr>
-              )}
-              {customers?.map((customer: any) => (
+              {isLoading ? (
+                <TableLoadingRow colSpan={6} label="Loading customers…" />
+              ) : customers.length === 0 ? (
+                <TableEmptyRow colSpan={6} label="No customers found." />
+              ) : customers?.map((customer: any) => (
                 <tr
                   key={customer?.uuid}
-                  onClick={() => {
-                    setViewCustomer(customer);
-                    setIsViewOpen(true);
-                  }}
+                  onClick={() => handleViewClick(customer)}
                   className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
                 >
                   <td className="px-4 py-4 whitespace-nowrap">
@@ -412,7 +424,7 @@ export function CustomerList() {
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
+                        className="inline-flex cursor-pointer cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEditClick(customer);
@@ -422,7 +434,7 @@ export function CustomerList() {
                         <span>Edit</span>
                       </button>
                       <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                        className="inline-flex cursor-pointer cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteWithConfirmation(customer?.uuid ?? "");
@@ -451,6 +463,11 @@ export function CustomerList() {
           setViewCustomer(null);
         }}
         data={viewCustomer}
+        onEdit={(customer) => {
+          setIsViewOpen(false);
+          setViewCustomer(null);
+          handleEditClick(customer);
+        }}
       />
 
       {/* Add / Edit Drawer */}
@@ -525,7 +542,7 @@ export function CustomerList() {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
               <button
                 onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                className="px-4 cursor-pointer cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
               >
                 Export
               </button>

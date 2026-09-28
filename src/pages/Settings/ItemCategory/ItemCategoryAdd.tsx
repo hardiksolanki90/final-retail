@@ -108,7 +108,7 @@ export function ItemCategoryAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('categoryName', {
               required: 'Category name is required',

@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { CountryPhoneInput } from '../../../components/ui/CountryPhoneInput';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 import { DepotSelect } from '../../../components/ui/DepotSelect';
 import { RouteSelect } from '../../../components/shared/RouteSelect';
 import type { WarehouseFormData, Warehouse } from '../../../types/Warehouse';
@@ -41,6 +42,7 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
   } = useForm<WarehouseFormData>({ defaultValues });
 
   const watchedStatus = watch('status');
+  const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -62,6 +64,13 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
 
   const onFormSubmit = async (data: WarehouseFormData) => {
     try {
+      const resolvedCode = await reserveCodeIfAuto('warehouse', data.code);
+      if (resolvedCode !== data.code) {
+        data.code = resolvedCode ?? '';
+        setValue('code', resolvedCode ?? '');
+        setCodeLocked(true);
+      }
+
       await onSubmit(data);
     } catch (error: any) {
       setError('root', { message: error.response?.data?.message || 'Error saving warehouse' });
@@ -106,21 +115,22 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Code*</label>
+            <label className="block text-sm font-medium text-gray-700">Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('code', { required: 'Code is required', validate: (v) => v.trim() !== '' || 'Code cannot be empty' })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter warehouse code"
+              {...register('code')}
+              className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+              placeholder="Auto-generated if empty"
+              disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} />
+            <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="warehouse" onLockChange={setCodeLocked} />
           </div>
           {errors.code && <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name*</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
           <input
             {...register('name', { required: 'Name is required', validate: (v) => v.trim() !== '' || 'Name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

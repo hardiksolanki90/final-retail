@@ -14,7 +14,7 @@ interface ComplaintFeedbackAddProps {
   initialData?: ComplaintFeedbackFormData;
   isLoading?: boolean;
   customers?: SelectOption[];
-  salesmen?: SelectOption[];
+  salesman?: SelectOption[];
   orders?: SelectOption[];
 }
 
@@ -39,7 +39,7 @@ export function ComplaintFeedbackAdd({
   initialData,
   isLoading = false,
   customers = [],
-  salesmen = [],
+  salesman = [],
   orders = [],
 }: ComplaintFeedbackAddProps) {
   const {
@@ -96,9 +96,9 @@ export function ComplaintFeedbackAdd({
         {/* Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Type <span className="text-red-500">*</span>
+            Type <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
-                  <OrderCodeSettingsIcon label="Related Order (Optional)" value="" onChange={() => {}} />
+          <OrderCodeSettingsIcon label="Related Order (Optional)" value="" onChange={() => { }} />
           <select {...register('type', { required: 'Type is required' })} className={selectClass}>
             {typeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -109,7 +109,7 @@ export function ComplaintFeedbackAdd({
           {/* Customer */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Customer <span className="text-red-500">*</span>
+              Customer <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('customerId', { required: 'Customer is required' })} className={selectClass}>
               <option value="">Select customer</option>
@@ -120,11 +120,11 @@ export function ComplaintFeedbackAdd({
           {/* Salesman */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Salesman <span className="text-red-500">*</span>
+              Salesman <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('salesmanId', { required: 'Salesman is required' })} className={selectClass}>
               <option value="">Select salesman</option>
-              {salesmen.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
           </div>
@@ -151,7 +151,7 @@ export function ComplaintFeedbackAdd({
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Description <span className="text-red-500">*</span>
+            Description <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <textarea
             {...register('description', { required: 'Description is required' })}
@@ -165,7 +165,7 @@ export function ComplaintFeedbackAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Category <span className="text-red-500">*</span>
+              Category <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('category', { required: 'Category is required' })} className={selectClass}>
               <option value="">Select category</option>
@@ -175,7 +175,7 @@ export function ComplaintFeedbackAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Priority <span className="text-red-500">*</span>
+              Priority <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('priority')} className={selectClass}>
               {priorityOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

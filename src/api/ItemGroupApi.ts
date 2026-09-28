@@ -25,12 +25,17 @@ export const updateItemGroup = async (uuid: string, data: Record<string, any>) =
   return response.data;
 };
 
+export const getItemGroupDetails = async (uuid: string): Promise<any> => {
+  const response = await axiosInstance.get(`/item-group/view/${uuid}`);
+  return response.data.data;
+};
+
 export const deleteItemGroup = async (uuid: string) => {
   await axiosInstance.delete(`/item-group/delete/${uuid}`);
   showToast.success('Item group deleted successfully');
 };
 
 export const getAllItemGroups = async (): Promise<any[]> => {
-  const response = await axiosInstance.get('/item-group/all');
+  const response = await axiosInstance.get('/item-group/list?page=1&per_page=1000');
   return response.data.data || response.data;
 };

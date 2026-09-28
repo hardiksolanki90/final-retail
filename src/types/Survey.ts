@@ -17,7 +17,7 @@ export interface ConsumerSurvey {
   surveyCode: string;
   surveyName: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   merchandiserName?: string;
   date: string;
   questions: SurveyQuestion[];
@@ -31,7 +31,7 @@ export interface ConsumerSurveyFormData {
   surveyCode: string;
   surveyName: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   date: string;
   questions: SurveyQuestion[];
   status?: 'draft' | 'completed';
@@ -44,7 +44,7 @@ export interface SensorySurvey {
   surveyName: string;
   productId: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   merchandiserName?: string;
   date: string;
   appearance: number;
@@ -63,7 +63,7 @@ export interface SensorySurveyFormData {
   surveyName: string;
   productId: string;
   customerId: string;
-  merchandiserId: string;
+  salesmanId: string;
   date: string;
   appearance: number;
   aroma: number;

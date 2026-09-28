@@ -8,7 +8,7 @@ import {
   bulkActionSensorySurveys,
 } from '../../api/SurveyApi';
 import { getAllSalesmen } from '../../api/SalesmanApi';
-import { getAllCustomers } from '../../api/CustomerApi';
+import { getCustomerOptions } from '../../api/CustomerApi';
 import { getAllItems } from '../../api/ItemApi';
 import { showToast } from '../../lib/toast';
 import type { ConsumerSurveyFormData, SensorySurveyFormData } from '../../types/Survey';
@@ -23,7 +23,7 @@ export function useSurveyFormOptions() {
 
   const customersQuery = useQuery({
     queryKey: ['survey-customers'],
-    queryFn: () => getAllCustomers(),
+    queryFn: async () => (await getCustomerOptions(1, undefined, 200)).data,
     staleTime: 5 * 60 * 1000,
   });
 

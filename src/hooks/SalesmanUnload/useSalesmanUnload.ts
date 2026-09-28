@@ -40,7 +40,7 @@ export function useSalesmanUnloads(page: number = 1, searchTerm: string = '') {
 
 export function useSalesmanUnloadFormOptions() {
   const salesmenQuery = useQuery({
-    queryKey: ['salesman-unload-salesmen'],
+    queryKey: ['salesman-unload-salesman'],
     queryFn: () => getAllSalesmen(),
     staleTime: 5 * 60 * 1000,
   });
@@ -86,7 +86,7 @@ export function useSalesmanUnloadFormOptions() {
   return {
     // salesman_id is a straight FK to users, so the option value must be the
     // salesman's underlying userId, not SalesmanInfo's own uuid.
-    salesmen: (salesmenQuery.data ?? []).map((s) => ({ value: String(s.userId), label: s.name })),
+    salesman: (salesmenQuery.data ?? []).map((s) => ({ value: String(s.userId), label: s.name })),
     items: itemsQuery.data ?? [],
     routes: (routesQuery.data ?? []).map((r) => ({ value: String(r.value), label: r.label })),
     vans: (vansQuery.data ?? []).map((v) => ({ value: String(v.value), label: v.label })),

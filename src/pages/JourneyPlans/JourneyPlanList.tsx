@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
 import {
   Filter,
   Plus,
@@ -11,10 +12,13 @@ import {
   Trash2,
   Archive,
   Tag,
+  Pencil,
   X,
   Menu,
 } from 'lucide-react';
 import { useJourneyPlans } from '../../hooks/JourneyPlans/useJourneyPlans';
+import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
 
 interface Column {
@@ -24,9 +28,10 @@ interface Column {
 }
 
 export function JourneyPlanList() {
+  const navigate = useNavigate();
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -45,17 +50,13 @@ export function JourneyPlanList() {
   const journeyPlansData = useMemo(
     () =>
       journeyPlans.map((jp) => {
-        const customerCount = Object.values(jp.dayCustomers ?? {}).reduce(
-          (sum, rows) => sum + rows.length,
-          0,
-        );
+        const fmtDate = (d?: string) => d ? format(parseISO(d), 'MMM d, yyyy') : '—';
         return {
           id: jp.uuid ?? '',
           name: jp.journeyName,
-          merchandiser: jp.merchandiserName ?? '—',
-          base: jp.journeyPlanBase === 'week_wise' ? 'Week Wise' : 'Day Wise',
-          firstDay: jp.firstDayOfWeek,
-          customers: customerCount,
+          salesman: jp.salesmanName ?? '—',
+          startDate: fmtDate(jp.startDate),
+          endDate: jp.noEnd ? 'Ongoing' : fmtDate(jp.endDate),
           status: jp.status ? 'Active' : 'Inactive',
         };
       }),
@@ -64,17 +65,16 @@ export function JourneyPlanList() {
 
   const [columns, setColumns] = useState<Column[]>([
     { key: 'name', label: 'Name', visible: true },
-    { key: 'merchandiser', label: 'Merchandiser', visible: true },
-    { key: 'base', label: 'Plan Base', visible: true },
-    { key: 'firstDay', label: 'First Day', visible: true },
-    { key: 'customers', label: 'Customers', visible: true },
+    { key: 'salesman', label: 'Salesman Code', visible: true },
+    { key: 'startDate', label: 'Start Date', visible: true },
+    { key: 'endDate', label: 'End Date', visible: true },
     { key: 'status', label: 'Status', visible: true },
   ]);
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDraft, setFilterDraft] = useState({ name: '', merchandiser: '' });
-  const [appliedFilter, setAppliedFilter] = useState({ name: '', merchandiser: '' });
+  const [filterDraft, setFilterDraft] = useState({ name: '', salesman: '' });
+  const [appliedFilter, setAppliedFilter] = useState({ name: '', salesman: '' });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -97,7 +97,7 @@ export function JourneyPlanList() {
   const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
   const currentData = journeyPlansData.filter(c =>
     (!appliedFilter.name || String(c.name ?? '').toLowerCase().includes(appliedFilter.name.toLowerCase())) &&
-    (!appliedFilter.merchandiser || String(c.merchandiser ?? '').toLowerCase().includes(appliedFilter.merchandiser.toLowerCase()))
+    (!appliedFilter.salesman || String(c.salesman ?? '').toLowerCase().includes(appliedFilter.salesman.toLowerCase()))
   );
 
   const handleSelectAll = () => {
@@ -113,6 +113,11 @@ export function JourneyPlanList() {
   };
 
   const visibleColumns = columns.filter((col) => col.visible);
+
+  const handleDelete = (uuid: string) => {
+    if (!window.confirm('Delete this journey plan? This cannot be undone.')) return;
+    bulkAction({ uuids: [uuid], action: 'delete' });
+  };
 
   const handleExportSubmit = () => {
     setExportModalOpen(false);
@@ -164,7 +169,7 @@ export function JourneyPlanList() {
             <div className="relative" ref={bulkActionRef}>
               <button
                 onClick={() => setBulkActionOpen(!bulkActionOpen)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
@@ -196,11 +201,10 @@ export function JourneyPlanList() {
 
           <button
             onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -214,7 +218,7 @@ export function JourneyPlanList() {
           <div className="relative" ref={columnsRef}>
             <button
               onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
             >
               <Columns3 className="w-4 h-4" />
               Columns
@@ -240,7 +244,7 @@ export function JourneyPlanList() {
 
           <Link
             to="/journey-plan/add"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
@@ -286,7 +290,7 @@ export function JourneyPlanList() {
           <div className="flex flex-wrap items-end gap-3">
             {([
               { key: 'name', label: 'Name' },
-              { key: 'merchandiser', label: 'Merchandiser' },
+              { key: 'salesman', label: 'Salesman Code' },
             ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
@@ -308,7 +312,7 @@ export function JourneyPlanList() {
               </button>
               <button
                 onClick={() => {
-                  const empty = { name: '', merchandiser: '' };
+                  const empty = { name: '', salesman: '' };
                   setFilterDraft(empty);
                   setAppliedFilter(empty);
                   setFilterOpen(false);
@@ -322,7 +326,7 @@ export function JourneyPlanList() {
         </div>
       )}
 
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -343,21 +347,24 @@ export function JourneyPlanList() {
                     {column.label}
                   </th>
                 ))}
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">Loading journey plans…</td></tr>
+                <TableLoadingRow colSpan={visibleColumns.length + 2} label="Loading journey plans…" />
               ) : currentData.length === 0 ? (
-                <tr><td colSpan={visibleColumns.length + 1} className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">No journey plans yet.</td></tr>
+                <TableEmptyRow colSpan={visibleColumns.length + 2} label="No journey plans yet." />
               ) : currentData.map((item) => (
                 <tr
                   key={item.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${
-                    selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                  }`}
+                  onClick={() => navigate(`/journey-plan/view/${item.id}`)}
+                  className={`hover:bg-[var(--bg-secondary)] cursor-pointer transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
+                    }`}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedRows.includes(item.id)}
@@ -374,6 +381,24 @@ export function JourneyPlanList() {
                       )}
                     </td>
                   ))}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/journey-plan/edit/${item.id}`); }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                      >
+                        <Pencil size={14} strokeWidth={2.5} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                      >
+                        <Trash2 size={14} strokeWidth={2.5} />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -389,7 +414,7 @@ export function JourneyPlanList() {
           <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Journey Plans</h2>
-              <button onClick={handleExportCancel} className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors">
+              <button onClick={handleExportCancel} className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors">
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
             </div>
@@ -466,13 +491,13 @@ export function JourneyPlanList() {
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
               <button
                 onClick={handleExportSubmit}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
               >
                 Export
               </button>
               <button
                 onClick={handleExportCancel}
-                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
               >
                 Cancel
               </button>

@@ -188,7 +188,7 @@ export function DebitNoteAdd() {
         <div className="bg-gray-200 dark:bg-gray-700 px-4 py-6">
           <div className="max-w-md">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Customer <span className="text-red-500">*</span>
+              Customer <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select
               {...register('customerId', { required: 'Customer is required' })}
@@ -206,7 +206,7 @@ export function DebitNoteAdd() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Invoice <span className="text-red-500">*</span>
+                  Invoice <span className="text-red-500 font-bold ml-0.5">*</span>
                 </label>
                 <select
                   {...register('invoiceId', { required: 'Invoice is required' })}
@@ -219,7 +219,7 @@ export function DebitNoteAdd() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Reason <span className="text-red-500">*</span>
+                  Reason <span className="text-red-500 font-bold ml-0.5">*</span>
                 </label>
                 <select
                   {...register('reason', { required: 'Reason is required' })}

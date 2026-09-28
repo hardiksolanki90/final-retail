@@ -9,9 +9,6 @@ import {
   getSalesmanSales,
   getSalesmanLoginHistory,
   bulkActionSalesmen,
-  getSalesmanTypes,
-  getSalesmanRoles,
-  getRoutes,
   getCountries,
   getSupervisorOptions,
 } from '../api/SalesmanApi';
@@ -22,13 +19,10 @@ import type {
   SalesmanListResponse,
   SalesmanSalesData,
   SalesmanLoginHistory,
-  SalesmanType,
-  SalesmanRole,
   SalesmanFilters,
   SalesmanBulkAction,
   SalesmanSelectOption,
   Country,
-  Route,
   SupervisorOption,
 } from '../types/Salesman';
 
@@ -75,9 +69,6 @@ interface SalesmanContextType {
 
 
   // Related data
-  salesmanTypes: SalesmanType[];
-  salesmanRoles: SalesmanRole[];
-  routes: Route[];
   countries: Country[];
   supervisorOptions: SupervisorOption[];
   isLoadingRelatedData: boolean;
@@ -149,7 +140,7 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
   // Salesman sales data query
   const { data: salesmanSalesData, isLoading: isLoadingSales } = useQuery({
     queryKey: ['salesman-sales', selectedSalesmanForDrawer?.uuid, salesDateRange],
-    queryFn: () => 
+    queryFn: () =>
       getSalesmanSales(
         selectedSalesmanForDrawer?.uuid!,
         salesDateRange[0],
@@ -168,27 +159,6 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
   });
 
   // Related data queries
-  const { data: salesmanTypes = [], isLoading: isLoadingTypes } = useQuery({
-    queryKey: ['salesman-types'],
-    queryFn: getSalesmanTypes,
-    staleTime: 10 * 60 * 1000,
-    enabled: isSalesmanModalVisible,
-  });
-
-  const { data: salesmanRoles = [], isLoading: isLoadingRoles } = useQuery({
-    queryKey: ['salesman-roles'],
-    queryFn: getSalesmanRoles,
-    staleTime: 10 * 60 * 1000,
-    enabled: isSalesmanModalVisible,
-  });
-
-  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
-    queryKey: ['routes'],
-    queryFn: getRoutes,
-    staleTime: 10 * 60 * 1000,
-    enabled: isSalesmanModalVisible,
-  });
-
   const { data: countries = [], isLoading: isLoadingCountries } = useQuery({
     queryKey: ['countries'],
     queryFn: getCountries,
@@ -203,9 +173,9 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
     enabled: isSalesmanModalVisible,
   });
 
-  // All salesmen query (for dropdowns)
+  // All salesman query (for dropdowns)
   const { data: allSalesmen } = useQuery({
-    queryKey: ['all-salesmen', filters],
+    queryKey: ['all-salesman', filters],
     queryFn: () => getAllSalesmen(filters),
     staleTime: 10 * 60 * 1000,
     enabled: false, // Only fetch when needed
@@ -231,6 +201,7 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
     onSuccess: () => {
       showToast.success('Salesman updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['salesman-list'] });
+      queryClient.invalidateQueries({ queryKey: ['salesman-detail'] });
       setIsSalesmanModalVisible(false);
       setSelectedSalesman(null);
     },
@@ -291,7 +262,7 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
 
   const handleBulkAction = (action: string) => {
     if (selectedRowKeys.length === 0) {
-      showToast.error('Please select salesmen first');
+      showToast.error('Please select salesman first');
       return;
     }
 
@@ -316,10 +287,7 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
     deleteSalesmanMutation.mutate(uuid);
   };
 
-  const isLoadingRelatedData = 
-    isLoadingTypes ||
-    isLoadingRoles ||
-    isLoadingRoutes ||
+  const isLoadingRelatedData =
     isLoadingCountries ||
     isLoadingSupervisors;
 
@@ -353,9 +321,6 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
     isLoadingSales,
     loginHistory,
     isLoadingLoginHistory,
-    salesmanTypes,
-    salesmanRoles,
-    routes,
     countries,
     supervisorOptions,
     isLoadingRelatedData,
