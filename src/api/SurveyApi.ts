@@ -10,22 +10,12 @@ interface RawListResponse<T> {
 }
 
 function unwrapList<T>(payload: any, page: number, perPage: number, itemName: string): RawListResponse<T> {
-  return {
-    data: payload[itemName] ?? [],
-    total: payload.total ?? 0,
-    currentPage: payload.currentPage ?? page,
-    perPage,
-    lastPage: payload.lastPage ?? 1,
-  };
+  return { data: payload[itemName] ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
 }
 
 // ─── Consumer Survey ────────────────────────────────────────────────────────
 
-export const getConsumerSurveyList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-): Promise<RawListResponse<ConsumerSurvey>> => {
+export const getConsumerSurveyList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<RawListResponse<ConsumerSurvey>> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -45,20 +35,13 @@ export const updateConsumerSurvey = async (uuid: string, data: ConsumerSurveyFor
   return response.data.data;
 };
 
-export const bulkActionConsumerSurveys = async (
-  uuids: string[],
-  action: 'activate' | 'deactivate' | 'delete',
-): Promise<void> => {
+export const bulkActionConsumerSurveys = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/consumer-survey/bulk-action', { uuids, action });
 };
 
 // ─── Sensory Survey ─────────────────────────────────────────────────────────
 
-export const getSensorySurveyList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-): Promise<RawListResponse<SensorySurvey>> => {
+export const getSensorySurveyList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<RawListResponse<SensorySurvey>> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -78,9 +61,6 @@ export const updateSensorySurvey = async (uuid: string, data: SensorySurveyFormD
   return response.data.data;
 };
 
-export const bulkActionSensorySurveys = async (
-  uuids: string[],
-  action: 'activate' | 'deactivate' | 'delete',
-): Promise<void> => {
+export const bulkActionSensorySurveys = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/sensory-survey/bulk-action', { uuids, action });
 };

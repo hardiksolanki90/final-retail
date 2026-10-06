@@ -10,10 +10,7 @@ import { useAuth } from '../../../context/AuthContext';
 interface BankAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: BankFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: BankFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
@@ -31,12 +28,7 @@ const initialFormData: BankFormData = {
   branchName: '',
 };
 
-export function BankAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: BankAddProps) {
+export function BankAdd({ isOpen, onClose, data, onEvent }: BankAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
   const { user } = useAuth();
@@ -49,10 +41,8 @@ export function BankAdd({
     reset,
     setError,
     watch,
-    setValue
-  } = useForm<BankFormData>({
-    defaultValues: initialFormData
-  });
+    setValue,
+  } = useForm<BankFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
@@ -74,14 +64,9 @@ export function BankAdd({
         setCodeLocked(true);
       }
 
-      await onEvent?.({
-        eventType: initialData ? 'BankUpdated' : 'BankCreated',
-        bank: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'BankUpdated' : 'BankCreated', bank: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving bank'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving bank' });
     }
   };
 
@@ -96,15 +81,13 @@ export function BankAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="bank-form" disabled={isLoading || isSubmitting}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -113,13 +96,7 @@ export function BankAdd({
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Bank' : 'Add Bank'}
-      width="w-[500px]"
-      footer={footerContent}
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Bank' : 'Add Bank'} width="w-[500px]" footer={footerContent}>
       <form id="bank-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -130,71 +107,65 @@ export function BankAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Bank Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700">
+              Bank Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
               {...register('bankCode')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Bank Code" value={watch('bankCode') || ''} onChange={(v) => setValue('bankCode', v)} entityKey="bank_information" onLockChange={setCodeLocked} />
-            {errors.bankCode && (
-              <p className="text-red-600 text-xs mt-1">{errors.bankCode.message}</p>
-            )}
+            {errors.bankCode && <p className="text-red-600 text-xs mt-1">{errors.bankCode.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Bank Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('bankName', {
-              required: 'Bank name is required',
-              validate: value => value.trim() !== '' || 'Bank name cannot be empty'
-            })}
+            {...register('bankName', { required: 'Bank name is required', validate: (value) => value.trim() !== '' || 'Bank name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter bank name"
           />
-          {errors.bankName && (
-            <p className="text-red-600 text-xs mt-1">{errors.bankName.message}</p>
-          )}
+          {errors.bankName && <p className="text-red-600 text-xs mt-1">{errors.bankName.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Account Number <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Account Number <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('accountNumber', {
-              required: 'Account number is required',
-              validate: value => value.trim() !== '' || 'Account number cannot be empty'
-            })}
+            {...register('accountNumber', { required: 'Account number is required', validate: (value) => value.trim() !== '' || 'Account number cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter account number"
           />
-          {errors.accountNumber && (
-            <p className="text-red-600 text-xs mt-1">{errors.accountNumber.message}</p>
-          )}
+          {errors.accountNumber && <p className="text-red-600 text-xs mt-1">{errors.accountNumber.message}</p>}
         </div>
 
         {countryCode === 'AE' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">IBAN <span className="text-red-500 font-bold ml-0.5">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                IBAN <span className="text-red-500 font-bold ml-0.5">*</span>
+              </label>
               <input
-                {...register('iban', {
-                  required: 'IBAN is required for UAE'
-                })}
+                {...register('iban', { required: 'IBAN is required for UAE' })}
                 className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter IBAN"
               />
               {errors.iban && <p className="text-red-600 text-xs mt-1">{errors.iban.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Swift Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Swift Code <span className="text-red-500 font-bold ml-0.5">*</span>
+              </label>
               <input
-                {...register('swiftCode', {
-                  required: 'Swift Code is required for UAE'
-                })}
+                {...register('swiftCode', { required: 'Swift Code is required for UAE' })}
                 className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter Swift Code"
               />
@@ -202,14 +173,14 @@ export function BankAdd({
             </div>
           </>
         )}
-        
+
         {countryCode === 'IN' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              IFSC Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <input
-              {...register('ifscCode', {
-                required: 'IFSC Code is required for India'
-              })}
+              {...register('ifscCode', { required: 'IFSC Code is required for India' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter IFSC Code"
             />
@@ -219,11 +190,11 @@ export function BankAdd({
 
         {countryCode === 'US' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Routing Number <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Routing Number <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <input
-              {...register('routingNumber', {
-                required: 'Routing Number is required for US'
-              })}
+              {...register('routingNumber', { required: 'Routing Number is required for US' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter Routing Number"
             />
@@ -233,11 +204,11 @@ export function BankAdd({
 
         {countryCode === 'GB' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sort Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sort Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <input
-              {...register('sortCode', {
-                required: 'Sort Code is required for UK'
-              })}
+              {...register('sortCode', { required: 'Sort Code is required for UK' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter Sort Code"
             />
@@ -255,20 +226,16 @@ export function BankAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Address <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Bank Address <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('bankAddress', {
-              required: 'Bank address is required',
-              validate: value => value.trim() !== '' || 'Bank address cannot be empty'
-            })}
+            {...register('bankAddress', { required: 'Bank address is required', validate: (value) => value.trim() !== '' || 'Bank address cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter bank address"
           />
-          {errors.bankAddress && (
-            <p className="text-red-600 text-xs mt-1">{errors.bankAddress.message}</p>
-          )}
+          {errors.bankAddress && <p className="text-red-600 text-xs mt-1">{errors.bankAddress.message}</p>}
         </div>
-
       </form>
     </Drawer>
   );

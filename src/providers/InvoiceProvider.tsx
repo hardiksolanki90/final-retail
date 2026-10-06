@@ -1,22 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  getInvoiceList,
-  deleteInvoice,
-  createInvoice,
-  updateInvoice,
-  getInvoiceDetails,
-  getInvoiceSummary,
-  updateInvoiceStatus,
-  markInvoiceAsPaid,
-  bulkUpdateInvoiceStatus,
-} from '../api/InvoiceApi';
+import { getInvoiceList, deleteInvoice, createInvoice, updateInvoice, getInvoiceDetails, getInvoiceSummary, updateInvoiceStatus, markInvoiceAsPaid, bulkUpdateInvoiceStatus } from '../api/InvoiceApi';
 import { showToast } from '../lib/toast';
-import type {
-  Invoice,
-  InvoiceFormData,
-  InvoiceListResponse,
-} from '../types/Invoice';
+import type { Invoice, InvoiceFormData, InvoiceListResponse } from '../types/Invoice';
 import type { ColumnSearchStates, PaginationData } from '../types/Common';
 
 interface InvoiceContextType {
@@ -128,12 +114,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState<[string, string]>(() => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
-    return [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]];
-  });
+  const [dateFilter, setDateFilter] = useState<[string, string]>(['', '']);
 
   // Bulk actions
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -158,11 +139,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
     refetch: refetchInvoices,
   } = useQuery({
     queryKey: ['invoice-list', searchTerm, currentPage, perPage, statusFilter, dateFilter],
-    queryFn: () => getInvoiceList(currentPage, searchTerm, perPage, {
-      status: statusFilter || undefined,
-      dateFrom: dateFilter[0],
-      dateTo: dateFilter[1],
-    }),
+    queryFn: () => getInvoiceList(currentPage, searchTerm, perPage, { status: statusFilter || undefined, dateFrom: dateFilter[0] || undefined, dateTo: dateFilter[1] || undefined }),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -197,8 +174,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   });
 
   const updateInvoiceMutation = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: InvoiceFormData }) =>
-      updateInvoice(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: InvoiceFormData }) => updateInvoice(uuid, data),
     onSuccess: () => {
       showToast.success('Invoice updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
@@ -222,8 +198,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ uuid, status }: { uuid: string; status: Invoice['status'] }) =>
-      updateInvoiceStatus(uuid, status),
+    mutationFn: ({ uuid, status }: { uuid: string; status: Invoice['status'] }) => updateInvoiceStatus(uuid, status),
     onSuccess: () => {
       showToast.success('Invoice status updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
@@ -235,8 +210,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   });
 
   const markAsPaidMutation = useMutation({
-    mutationFn: ({ uuid, paymentData }: { uuid: string; paymentData: any }) =>
-      markInvoiceAsPaid(uuid, paymentData),
+    mutationFn: ({ uuid, paymentData }: { uuid: string; paymentData: any }) => markInvoiceAsPaid(uuid, paymentData),
     onSuccess: () => {
       showToast.success('Invoice marked as paid successfully!');
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
@@ -248,8 +222,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   });
 
   const bulkUpdateMutation = useMutation({
-    mutationFn: ({ uuids, status }: { uuids: string[]; status: Invoice['status'] }) =>
-      bulkUpdateInvoiceStatus(uuids, status),
+    mutationFn: ({ uuids, status }: { uuids: string[]; status: Invoice['status'] }) => bulkUpdateInvoiceStatus(uuids, status),
     onSuccess: () => {
       showToast.success('Invoices updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
@@ -276,11 +249,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
       return;
     }
 
-    const statusActions = {
-      'approve': 'pending',
-      'pay': 'paid',
-      'cancel': 'cancelled'
-    } as const;
+    const statusActions = { approve: 'pending', pay: 'paid', cancel: 'cancelled' } as const;
 
     if (action in statusActions) {
       const status = statusActions[action as keyof typeof statusActions] as Invoice['status'];
@@ -293,21 +262,11 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   };
 
   const handleColumnSearchToggle = (column: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: {
-        ...prev[column],
-        isOpen: !prev[column].isOpen,
-        value: prev[column].isOpen ? '' : prev[column].value,
-      },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], isOpen: !prev[column].isOpen, value: prev[column].isOpen ? '' : prev[column].value } }));
   };
 
   const handleColumnSearchChange = (column: string, value: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: { ...prev[column], value },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], value } }));
   };
 
   const handleColumnSearchConfirm = (column: string) => {
@@ -321,18 +280,12 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
 
       setSearchTerm(searchQuery);
       setCurrentPage(1);
-      setColumnSearchStates((prev) => ({
-        ...prev,
-        [column]: { ...prev[column], isOpen: false },
-      }));
+      setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], isOpen: false } }));
     }
   };
 
   const handleColumnSearchClose = (column: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: { isOpen: false, value: '' },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { isOpen: false, value: '' } }));
   };
 
   const handleTabChange = (tab: string) => {
@@ -395,14 +348,7 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   };
 
   const pagination: PaginationData | undefined = invoiceData
-    ? {
-        total: invoiceData.total,
-        currentPage: invoiceData.currentPage,
-        perPage: invoiceData.perPage,
-        lastPage: invoiceData.lastPage,
-        nextPage: invoiceData.nextPage,
-        prevPage: invoiceData.prevPage,
-      }
+    ? { total: invoiceData.total, currentPage: invoiceData.currentPage, perPage: invoiceData.perPage, lastPage: invoiceData.lastPage, nextPage: invoiceData.nextPage, prevPage: invoiceData.prevPage }
     : undefined;
 
   const value: InvoiceContextType = {

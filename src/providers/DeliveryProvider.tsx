@@ -13,11 +13,7 @@ import {
   bulkUpdateDeliveryStatus,
 } from '../api/DeliveryApi';
 import { showToast } from '../lib/toast';
-import type {
-  Delivery,
-  DeliveryFormData,
-  DeliveryListResponse,
-} from '../types/Delivery';
+import type { Delivery, DeliveryFormData, DeliveryListResponse } from '../types/Delivery';
 import type { ColumnSearchStates, PaginationData } from '../types/Common';
 
 interface DeliveryContextType {
@@ -132,12 +128,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState<[string, string]>(() => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 7);
-    return [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]];
-  });
+  const [dateFilter, setDateFilter] = useState<[string, string]>(['', '']);
 
   // Bulk actions
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -162,11 +153,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
     refetch: refetchDeliveries,
   } = useQuery({
     queryKey: ['delivery-list', searchTerm, currentPage, perPage, statusFilter, dateFilter],
-    queryFn: () => getDeliveryList(currentPage, searchTerm, perPage, {
-      status: statusFilter || undefined,
-      dateFrom: dateFilter[0],
-      dateTo: dateFilter[1],
-    }),
+    queryFn: () => getDeliveryList(currentPage, searchTerm, perPage, { status: statusFilter || undefined, dateFrom: dateFilter[0] || undefined, dateTo: dateFilter[1] || undefined }),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -201,8 +188,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   });
 
   const updateDeliveryMutation = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: DeliveryFormData }) =>
-      updateDelivery(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: DeliveryFormData }) => updateDelivery(uuid, data),
     onSuccess: () => {
       showToast.success('Delivery updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['delivery-list'] });
@@ -226,8 +212,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ uuid, status }: { uuid: string; status: Delivery['status'] }) =>
-      updateDeliveryStatus(uuid, status),
+    mutationFn: ({ uuid, status }: { uuid: string; status: Delivery['status'] }) => updateDeliveryStatus(uuid, status),
     onSuccess: () => {
       showToast.success('Delivery status updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['delivery-list'] });
@@ -239,8 +224,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   });
 
   const markAsDeliveredMutation = useMutation({
-    mutationFn: ({ uuid, deliveryData }: { uuid: string; deliveryData: any }) =>
-      markDeliveryAsDelivered(uuid, deliveryData),
+    mutationFn: ({ uuid, deliveryData }: { uuid: string; deliveryData: any }) => markDeliveryAsDelivered(uuid, deliveryData),
     onSuccess: () => {
       showToast.success('Delivery marked as delivered successfully!');
       queryClient.invalidateQueries({ queryKey: ['delivery-list'] });
@@ -252,8 +236,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   });
 
   const assignDriverMutation = useMutation({
-    mutationFn: ({ uuid, driverId }: { uuid: string; driverId: string }) =>
-      assignDriver(uuid, driverId),
+    mutationFn: ({ uuid, driverId }: { uuid: string; driverId: string }) => assignDriver(uuid, driverId),
     onSuccess: () => {
       showToast.success('Driver assigned successfully!');
       queryClient.invalidateQueries({ queryKey: ['delivery-list'] });
@@ -265,8 +248,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   });
 
   const bulkUpdateMutation = useMutation({
-    mutationFn: ({ uuids, status }: { uuids: string[]; status: Delivery['status'] }) =>
-      bulkUpdateDeliveryStatus(uuids, status),
+    mutationFn: ({ uuids, status }: { uuids: string[]; status: Delivery['status'] }) => bulkUpdateDeliveryStatus(uuids, status),
     onSuccess: () => {
       showToast.success('Deliveries updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['delivery-list'] });
@@ -293,12 +275,7 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
       return;
     }
 
-    const statusActions = {
-      'dispatch': 'in_transit',
-      'deliver': 'delivered',
-      'fail': 'failed',
-      'cancel': 'cancelled'
-    } as const;
+    const statusActions = { dispatch: 'in_transit', deliver: 'delivered', fail: 'failed', cancel: 'cancelled' } as const;
 
     if (action in statusActions) {
       const status = statusActions[action as keyof typeof statusActions] as Delivery['status'];
@@ -311,21 +288,11 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   };
 
   const handleColumnSearchToggle = (column: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: {
-        ...prev[column],
-        isOpen: !prev[column].isOpen,
-        value: prev[column].isOpen ? '' : prev[column].value,
-      },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], isOpen: !prev[column].isOpen, value: prev[column].isOpen ? '' : prev[column].value } }));
   };
 
   const handleColumnSearchChange = (column: string, value: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: { ...prev[column], value },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], value } }));
   };
 
   const handleColumnSearchConfirm = (column: string) => {
@@ -339,18 +306,12 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
 
       setSearchTerm(searchQuery);
       setCurrentPage(1);
-      setColumnSearchStates((prev) => ({
-        ...prev,
-        [column]: { ...prev[column], isOpen: false },
-      }));
+      setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], isOpen: false } }));
     }
   };
 
   const handleColumnSearchClose = (column: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: { isOpen: false, value: '' },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { isOpen: false, value: '' } }));
   };
 
   const handleTabChange = (tab: string) => {

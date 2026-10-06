@@ -11,15 +11,7 @@ export interface SearchInputProps {
   onClear?: () => void;
 }
 
-export function SearchInput({
-  value: controlledValue,
-  onChange,
-  placeholder = 'Search...',
-  debounceMs = 300,
-  className = '',
-  fullWidth = false,
-  onClear,
-}: SearchInputProps) {
+export function SearchInput({ value: controlledValue, onChange, placeholder = 'Search...', debounceMs = 300, className = '', fullWidth = false, onClear }: SearchInputProps) {
   const [internalValue, setInternalValue] = useState(controlledValue || '');
 
   useEffect(() => {
@@ -75,10 +67,7 @@ export function SearchInput({
         `}
       />
       {internalValue && (
-        <button
-          onClick={handleClear}
-          className="absolute cursor-pointer inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-        >
+        <button onClick={handleClear} className="absolute cursor-pointer inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
           <X className="w-4 h-4" />
         </button>
       )}

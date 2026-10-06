@@ -38,11 +38,12 @@ export default function WarehouseProvider({ children }: { children: ReactNode })
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Warehouse | null>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['warehouse-list', currentPage, perPage, searchTerm],
-    queryFn: () => getWarehouseList(currentPage, perPage, searchTerm),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['warehouse-list', currentPage, perPage, searchTerm], queryFn: () => getWarehouseList(currentPage, perPage, searchTerm), staleTime: 5 * 60 * 1000 });
 
   const deleteMutation = useMutation({
     mutationFn: deleteWarehouse,

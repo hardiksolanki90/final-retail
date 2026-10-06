@@ -17,12 +17,7 @@ interface UsersRolesAddProps {
   isLoading?: boolean;
 }
 
-const initialFormData: UserRoleFormData = {
-  code: '',
-  name: '',
-  permissions: [],
-  description: '',
-};
+const initialFormData: UserRoleFormData = { code: '', name: '', permissions: [], description: '' };
 
 const ACTIONS = ['view', 'create', 'edit', 'delete'] as const;
 type Action = (typeof ACTIONS)[number];
@@ -36,13 +31,7 @@ interface ModuleRow {
 
 const monoField = 'font-[family-name:var(--font-mono-ui)] tracking-wide';
 
-export function UsersRolesAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-}: UsersRolesAddProps) {
+export function UsersRolesAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false }: UsersRolesAddProps) {
   const {
     register,
     handleSubmit,
@@ -52,9 +41,7 @@ export function UsersRolesAdd({
     control,
     watch,
     setValue,
-  } = useForm<UserRoleFormData>({
-    defaultValues: initialFormData,
-  });
+  } = useForm<UserRoleFormData>({ defaultValues: initialFormData });
 
   const [codeLocked, setCodeLocked] = useState(false);
   const { permissions: permissionCatalog, isLoading: permissionsLoading } = usePermissionCatalog();
@@ -67,11 +54,7 @@ export function UsersRolesAdd({
     for (const p of permissionCatalog) {
       const action = p.value.split('.').pop() as Action;
       if (!byModule.has(p.module)) {
-        byModule.set(p.module, {
-          module: p.module,
-          label: p.module.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          permissions: {},
-        });
+        byModule.set(p.module, { module: p.module, label: p.module.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()), permissions: {} });
       }
       byModule.get(p.module)!.permissions[action] = p.value;
     }
@@ -98,15 +81,15 @@ export function UsersRolesAdd({
       await onSubmit(data);
       onClose();
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving user role',
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving user role' });
     }
   };
 
   const footerContent = (
     <div className="flex justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>Cancel</CancelButton>
+      <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>
+        Cancel
+      </CancelButton>
       <SaveButton type="submit" form="role-form" disabled={isSubmitting || isLoading}>
         {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
       </SaveButton>
@@ -114,44 +97,30 @@ export function UsersRolesAdd({
   );
 
   const headerBadge = !permissionsLoading && totalCount > 0 && (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-secondary)] ${monoField}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-secondary)] ${monoField}`}>
       <ShieldCheck className="w-3.5 h-3.5 text-primary-600" strokeWidth={2} />
       {grantedCount}/{totalCount}
     </span>
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Role' : 'Add Role'}
-      width="w-[700px]"
-      footer={footerContent}
-      headerActions={headerBadge}
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Role' : 'Add Role'} width="w-[700px]" footer={footerContent} headerActions={headerBadge}>
       <form id="role-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-8">
-        {errors.root && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {errors.root.message}
-          </div>
-        )}
+        {errors.root && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{errors.root.message}</div>}
 
         {/* Role Definition */}
         <div className="space-y-4">
-          <p className={`text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)] ${monoField}`}>
-            Role Definition
-          </p>
+          <p className={`text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)] ${monoField}`}>Role Definition</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <Input
-                  label="Code" required
+                  label="Code"
+                  required
                   {...register('code')}
                   error={errors.code?.message}
-                  placeholder="Auto-generated if empty"
+                  placeholder="Configure the system to auto-generate the code."
                   className={monoField}
                   disabled={codeLocked}
                 />
@@ -162,11 +131,9 @@ export function UsersRolesAdd({
             </div>
 
             <Input
-              label="Name" required
-              {...register('name', {
-                required: 'Name is required',
-                validate: (value) => value.trim() !== '' || 'Name cannot be empty',
-              })}
+              label="Name"
+              required
+              {...register('name', { required: 'Name is required', validate: (value) => value.trim() !== '' || 'Name cannot be empty' })}
               error={errors.name?.message}
               placeholder="Enter role name"
             />
@@ -186,20 +153,13 @@ export function UsersRolesAdd({
         {/* Access Manifest */}
         <div className="space-y-3">
           <div className="flex items-end justify-between gap-4">
-            <p className={`text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)] ${monoField}`}>
-              Access Manifest
-            </p>
-            {!permissionsLoading && totalCount > 0 && (
-              <p className={`text-[11px] text-[var(--text-muted)] ${monoField}`}>{coveragePct}% coverage</p>
-            )}
+            <p className={`text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)] ${monoField}`}>Access Manifest</p>
+            {!permissionsLoading && totalCount > 0 && <p className={`text-[11px] text-[var(--text-muted)] ${monoField}`}>{coveragePct}% coverage</p>}
           </div>
 
           {!permissionsLoading && totalCount > 0 && (
             <div className="h-[3px] w-full rounded-full bg-[var(--bg-secondary)] overflow-hidden">
-              <div
-                className="h-full bg-primary-600 transition-all duration-300 ease-out"
-                style={{ width: `${coveragePct}%` }}
-              />
+              <div className="h-full bg-primary-600 transition-all duration-300 ease-out" style={{ width: `${coveragePct}%` }} />
             </div>
           )}
 
@@ -221,11 +181,7 @@ export function UsersRolesAdd({
               const toggleRow = (row: ModuleRow) => {
                 const values = rowValues(row);
                 const full = isRowFull(row);
-                field.onChange(
-                  full
-                    ? selected.filter((p) => !values.includes(p))
-                    : Array.from(new Set([...selected, ...values]))
-                );
+                field.onChange(full ? selected.filter((p) => !values.includes(p)) : Array.from(new Set([...selected, ...values])));
               };
 
               return (
@@ -234,17 +190,10 @@ export function UsersRolesAdd({
                     <table className="w-full text-sm">
                       <thead className="sticky top-0 z-10">
                         <tr className="bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)]">
-                          <th className={`px-4 py-3 text-left text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)] w-[30%] ${monoField}`}>
-                            Module
-                          </th>
-                          <th className={`px-4 py-3 text-center text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)] ${monoField}`}>
-                            Full Access
-                          </th>
+                          <th className={`px-4 py-3 text-left text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)] w-[30%] ${monoField}`}>Module</th>
+                          <th className={`px-4 py-3 text-center text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)] ${monoField}`}>Full Access</th>
                           {ACTIONS.map((action) => (
-                            <th
-                              key={action}
-                              className={`px-4 py-3 text-center text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)] ${monoField}`}
-                            >
+                            <th key={action} className={`px-4 py-3 text-center text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)] ${monoField}`}>
                               {ACTION_LABEL[action]}
                             </th>
                           ))}
@@ -267,9 +216,7 @@ export function UsersRolesAdd({
                                 <div className="flex items-center justify-center w-9 h-9 rounded-lg border border-dashed border-[var(--border-color)] text-[var(--text-muted)]">
                                   <Inbox className="w-4 h-4" strokeWidth={1.75} />
                                 </div>
-                                <p className={`text-[11px] uppercase tracking-wider text-[var(--text-secondary)] ${monoField}`}>
-                                  No permissions available
-                                </p>
+                                <p className={`text-[11px] uppercase tracking-wider text-[var(--text-secondary)] ${monoField}`}>No permissions available</p>
                               </div>
                             </td>
                           </tr>
@@ -281,8 +228,7 @@ export function UsersRolesAdd({
                               <tr key={row.module} className="relative hover:bg-[var(--bg-secondary)] transition-colors">
                                 <td className="relative px-4 py-3">
                                   <span
-                                    className={`absolute left-0 top-0 bottom-0 w-[3px] transition-colors ${full ? 'bg-primary-600' : empty ? 'bg-transparent' : 'bg-primary-300 dark:bg-primary-800'
-                                      }`}
+                                    className={`absolute left-0 top-0 bottom-0 w-[3px] transition-colors ${full ? 'bg-primary-600' : empty ? 'bg-transparent' : 'bg-primary-300 dark:bg-primary-800'}`}
                                   />
                                   <div className="pl-2 leading-tight">
                                     <div className="text-[var(--text-primary)] font-medium">{row.label}</div>
@@ -294,10 +240,9 @@ export function UsersRolesAdd({
                                     type="button"
                                     onClick={() => toggleRow(row)}
                                     aria-pressed={full}
-                                    className={`inline-flex items-center justify-center w-6 h-6 rounded-md border-2 transition-all active:scale-95 ${full
-                                      ? 'bg-primary-600 border-primary-600 text-white'
-                                      : 'border-dashed border-gray-300 dark:border-gray-500 text-transparent hover:border-primary-400'
-                                      }`}
+                                    className={`inline-flex items-center justify-center w-6 h-6 rounded-md border-2 transition-all active:scale-95 ${
+                                      full ? 'bg-primary-600 border-primary-600 text-white' : 'border-dashed border-gray-300 dark:border-gray-500 text-transparent hover:border-primary-400'
+                                    }`}
                                   >
                                     <Check className="w-3.5 h-3.5" strokeWidth={3} />
                                   </button>
@@ -312,10 +257,9 @@ export function UsersRolesAdd({
                                           onClick={() => toggleOne(value)}
                                           aria-pressed={has(value)}
                                           title={ACTION_LABEL[action]}
-                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border-2 transition-all active:scale-95 ${has(value)
-                                            ? 'bg-primary-600 border-primary-600 text-white'
-                                            : 'border-dashed border-gray-300 dark:border-gray-500 text-transparent hover:border-primary-400'
-                                            }`}
+                                          className={`inline-flex items-center justify-center w-6 h-6 rounded-md border-2 transition-all active:scale-95 ${
+                                            has(value) ? 'bg-primary-600 border-primary-600 text-white' : 'border-dashed border-gray-300 dark:border-gray-500 text-transparent hover:border-primary-400'
+                                          }`}
                                         >
                                           <Check className="w-3.5 h-3.5" strokeWidth={3} />
                                         </button>

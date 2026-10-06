@@ -210,6 +210,19 @@ body {
   );
 }
 
+/* Document forms: section entrance. `backwards` (not `forwards`) so no
+ * transform lingers after the run — a lingering transform turns each section
+ * into its own stacking context and buries Select dropdowns under the next one. */
+@utility animate-rise {
+  animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Document forms: perforated top edge of the totals receipt. */
+@utility receipt-edge {
+  -webkit-mask: radial-gradient(circle at 50% 0, transparent 5px, #000 5.5px) 0 0 / 14px 100% repeat-x;
+  mask: radial-gradient(circle at 50% 0, transparent 5px, #000 5.5px) 0 0 / 14px 100% repeat-x;
+}
+
 .auth-dot-grid {
   background-image: radial-gradient(rgba(245, 243, 237, 0.16) 1px, transparent 1px);
   background-size: 22px 22px;

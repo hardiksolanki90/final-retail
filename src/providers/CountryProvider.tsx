@@ -4,14 +4,24 @@ import { getCountryList, createCountry, updateCountry, deleteCountry } from '../
 import { showToast } from '../lib/toast';
 
 interface CountryContextType {
-  data: any[]; meta: any; isLoading: boolean; error: Error | null;
-  searchTerm: string; setSearchTerm: (term: string) => void;
-  currentPage: number; setCurrentPage: (page: number) => void;
-  perPage: number; setPerPage: (perPage: number) => void;
-  selectedRowKeys: string[]; setSelectedRowKeys: (keys: string[]) => void;
-  addDrawerOpen: boolean; setAddDrawerOpen: (open: boolean) => void;
-  editingItem: any; setEditingItem: (item: any) => void;
-  handleDeleteWithConfirmation: (uuid: string) => void; refetch: () => void;
+  data: any[];
+  meta: any;
+  isLoading: boolean;
+  error: Error | null;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  perPage: number;
+  setPerPage: (perPage: number) => void;
+  selectedRowKeys: string[];
+  setSelectedRowKeys: (keys: string[]) => void;
+  addDrawerOpen: boolean;
+  setAddDrawerOpen: (open: boolean) => void;
+  editingItem: any;
+  setEditingItem: (item: any) => void;
+  handleDeleteWithConfirmation: (uuid: string) => void;
+  refetch: () => void;
   createCountryData: (data: Record<string, any>) => Promise<any>;
   updateCountryData: (uuid: string, data: Record<string, any>) => Promise<any>;
   isSaving: boolean;
@@ -28,26 +38,28 @@ export default function CountryProvider({ children }: { children: ReactNode }) {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['country-list', currentPage, perPage, searchTerm],
-    queryFn: () => getCountryList(currentPage, perPage, searchTerm),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['country-list', currentPage, perPage, searchTerm], queryFn: () => getCountryList(currentPage, perPage, searchTerm), staleTime: 5 * 60 * 1000 });
 
   const deleteMutation = useMutation({
     mutationFn: deleteCountry,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['country-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['country-list'] });
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to delete');
+    },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
     if (window.confirm('Are you sure you want to delete this country?')) deleteMutation.mutate(uuid);
   };
 
-  const createMutation = useMutation({
-    mutationFn: (data: Record<string, any>) => createCountry(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['country-list'] }),
-  });
+  const createMutation = useMutation({ mutationFn: (data: Record<string, any>) => createCountry(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['country-list'] }) });
 
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, any> }) => updateCountry(uuid, data),
@@ -61,11 +73,27 @@ export default function CountryProvider({ children }: { children: ReactNode }) {
   const meta = responseData?.meta ?? null;
 
   const value: CountryContextType = {
-    data: items, meta, isLoading, error: error as Error | null,
-    searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
-    selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
-    editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
-    createCountryData, updateCountryData, isSaving: createMutation.isPending || updateMutation.isPending,
+    data: items,
+    meta,
+    isLoading,
+    error: error as Error | null,
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    addDrawerOpen,
+    setAddDrawerOpen,
+    editingItem,
+    setEditingItem,
+    handleDeleteWithConfirmation,
+    refetch: () => refetch(),
+    createCountryData,
+    updateCountryData,
+    isSaving: createMutation.isPending || updateMutation.isPending,
   };
 
   return <CountryContext.Provider value={value}>{children}</CountryContext.Provider>;

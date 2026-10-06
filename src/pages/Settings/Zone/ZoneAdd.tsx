@@ -9,25 +9,13 @@ import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 interface ZoneAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: ZoneFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: ZoneFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: ZoneFormData = {
-  zoneCode: '',
-  name: '',
-  status: true,
-};
+const initialFormData: ZoneFormData = { zoneCode: '', name: '', status: true };
 
-export function ZoneAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: ZoneAddProps) {
+export function ZoneAdd({ isOpen, onClose, data, onEvent }: ZoneAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
 
@@ -38,10 +26,8 @@ export function ZoneAdd({
     reset,
     setError,
     watch,
-    setValue
-  } = useForm<ZoneFormData>({
-    defaultValues: initialFormData
-  });
+    setValue,
+  } = useForm<ZoneFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
@@ -63,14 +49,9 @@ export function ZoneAdd({
         setCodeLocked(true);
       }
 
-      await onEvent?.({
-        eventType: initialData ? 'ZoneUpdated' : 'ZoneCreated',
-        zone: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'ZoneUpdated' : 'ZoneCreated', zone: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving zone'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving zone' });
     }
   };
 
@@ -85,15 +66,13 @@ export function ZoneAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="zone-form" disabled={isSubmitting || isLoading}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -102,13 +81,7 @@ export function ZoneAdd({
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Zone' : 'Add Zone'}
-      width="w-[500px]"
-      footer={footerContent}
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Zone' : 'Add Zone'} width="w-[500px]" footer={footerContent}>
       <form id="zone-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -119,37 +92,33 @@ export function ZoneAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Zone Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700">
+              Zone Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
               {...register('zoneCode')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Zone Code" value={watch('zoneCode') || ''} onChange={(v) => setValue('zoneCode', v)} entityKey="zone" onLockChange={setCodeLocked} />
-            {errors.zoneCode && (
-              <p className="text-red-600 text-xs mt-1">{errors.zoneCode.message}</p>
-            )}
+            {errors.zoneCode && <p className="text-red-600 text-xs mt-1">{errors.zoneCode.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('name', {
-              required: 'Name is required',
-              validate: value => value.trim() !== '' || 'Name cannot be empty'
-            })}
+            {...register('name', { required: 'Name is required', validate: (value) => value.trim() !== '' || 'Name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter zone name"
           />
-          {errors.name && (
-            <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
         </div>
-
       </form>
     </Drawer>
   );

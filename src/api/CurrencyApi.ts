@@ -32,11 +32,7 @@ export const deleteCurrency = async (uuid: string) => {
 
 export type CurrencyMasterListResponse = NormalizedListResponse<import('../types/Currency').CurrencyMasterOption>;
 
-export const getCurrencyMasterList = async (
-  page = 1,
-  perPage = 20,
-  searchTerm?: string
-): Promise<CurrencyMasterListResponse> => {
+export const getCurrencyMasterList = async (page = 1, perPage = 20, searchTerm?: string): Promise<CurrencyMasterListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());

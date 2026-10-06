@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { UseFormWatch, UseFormSetValue } from 'react-hook-form';
 import { Users, Copy, Plus, Trash2, Search } from 'lucide-react';
-import type {
-  JourneyPlanFullFormData,
-  DayOfWeek,
-  WeekNumber,
-  JourneyPlanCustomerRow,
-} from '../../../types/JourneyPlan';
+import type { JourneyPlanFullFormData, DayOfWeek, WeekNumber, JourneyPlanCustomerRow } from '../../../types/JourneyPlan';
 import { Modal } from '../../../components/ui/Modal';
 import { Select, type SelectOption } from '../../../components/ui/Select';
 import { Checkbox } from '../../../components/ui/Checkbox';
@@ -99,16 +94,7 @@ function AddCustomerModal({
   function handleAdd() {
     const selected = customers.find((c) => c.value === customerId);
     if (!selected) return;
-    onAdd({
-      id: newId(),
-      customerId: String(selected.value),
-      sequence: 0,
-      code: selected.code ?? '',
-      customerName: selected.label,
-      mslPerform: msl,
-      startTime,
-      endTime,
-    });
+    onAdd({ id: newId(), customerId: String(selected.value), sequence: 0, code: selected.code ?? '', customerName: selected.label, mslPerform: msl, startTime, endTime });
     reset();
     onClose();
   }
@@ -157,16 +143,7 @@ function AddCustomerModal({
 }
 
 // ── Main Customers Tab ────────────────────────────────────────────────────────
-export function CustomersTab({
-  watch,
-  setValue,
-  customers,
-  customersLoading,
-  customersLoadingMore,
-  customersHasMore,
-  onCustomersLoadMore,
-  onCustomersSearchChange,
-}: Props) {
+export function CustomersTab({ watch, setValue, customers, customersLoading, customersLoadingMore, customersHasMore, onCustomersLoadMore, onCustomersSearchChange }: Props) {
   const journeyPlanBase = watch('journeyPlanBase');
   const isWeekWise = journeyPlanBase === 'week_wise';
   const selectedWeeks = watch('selectedWeeks') ?? [];
@@ -199,7 +176,7 @@ export function CustomersTab({
   const currentWeek = isWeekWise ? activeWeek : null;
   const currentKey = dayCustomerKey(activeDay, currentWeek);
   const noWeekSelected = isWeekWise && !currentWeek;
-  const rows: JourneyPlanCustomerRow[] = noWeekSelected ? [] : dayCustomers?.[currentKey] ?? [];
+  const rows: JourneyPlanCustomerRow[] = noWeekSelected ? [] : (dayCustomers?.[currentKey] ?? []);
 
   // Render every customer the salesman's API returned straight into the
   // active day's list — "Add Customer" only needs to append extras on top,
@@ -226,16 +203,11 @@ export function CustomersTab({
   }, [customers, currentKey, noWeekSelected, overviewStartTime, overviewEndTime]);
 
   function setRows(newRows: JourneyPlanCustomerRow[]) {
-    setValue('dayCustomers', {
-      ...dayCustomers,
-      [currentKey]: newRows,
-    });
+    setValue('dayCustomers', { ...dayCustomers, [currentKey]: newRows });
   }
 
   function handleDelete(id: string) {
-    const updated = rows
-      .filter((r) => r.id !== id)
-      .map((r, i) => ({ ...r, sequence: i + 1 }));
+    const updated = rows.filter((r) => r.id !== id).map((r, i) => ({ ...r, sequence: i + 1 }));
     setRows(updated);
   }
 
@@ -282,11 +254,7 @@ export function CustomersTab({
                 }`}
               >
                 {label}
-                {count > 0 && (
-                  <span className={`text-[11px] font-semibold ${isActive ? 'text-white/80' : 'text-gray-400'}`}>
-                    {count}
-                  </span>
-                )}
+                {count > 0 && <span className={`text-[11px] font-semibold ${isActive ? 'text-white/80' : 'text-gray-400'}`}>{count}</span>}
               </button>
             );
           })}
@@ -295,9 +263,7 @@ export function CustomersTab({
 
       {noWeekSelected ? (
         <div className="flex flex-col items-center justify-center gap-2 text-center py-12 rounded-lg border border-dashed border-[var(--border-color)]">
-          <p className="text-sm text-[var(--text-secondary)]">
-            No weeks selected. Choose weeks in the Schedule tab first.
-          </p>
+          <p className="text-sm text-[var(--text-secondary)]">No weeks selected. Choose weeks in the Schedule tab first.</p>
         </div>
       ) : (
         <>
@@ -325,11 +291,7 @@ export function CustomersTab({
                     {idx + 1}
                   </span>
                   {short}
-                  {count > 0 && (
-                    <span className={`text-[11px] font-semibold ${isActive ? 'text-white/80' : 'text-gray-400'}`}>
-                      {count}
-                    </span>
-                  )}
+                  {count > 0 && <span className={`text-[11px] font-semibold ${isActive ? 'text-white/80' : 'text-gray-400'}`}>{count}</span>}
                 </button>
               );
             })}
@@ -346,108 +308,87 @@ export function CustomersTab({
           </div>
 
           {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-[var(--border-color)]">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
-                Seq
-              </th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
-                <span className="flex items-center gap-1">
-                  Code
-                  <Search className="w-3 h-3" />
-                </span>
-              </th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
-                <span className="flex items-center gap-1">
-                  Customer
-                  <Search className="w-3 h-3" />
-                </span>
-              </th>
-              <th className="px-4 py-2.5 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
-                MSL Perform
-              </th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
-                Start Time
-              </th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
-                End Time
-              </th>
-              <th className="px-4 py-2.5 text-right text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border-color)]">
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12">
-                  <div className="flex flex-col items-center justify-center gap-2 text-center">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-muted)]">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <p className="text-sm text-[var(--text-secondary)]">
-                      No customers added for this day yet.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(true)}
-                      className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                    >
-                      Add a customer
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--bg-secondary)] transition-colors">
-                  <td className="px-4 py-2.5 text-[var(--text-primary)]">{row.sequence}</td>
-                  <td className="px-4 py-2.5 text-[var(--text-primary)]">{row.code || '—'}</td>
-                  <td className="px-4 py-2.5 text-[var(--text-primary)] max-w-[220px] truncate">
-                    {row.customerName}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex justify-center">
-                      <Checkbox
-                        checked={row.mslPerform}
-                        onChange={(e) => handleMslChange(row.id, e.target.checked)}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <input
-                      type="time"
-                      value={row.startTime}
-                      onChange={(e) => handleTimeChange(row.id, 'startTime', e.target.value)}
-                      className="px-2 py-1 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-primary-500"
-                    />
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <input
-                      type="time"
-                      value={row.endTime}
-                      onChange={(e) => handleTimeChange(row.id, 'endTime', e.target.value)}
-                      className="px-2 py-1 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-primary-500"
-                    />
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(row.id)}
-                      className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-gray-300 dark:border-gray-600 text-[var(--text-primary)] hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 hover:text-red-600 transition-colors"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      Delete
-                    </button>
-                  </td>
+          <div className="overflow-x-auto rounded-lg border border-[var(--border-color)]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Seq</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                    <span className="flex items-center gap-1">
+                      Code
+                      <Search className="w-3 h-3" />
+                    </span>
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
+                    <span className="flex items-center gap-1">
+                      Customer
+                      <Search className="w-3 h-3" />
+                    </span>
+                  </th>
+                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">MSL Perform</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Start Time</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">End Time</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Action</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-color)]">
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12">
+                      <div className="flex flex-col items-center justify-center gap-2 text-center">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <p className="text-sm text-[var(--text-secondary)]">No customers added for this day yet.</p>
+                        <button type="button" onClick={() => setShowModal(true)} className="text-sm font-medium text-primary-600 hover:text-primary-700">
+                          Add a customer
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((row) => (
+                    <tr key={row.id} className="hover:bg-[var(--bg-secondary)] transition-colors">
+                      <td className="px-4 py-2.5 text-[var(--text-primary)]">{row.sequence}</td>
+                      <td className="px-4 py-2.5 text-[var(--text-primary)]">{row.code || '—'}</td>
+                      <td className="px-4 py-2.5 text-[var(--text-primary)] max-w-[220px] truncate">{row.customerName}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex justify-center">
+                          <Checkbox checked={row.mslPerform} onChange={(e) => handleMslChange(row.id, e.target.checked)} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <input
+                          type="time"
+                          value={row.startTime}
+                          onChange={(e) => handleTimeChange(row.id, 'startTime', e.target.value)}
+                          className="px-2 py-1 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <input
+                          type="time"
+                          value={row.endTime}
+                          onChange={(e) => handleTimeChange(row.id, 'endTime', e.target.value)}
+                          className="px-2 py-1 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        />
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(row.id)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-gray-300 dark:border-gray-600 text-[var(--text-primary)] hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 

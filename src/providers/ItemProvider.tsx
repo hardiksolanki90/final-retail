@@ -1,23 +1,9 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  getItemList,
-  getAllItems,
-  getItemsWithStock,
-  deleteItem,
-  createItem,
-  updateItem,
-  bulkActionItems,
-} from '../api/ItemApi';
+import { invalidateEntity } from '../hooks/useEntityDetail';
+import { getItemList, getAllItems, getItemsWithStock, deleteItem, createItem, updateItem, bulkActionItems } from '../api/ItemApi';
 import { showToast } from '../lib/toast';
-import type {
-  Item,
-  ItemFormData,
-  ItemListResponse,
-  ItemWithStock,
-  ItemFilters,
-  ItemBulkAction,
-} from '../types/Item';
+import type { Item, ItemFormData, ItemListResponse, ItemWithStock, ItemFilters, ItemBulkAction } from '../types/Item';
 
 interface ItemContextType {
   // Data
@@ -93,11 +79,7 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     isLoading,
     error,
     refetch: refetchItems,
-  } = useQuery({
-    queryKey: ['item-list', searchTerm, currentPage, perPage, filters],
-    queryFn: () => getItemList(currentPage, searchTerm, perPage, filters),
-    staleTime: 5 * 60 * 1000,
-  });
+  } = useQuery({ queryKey: ['item-list', searchTerm, currentPage, perPage, filters], queryFn: () => getItemList(currentPage, searchTerm, perPage, filters), staleTime: 5 * 60 * 1000 });
 
   // All items query (for dropdowns)
   const { data: allItems } = useQuery({
@@ -119,7 +101,7 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     mutationFn: createItem,
     onSuccess: () => {
       showToast.success('Item created successfully!');
-      queryClient.invalidateQueries({ queryKey: ['item-list'] });
+      invalidateEntity(queryClient, 'item-list', 'item');
       setIsItemModalVisible(false);
       setSelectedItem(null);
     },
@@ -129,11 +111,10 @@ export default function ItemProvider({ children }: ItemProviderProps) {
   });
 
   const updateItemMutation = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: ItemFormData }) =>
-      updateItem(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: ItemFormData }) => updateItem(uuid, data),
     onSuccess: () => {
       showToast.success('Item updated successfully!');
-      queryClient.invalidateQueries({ queryKey: ['item-list'] });
+      invalidateEntity(queryClient, 'item-list', 'item');
       setIsItemModalVisible(false);
       setSelectedItem(null);
     },
@@ -146,7 +127,7 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     mutationFn: deleteItem,
     onSuccess: () => {
       showToast.success('Item deleted successfully!');
-      queryClient.invalidateQueries({ queryKey: ['item-list'] });
+      invalidateEntity(queryClient, 'item-list', 'item');
     },
     onError: (error: Error) => {
       showToast.error(error.message || 'Failed to delete item');
@@ -157,7 +138,7 @@ export default function ItemProvider({ children }: ItemProviderProps) {
     mutationFn: bulkActionItems,
     onSuccess: () => {
       showToast.success('Bulk action completed successfully!');
-      queryClient.invalidateQueries({ queryKey: ['item-list'] });
+      invalidateEntity(queryClient, 'item-list', 'item');
       setSelectedRowKeys([]);
     },
     onError: (error: Error) => {
@@ -188,10 +169,7 @@ export default function ItemProvider({ children }: ItemProviderProps) {
       return;
     }
 
-    const bulkAction: ItemBulkAction = {
-      action: action as 'activate' | 'deactivate' | 'delete',
-      uuids: selectedRowKeys,
-    };
+    const bulkAction: ItemBulkAction = { action: action as 'activate' | 'deactivate' | 'delete', uuids: selectedRowKeys };
 
     bulkActionMutation.mutate(bulkAction);
   };

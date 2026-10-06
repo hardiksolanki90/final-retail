@@ -7,55 +7,43 @@ import type { PricingPromotionRule, RuleFormData, RuleListResponse, RuleType } f
  * boilerplate across the 3 route prefixes (/pricing, /promotion, /discount).
  */
 export function createRuleApi(prefix: RuleType) {
-  const getList = async (
-    page: number = 1,
-    searchTerm?: string,
-    perPage: number = 15,
-  ): Promise<RuleListResponse> => {
-    const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('per_page', perPage.toString());
-    if (searchTerm) params.append('search', searchTerm);
+    const getList = async (page: number = 1, searchTerm?: string, perPage: number = 15, status?: string): Promise<RuleListResponse> => {
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        params.append('per_page', perPage.toString());
+        if (searchTerm) params.append('search', searchTerm);
+        if (status) params.append('status', status);
 
-    const response = await axiosInstance.get(`/${prefix}/list?${params.toString()}`);
-    const payload = response.data;
+        const response = await axiosInstance.get(`/${prefix}/list?${params.toString()}`);
+        const payload = response.data;
 
-    return {
-      data: payload.rules ?? [],
-      total: payload.total ?? 0,
-      currentPage: payload.currentPage ?? page,
-      perPage,
-      lastPage: payload.lastPage ?? 1,
+        return { data: payload.rules ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
     };
-  };
 
-  const getByUuid = async (uuid: string): Promise<PricingPromotionRule> => {
-    const response = await axiosInstance.get(`/${prefix}/edit/${uuid}`);
-    return response.data.data;
-  };
+    const getByUuid = async (uuid: string): Promise<PricingPromotionRule> => {
+        const response = await axiosInstance.get(`/${prefix}/edit/${uuid}`);
+        return response.data.data;
+    };
 
-  const create = async (data: RuleFormData): Promise<PricingPromotionRule> => {
-    const response = await axiosInstance.post(`/${prefix}/add`, data);
-    return response.data.data;
-  };
+    const create = async (data: RuleFormData): Promise<PricingPromotionRule> => {
+        const response = await axiosInstance.post(`/${prefix}/add`, data);
+        return response.data.data;
+    };
 
-  const update = async (uuid: string, data: RuleFormData): Promise<PricingPromotionRule> => {
-    const response = await axiosInstance.post(`/${prefix}/edit/${uuid}`, data);
-    return response.data.data;
-  };
+    const update = async (uuid: string, data: RuleFormData): Promise<PricingPromotionRule> => {
+        const response = await axiosInstance.post(`/${prefix}/edit/${uuid}`, data);
+        return response.data.data;
+    };
 
-  const remove = async (uuid: string): Promise<void> => {
-    await axiosInstance.post(`/${prefix}/delete`, { id: uuid });
-  };
+    const remove = async (uuid: string): Promise<void> => {
+        await axiosInstance.post(`/${prefix}/delete`, { id: uuid });
+    };
 
-  const bulkAction = async (
-    uuids: string[],
-    action: 'activate' | 'deactivate' | 'delete',
-  ): Promise<void> => {
-    await axiosInstance.post(`/${prefix}/bulk-action`, { uuids, action });
-  };
+    const bulkAction = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
+        await axiosInstance.post(`/${prefix}/bulk-action`, { uuids, action });
+    };
 
-  return { getList, getByUuid, create, update, remove, bulkAction };
+    return { getList, getByUuid, create, update, remove, bulkAction };
 }
 
 export const pricingApi = createRuleApi('pricing');

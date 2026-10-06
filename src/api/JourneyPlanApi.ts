@@ -1,11 +1,7 @@
 import axiosInstance from '../lib/axios';
 import type { JourneyPlanFullFormData, JourneyPlanFullListResponse } from '../types/JourneyPlan';
 
-export const getJourneyPlanList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-): Promise<JourneyPlanFullListResponse> => {
+export const getJourneyPlanList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<JourneyPlanFullListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -14,13 +10,7 @@ export const getJourneyPlanList = async (
   const response = await axiosInstance.get(`/journey-plan/list?${params.toString()}`);
   const payload = response.data;
 
-  return {
-    data: payload.journeyPlans ?? [],
-    total: payload.total ?? 0,
-    currentPage: payload.currentPage ?? page,
-    perPage,
-    lastPage: payload.lastPage ?? 1,
-  };
+  return { data: payload.journeyPlans ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
 };
 
 export const getJourneyPlanByUuid = async (uuid: string): Promise<JourneyPlanFullFormData> => {
@@ -42,9 +32,6 @@ export const deleteJourneyPlan = async (uuid: string): Promise<void> => {
   await axiosInstance.post('/journey-plan/delete', { id: uuid });
 };
 
-export const bulkActionJourneyPlans = async (
-  uuids: string[],
-  action: 'activate' | 'deactivate' | 'delete',
-): Promise<void> => {
+export const bulkActionJourneyPlans = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/journey-plan/bulk-action', { uuids, action });
 };

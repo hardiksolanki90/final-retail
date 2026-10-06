@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { CUSTOMER_DETAIL_KEY } from '../hooks/Customers/useCustomerDetail';
 import {
   getCustomerList,
   deleteCustomer,
@@ -145,21 +146,12 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     isLoading,
     error,
     refetch: refetchCustomers,
-  } = useQuery({
-    queryKey: ['customer-list', searchTerm, currentPage, perPage, filters],
-    queryFn: () => getCustomerList(currentPage, searchTerm, perPage, filters),
-    staleTime: 5 * 60 * 1000,
-  });
+  } = useQuery({ queryKey: ['customer-list', searchTerm, currentPage, perPage, filters], queryFn: () => getCustomerList(currentPage, searchTerm, perPage, filters), staleTime: 5 * 60 * 1000 });
 
   // Customer sales data query
   const { data: customerSalesData, isLoading: isLoadingSales } = useQuery({
     queryKey: ['customer-sales', selectedCustomerForDrawer?.uuid, salesDateRange],
-    queryFn: () => 
-      getCustomerSales(
-        selectedCustomerForDrawer?.uuid!,
-        salesDateRange[0],
-        salesDateRange[1]
-      ),
+    queryFn: () => getCustomerSales(selectedCustomerForDrawer?.uuid!, salesDateRange[0], salesDateRange[1]),
     enabled: !!selectedCustomerForDrawer?.uuid,
     staleTime: 5 * 60 * 1000,
   });
@@ -172,19 +164,9 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     enabled: isCustomerModalVisible,
   });
 
-  const { data: customerGroups = [], isLoading: isLoadingGroups } = useQuery({
-    queryKey: ['customer-groups'],
-    queryFn: getCustomerGroups,
-    staleTime: 10 * 60 * 1000,
-    enabled: isCustomerModalVisible,
-  });
+  const { data: customerGroups = [], isLoading: isLoadingGroups } = useQuery({ queryKey: ['customer-groups'], queryFn: getCustomerGroups, staleTime: 10 * 60 * 1000, enabled: isCustomerModalVisible });
 
-  const { data: channels = [], isLoading: isLoadingChannels } = useQuery({
-    queryKey: ['channels'],
-    queryFn: getChannels,
-    staleTime: 10 * 60 * 1000,
-    enabled: isCustomerModalVisible,
-  });
+  const { data: channels = [], isLoading: isLoadingChannels } = useQuery({ queryKey: ['channels'], queryFn: getChannels, staleTime: 10 * 60 * 1000, enabled: isCustomerModalVisible });
 
   const { data: salesOrganisations = [], isLoading: isLoadingSalesOrganisations } = useQuery({
     queryKey: ['sales-organisations'],
@@ -193,19 +175,9 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     enabled: isCustomerModalVisible,
   });
 
-  const { data: paymentTerms = [], isLoading: isLoadingPaymentTerms } = useQuery({
-    queryKey: ['payment-terms'],
-    queryFn: getPaymentTerms,
-    staleTime: 10 * 60 * 1000,
-    enabled: isCustomerModalVisible,
-  });
+  const { data: paymentTerms = [], isLoading: isLoadingPaymentTerms } = useQuery({ queryKey: ['payment-terms'], queryFn: getPaymentTerms, staleTime: 10 * 60 * 1000, enabled: isCustomerModalVisible });
 
-  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({
-    queryKey: ['routes'],
-    queryFn: getRoutes,
-    staleTime: 10 * 60 * 1000,
-    enabled: isCustomerModalVisible,
-  });
+  const { data: routes = [], isLoading: isLoadingRoutes } = useQuery({ queryKey: ['routes'], queryFn: getRoutes, staleTime: 10 * 60 * 1000, enabled: isCustomerModalVisible });
 
   // Customers by salesman query
   const { data: customersBySalesman } = useQuery({
@@ -230,11 +202,11 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
   });
 
   const updateCustomerMutation = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: CustomerFormData }) =>
-      updateCustomer(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: CustomerFormData }) => updateCustomer(uuid, data),
     onSuccess: () => {
       showToast.success('Customer updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['customer-list'] });
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_DETAIL_KEY] });
       setIsCustomerModalVisible(false);
       setSelectedCustomer(null);
     },
@@ -248,6 +220,7 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     onSuccess: () => {
       showToast.success('Customer deleted successfully!');
       queryClient.invalidateQueries({ queryKey: ['customer-list'] });
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_DETAIL_KEY] });
     },
     onError: (error: Error) => {
       showToast.error(error.message || 'Failed to delete customer');
@@ -259,6 +232,7 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     onSuccess: () => {
       showToast.success('Bulk action completed successfully!');
       queryClient.invalidateQueries({ queryKey: ['customer-list'] });
+      queryClient.invalidateQueries({ queryKey: [CUSTOMER_DETAIL_KEY] });
       setSelectedRowKeys([]);
     },
     onError: (error: Error) => {
@@ -285,33 +259,17 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
   });
 
   const createGroupMutation = useMutation({
-    mutationFn: (values: Record<string, any>) =>
-      createCustomerGroup({
-        groupName: values.name,
-        groupCode: values.code || undefined,
-        type: values.type || undefined,
-        status: values.status ?? true,
-      }),
+    mutationFn: (values: Record<string, any>) => createCustomerGroup({ groupName: values.name, groupCode: values.code || undefined, type: values.type || undefined, status: values.status ?? true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customer-groups'] }),
   });
 
   const createChannelMutation = useMutation({
-    mutationFn: (values: Record<string, any>) =>
-      createChannel({
-        channelName: values.name,
-        parentId: values.parentId ? Number(values.parentId) : undefined,
-        status: values.status ?? true,
-      }),
+    mutationFn: (values: Record<string, any>) => createChannel({ channelName: values.name, parentId: values.parentId ? Number(values.parentId) : undefined, status: values.status ?? true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels'] }),
   });
 
   const createSalesOrganisationMutation = useMutation({
-    mutationFn: (values: Record<string, any>) =>
-      createSalesOrganisation({
-        name: values.name,
-        parentId: values.parentId ? Number(values.parentId) : undefined,
-        status: values.status ?? true,
-      }),
+    mutationFn: (values: Record<string, any>) => createSalesOrganisation({ name: values.name, parentId: values.parentId ? Number(values.parentId) : undefined, status: values.status ?? true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sales-organisations'] }),
   });
 
@@ -368,10 +326,7 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
       return;
     }
 
-    const bulkAction: CustomerBulkAction = {
-      action: action as 'activate' | 'deactivate' | 'delete',
-      uuids: selectedRowKeys,
-    };
+    const bulkAction: CustomerBulkAction = { action: action as 'activate' | 'deactivate' | 'delete', uuids: selectedRowKeys };
 
     bulkActionMutation.mutate(bulkAction);
   };
@@ -388,13 +343,7 @@ export default function CustomerProvider({ children }: CustomerProviderProps) {
     deleteCustomerMutation.mutate(uuid);
   };
 
-  const isLoadingRelatedData =
-    isLoadingCategories ||
-    isLoadingGroups ||
-    isLoadingChannels ||
-    isLoadingSalesOrganisations ||
-    isLoadingPaymentTerms ||
-    isLoadingRoutes;
+  const isLoadingRelatedData = isLoadingCategories || isLoadingGroups || isLoadingChannels || isLoadingSalesOrganisations || isLoadingPaymentTerms || isLoadingRoutes;
 
   const value: CustomerContextType = {
     customerData,

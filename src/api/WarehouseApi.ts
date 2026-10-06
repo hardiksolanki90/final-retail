@@ -3,14 +3,7 @@ import { showToast } from '../lib/toast';
 import type { WarehouseListResponse, WarehouseFormData } from '../types/Warehouse';
 import { unwrapPaginated } from '../lib/paginatedResponse';
 
-export const getWarehouseList = async (
-  page = 1,
-  perPage = 15,
-  searchTerm?: string,
-  depotId?: number,
-  routeId?: number,
-  status?: boolean
-): Promise<WarehouseListResponse> => {
+export const getWarehouseList = async (page = 1, perPage = 15, searchTerm?: string, depotId?: number, routeId?: number, status?: boolean): Promise<WarehouseListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());

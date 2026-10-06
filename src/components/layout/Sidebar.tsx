@@ -5,7 +5,7 @@ import {
   Package,
   UserCog,
   Map,
-  DollarSign,
+  Banknote,
   Gift,
   Percent,
   ShoppingCart,
@@ -59,7 +59,6 @@ import {
   FileBarChart,
   type LucideIcon,
 } from 'lucide-react';
-import { sidebarMenu } from '../../data/menuData';
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
@@ -76,7 +75,7 @@ const iconMap: Record<string, LucideIcon> = {
   package: Package,
   'user-cog': UserCog,
   map: Map,
-  'dollar-sign': DollarSign,
+  banknote: Banknote,
   gift: Gift,
   percent: Percent,
   'shopping-cart': ShoppingCart,
@@ -134,7 +133,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) {
   const location = useLocation();
-  const { hasPermission } = useAuth();
+  const { sidebarMenu } = useAuth();
 
   const getIcon = (iconName: string) => {
     const IconComponent = iconMap[iconName];
@@ -148,12 +147,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
   return (
     <>
       {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />}
 
       {/* Sidebar */}
       <aside
@@ -168,9 +162,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
                 <span className="text-white font-bold text-lg">R</span>
               </div>
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                Retail App
-              </span>
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">Retail App</span>
             </Link>
           )}
           {isCollapsed && (
@@ -179,11 +171,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
             </div>
           )}
           {/* Mobile Close Button */}
-          <button
-            onClick={onClose}
-            className="p-2 cursor-pointer rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
-            aria-label="Close sidebar"
-          >
+          <button onClick={onClose} className="p-2 cursor-pointer rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden" aria-label="Close sidebar">
             <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
@@ -193,15 +181,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
           {sidebarMenu.map((section) => (
             <div key={section.section} className="mb-2">
               {/* Section Caption */}
-              {!isCollapsed && (
-                <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  {section.section}
-                </div>
-              )}
+              {!isCollapsed && <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{section.section}</div>}
 
               {/* Section Items */}
               <ul className="space-y-1 px-2">
-                {section.items.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => (
+                {section.items.map((item) => (
                   <li key={item.path}>
                     <Link
                       to={item.path}
@@ -215,13 +199,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
                       } ${isCollapsed ? 'justify-center' : ''}`}
                       title={isCollapsed ? item.name : undefined}
                     >
-                      <span
-                        className={
-                          isActive(item.path)
-                            ? 'text-blue-600 dark:text-blue-400'
-                            : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'
-                        }
-                      >
+                      <span className={isActive(item.path) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'}>
                         {getIcon(item.icon)}
                       </span>
                       {!isCollapsed && <span>{item.name}</span>}
@@ -257,9 +235,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
                 >
                   <span
                     className={
-                      location.pathname.startsWith('/reports')
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'
+                      location.pathname.startsWith('/reports') ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'
                     }
                   >
                     <FileBarChart className="w-5 h-5" />

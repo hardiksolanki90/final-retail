@@ -10,11 +10,7 @@ export interface MerchandiserReplacementFilters {
   new_salesman_id?: number;
 }
 
-export const getMerchandiserReplacementList = async (
-  page = 1,
-  perPage = 15,
-  filters?: MerchandiserReplacementFilters
-): Promise<MerchandiserReplacementListResponse> => {
+export const getMerchandiserReplacementList = async (page = 1, perPage = 15, filters?: MerchandiserReplacementFilters): Promise<MerchandiserReplacementListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());

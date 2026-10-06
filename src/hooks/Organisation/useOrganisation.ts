@@ -7,29 +7,20 @@ import type { OrganisationFormData } from '../../types/Organisation';
 // every mount. Default staleTime (5 min, set in lib/queryClient) means
 // navigating between those pages within that window serves cache, no request.
 export function useOrganisation() {
-  const query = useQuery({
-    queryKey: ['organisation', 'current'],
-    queryFn: getCurrentOrganisation,
-  });
+    const query = useQuery({ queryKey: ['organisation', 'current'], queryFn: getCurrentOrganisation });
 
-  return {
-    organisation: query.data ?? null,
-    isLoading: query.isLoading,
-    isSuccess: query.isSuccess,
-    error: query.error,
-    refetch: query.refetch,
-  };
+    return { organisation: query.data ?? null, isLoading: query.isLoading, isSuccess: query.isSuccess, error: query.error, refetch: query.refetch };
 }
 
 export function useUpdateOrganisation() {
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (data: OrganisationFormData) => updateOrganisation(data),
-    onSuccess: () => {
-      // Refetch rather than trust the response shape blindly — keeps View/Add/Edit
-      // in sync with whatever the next page reads from the cache.
-      queryClient.invalidateQueries({ queryKey: ['organisation'] });
-    },
-  });
+    return useMutation({
+        mutationFn: (data: OrganisationFormData) => updateOrganisation(data),
+        onSuccess: () => {
+            // Refetch rather than trust the response shape blindly — keeps View/Add/Edit
+            // in sync with whatever the next page reads from the cache.
+            queryClient.invalidateQueries({ queryKey: ['organisation'] });
+        },
+    });
 }

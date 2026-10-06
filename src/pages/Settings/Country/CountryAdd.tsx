@@ -5,27 +5,14 @@ import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { CountryMasterSelect } from '../../../components/shared/CountryMasterSelect';
 import type { CountryFormData, CountryMaster } from '../../../types/Country';
 
-
 interface CountryAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: CountryFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: CountryFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: CountryFormData = {
-  countryMasterId: '',
-  name: '',
-  countryCode: '',
-  dialCode: '',
-  currency: '',
-  currencyCode: '',
-  currencySymbol: '',
-  status: true,
-};
+const initialFormData: CountryFormData = { countryMasterId: '', name: '', countryCode: '', dialCode: '', currency: '', currencyCode: '', currencySymbol: '', status: true };
 
 export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) {
   const initialData = data?.initialData;
@@ -39,10 +26,8 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
     setError,
     watch,
     setValue,
-    control
-  } = useForm<CountryFormData>({
-    defaultValues: initialFormData
-  });
+    control,
+  } = useForm<CountryFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
 
@@ -56,14 +41,9 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
 
   const onFormSubmit = async (formData: CountryFormData) => {
     try {
-      await onEvent?.({
-        eventType: initialData ? 'CountryUpdated' : 'CountryCreated',
-        country: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'CountryUpdated' : 'CountryCreated', country: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving country'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving country' });
     }
   };
 
@@ -88,15 +68,13 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="country-form" disabled={isLoading || isSubmitting}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -105,13 +83,7 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Country' : 'Add Country'}
-      width="w-[500px]"
-      footer={footerContent}
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Country' : 'Add Country'} width="w-[500px]" footer={footerContent}>
       <form id="country-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {/* Show root errors */}
         {errors.root && (
@@ -128,6 +100,7 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
             rules={{ required: 'Country is required' }}
             render={({ field }) => (
               <CountryMasterSelect
+                variant="flags"
                 label="Country Master"
                 value={field.value}
                 onChange={(master) => {
@@ -142,7 +115,9 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <input
               {...register('name', { required: 'Name is required' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -152,7 +127,9 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Country Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Country Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <input
               {...register('countryCode', { required: 'Country Code is required' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -197,7 +174,6 @@ export function CountryAdd({ isOpen, onClose, data, onEvent }: CountryAddProps) 
             />
           </div>
         </div>
-
       </form>
     </Drawer>
   );

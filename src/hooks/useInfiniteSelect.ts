@@ -2,12 +2,20 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { SelectOption } from '../components/ui/Select';
 
 export interface UseInfiniteSelectProps<T> {
-  fetchPage: (page: number, search: string) => Promise<{
-    items: T[];
-    hasMore: boolean;
-  }>;
+  /**
+   * `perPage` is optional and only passed by `loadAll()` (see below), asking
+   * for a much bigger page than the UI's normal scroll-page size — existing
+   * callers that only destructure `(page, search)` keep working unchanged.
+   */
+  fetchPage: (page: number, search: string, perPage?: number) => Promise<{ items: T[]; hasMore: boolean }>;
   mapItemToOption: (item: T) => SelectOption;
   selectedValue?: string | number;
+  /**
+   * Label for `selectedValue` when it may not be on the first fetched page
+   * (e.g. an edit form's saved value) — kept in the list so the Select can
+   * display it. Ignored unless its value equals `selectedValue`.
+   */
+  initialOption?: SelectOption | null;
   /**
    * Gate the initial fetch — for a Select that lives inside a modal/drawer
    * still mounted (just hidden) while closed, so it doesn't fire a request
@@ -25,17 +33,16 @@ export interface UseInfiniteSelectProps<T> {
   resetKey?: string | number;
 }
 
-export function useInfiniteSelect<T>({
-  fetchPage,
-  mapItemToOption,
-  selectedValue,
-  enabled = true,
-  resetKey,
-}: UseInfiniteSelectProps<T>) {
+// loadAll() requests pages this big instead of the UI's normal small scroll-page
+// size, so a few-hundred-record list takes 1-2 round trips instead of a dozen+.
+const BULK_PAGE_SIZE = 200;
+
+export function useInfiniteSelect<T>({ fetchPage, mapItemToOption, selectedValue, initialOption, enabled = true, resetKey }: UseInfiniteSelectProps<T>) {
   const [options, setOptions] = useState<SelectOption[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
 
   // References to keep callbacks completely stable across parent re-renders
   const fetchPageRef = useRef(fetchPage);
@@ -49,6 +56,10 @@ export function useInfiniteSelect<T>({
   const hasMoreRef = useRef(true);
   const inFlightRef = useRef(false);
   const selectedOptionRef = useRef<SelectOption | null>(null);
+  // Mirrors `options` synchronously (state updates aren't visible until the
+  // next render) so loadAll can read the true accumulated list right after
+  // its awaited loop, not a stale closure snapshot.
+  const optionsRef = useRef<SelectOption[]>([]);
 
   const loadData = useCallback(async (targetPage: number, search: string, append = false) => {
     // Guard against duplicate concurrent requests
@@ -65,24 +76,20 @@ export function useInfiniteSelect<T>({
       const result = await fetchPageRef.current(targetPage, search);
       const mapped = (result?.items || []).map(mapItemToOptionRef.current);
 
-      setOptions((prev) => {
-        let nextOptions: SelectOption[];
-        if (append) {
-          const existingValues = new Set(prev.map((o) => String(o.value)));
-          const newUnique = mapped.filter((o) => !existingValues.has(String(o.value)));
-          nextOptions = [...prev, ...newUnique];
-        } else {
-          nextOptions = mapped;
-          // Retain selected option at the top if it is not present in the new page
-          if (
-            selectedOptionRef.current &&
-            !nextOptions.some((o) => String(o.value) === String(selectedOptionRef.current?.value))
-          ) {
-            nextOptions = [selectedOptionRef.current, ...nextOptions];
-          }
+      let nextOptions: SelectOption[];
+      if (append) {
+        const existingValues = new Set(optionsRef.current.map((o) => String(o.value)));
+        const newUnique = mapped.filter((o) => !existingValues.has(String(o.value)));
+        nextOptions = [...optionsRef.current, ...newUnique];
+      } else {
+        nextOptions = mapped;
+        // Retain selected option at the top if it is not present in the new page
+        if (selectedOptionRef.current && !nextOptions.some((o) => String(o.value) === String(selectedOptionRef.current?.value))) {
+          nextOptions = [selectedOptionRef.current, ...nextOptions];
         }
-        return nextOptions;
-      });
+      }
+      optionsRef.current = nextOptions;
+      setOptions(nextOptions);
 
       const more = Boolean(result?.hasMore);
       hasMoreRef.current = more;
@@ -91,7 +98,10 @@ export function useInfiniteSelect<T>({
       searchRef.current = search;
     } catch (err) {
       console.error('Failed to load paginated select options:', err);
-      if (!append) setOptions([]);
+      if (!append) {
+        optionsRef.current = [];
+        setOptions([]);
+      }
       hasMoreRef.current = false;
       setHasMore(false);
     } finally {
@@ -120,6 +130,17 @@ export function useInfiniteSelect<T>({
     }
   }, [selectedValue, options]);
 
+  // Keep the caller-supplied label for the saved value in the list, even when
+  // it isn't on the fetched page.
+  useEffect(() => {
+    if (!initialOption || String(initialOption.value) !== String(selectedValue)) return;
+    selectedOptionRef.current = initialOption;
+    if (!optionsRef.current.some((o) => String(o.value) === String(initialOption.value))) {
+      optionsRef.current = [initialOption, ...optionsRef.current];
+      setOptions(optionsRef.current);
+    }
+  }, [initialOption, selectedValue, options]);
+
   const handleLoadMore = useCallback(() => {
     if (hasMoreRef.current && !inFlightRef.current) {
       loadData(pageRef.current + 1, searchRef.current, true);
@@ -136,26 +157,57 @@ export function useInfiniteSelect<T>({
 
   const addOption = useCallback((option: SelectOption) => {
     selectedOptionRef.current = option;
-    setOptions((prev) => {
-      const filtered = prev.filter((o) => String(o.value) !== String(option.value));
-      return [option, ...filtered];
-    });
+    const filtered = optionsRef.current.filter((o) => String(o.value) !== String(option.value));
+    const next = [option, ...filtered];
+    optionsRef.current = next;
+    setOptions(next);
   }, []);
 
   const refetch = useCallback(() => {
     return loadData(1, searchRef.current, false);
   }, [loadData]);
 
-  return {
-    options,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    onLoadMore: handleLoadMore,
-    onSearchChange: handleSearchChange,
-    addOption,
-    refetch,
-  };
+  // Fetches every matching record for the current search term, then returns
+  // the full list — used by a "Select all" control so it selects everything,
+  // not just what's been scroll-paginated in so far. Requests a much bigger
+  // page size than the UI's normal small pages (15) so a few-hundred-record
+  // list takes 1-2 round trips instead of a dozen+ — it replaces the loaded
+  // list outright rather than resuming from wherever scrolling left off,
+  // since mixing two different page sizes mid-pagination would misalign
+  // which records "page N" actually refers to.
+  const loadAll = useCallback(async (): Promise<SelectOption[]> => {
+    while (inFlightRef.current) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    inFlightRef.current = true;
+    setIsLoadingAll(true);
+
+    try {
+      const search = searchRef.current;
+      let page = 1;
+      let more = true;
+      let all: SelectOption[] = [];
+
+      while (more) {
+        const result = await fetchPageRef.current(page, search, BULK_PAGE_SIZE);
+        all = [...all, ...(result?.items || []).map(mapItemToOptionRef.current)];
+        more = Boolean(result?.hasMore);
+        page += 1;
+      }
+
+      optionsRef.current = all;
+      setOptions(all);
+      hasMoreRef.current = false;
+      setHasMore(false);
+
+      return all;
+    } finally {
+      inFlightRef.current = false;
+      setIsLoadingAll(false);
+    }
+  }, []);
+
+  return { options, isLoading, isLoadingMore, isLoadingAll, hasMore, onLoadMore: handleLoadMore, onSearchChange: handleSearchChange, addOption, refetch, loadAll };
 }
 
 export default useInfiniteSelect;

@@ -5,30 +5,23 @@ import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { CustomerCategoryFormData } from '../../../types/CustomerCategory';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: Code, Category Name.
+const CUSTOMER_CATEGORY_FORM_SKELETON: FormSkeletonField[] = ['code', 'input'];
 
 interface CustomerCategoryAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: CustomerCategoryFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: CustomerCategoryFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: CustomerCategoryFormData = {
-  categoryName: '',
-  customerCategoryCode: '',
-  status: true,
-};
+const initialFormData: CustomerCategoryFormData = { categoryName: '', customerCategoryCode: '', status: true };
 
-export function CustomerCategoryAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: CustomerCategoryAddProps) {
+export function CustomerCategoryAdd({ isOpen, onClose, data, onEvent }: CustomerCategoryAddProps) {
   const initialData = data?.initialData;
+  const isLoading = data?.isLoading || false;
 
   const {
     register,
@@ -37,10 +30,8 @@ export function CustomerCategoryAdd({
     reset,
     setError,
     watch,
-    setValue
-  } = useForm<CustomerCategoryFormData>({
-    defaultValues: initialFormData
-  });
+    setValue,
+  } = useForm<CustomerCategoryFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
@@ -62,14 +53,9 @@ export function CustomerCategoryAdd({
         setCodeLocked(true);
       }
 
-      await onEvent?.({
-        eventType: initialData ? 'CustomerCategoryUpdated' : 'CustomerCategoryCreated',
-        customerCategory: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'CustomerCategoryUpdated' : 'CustomerCategoryCreated', customerCategory: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving customer category'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving customer category' });
     }
   };
 
@@ -84,15 +70,13 @@ export function CustomerCategoryAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="customer-category-form" disabled={isSubmitting}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -102,6 +86,8 @@ export function CustomerCategoryAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={CUSTOMER_CATEGORY_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Customer Category' : 'Add Customer Category'}
@@ -124,31 +110,31 @@ export function CustomerCategoryAdd({
             <input
               {...register('customerCategoryCode')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
-            <OrderCodeSettingsIcon label="Code" value={watch('customerCategoryCode') || ''} onChange={(v) => setValue('customerCategoryCode', v)} entityKey="customer_category" onLockChange={setCodeLocked} />
-            {errors.customerCategoryCode && (
-              <p className="text-red-600 text-xs mt-1">{errors.customerCategoryCode.message}</p>
-            )}
+            <OrderCodeSettingsIcon
+              label="Code"
+              value={watch('customerCategoryCode') || ''}
+              onChange={(v) => setValue('customerCategoryCode', v)}
+              entityKey="customer_category"
+              onLockChange={setCodeLocked}
+            />
+            {errors.customerCategoryCode && <p className="text-red-600 text-xs mt-1">{errors.customerCategoryCode.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Category Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('categoryName', {
-              required: 'Category name is required',
-              validate: value => value.trim() !== '' || 'Category name cannot be empty'
-            })}
+            {...register('categoryName', { required: 'Category name is required', validate: (value) => value.trim() !== '' || 'Category name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter category name"
           />
-          {errors.categoryName && (
-            <p className="text-red-600 text-xs mt-1">{errors.categoryName.message}</p>
-          )}
+          {errors.categoryName && <p className="text-red-600 text-xs mt-1">{errors.categoryName.message}</p>}
         </div>
-
       </form>
     </Drawer>
   );

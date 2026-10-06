@@ -1,12 +1,6 @@
-import {
-  DollarSign,
-  ShoppingCart,
-  Users,
-  ArrowUpRight,
-  ArrowDownRight,
-  BarChart3,
-} from 'lucide-react';
+import { Banknote, ShoppingCart, Users, ArrowUpRight, ArrowDownRight, BarChart3 } from 'lucide-react';
 import { Card, CardHeader, CardContent, StatCard } from '../../components/ui/Card';
+import { useMoney } from '../../hooks/Currency/useMoney';
 
 const monthlyRevenue = [
   { month: 'Jan', value: 186000, target: 200000 },
@@ -61,41 +55,17 @@ const topCustomers = [
 
 const maxRevenue = Math.max(...monthlyRevenue.map((m) => Math.max(m.value, m.target)));
 
-function formatCurrency(value: number): string {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-  return `$${value.toFixed(0)}`;
-}
-
 export function SalesDashboard() {
+  const { format, formatCompact } = useMoney();
+  const formatCurrency = (value: number) => formatCompact(value);
   return (
     <div className="space-y-6">
       {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Revenue"
-          value="$2.45M"
-          icon={<DollarSign className="w-6 h-6" />}
-          trend={{ value: 18.2, isPositive: true }}
-        />
-        <StatCard
-          title="Total Orders"
-          value="8,742"
-          icon={<ShoppingCart className="w-6 h-6" />}
-          trend={{ value: 12.5, isPositive: true }}
-        />
-        <StatCard
-          title="Active Customers"
-          value="1,856"
-          icon={<Users className="w-6 h-6" />}
-          trend={{ value: 8.3, isPositive: true }}
-        />
-        <StatCard
-          title="Avg Order Value"
-          value="$274.50"
-          icon={<BarChart3 className="w-6 h-6" />}
-          trend={{ value: 2.1, isPositive: false }}
-        />
+        <StatCard title="Total Revenue" value={formatCompact(2_450_000, 2)} icon={<Banknote className="w-6 h-6" />} trend={{ value: 18.2, isPositive: true }} />
+        <StatCard title="Total Orders" value="8,742" icon={<ShoppingCart className="w-6 h-6" />} trend={{ value: 12.5, isPositive: true }} />
+        <StatCard title="Active Customers" value="1,856" icon={<Users className="w-6 h-6" />} trend={{ value: 8.3, isPositive: true }} />
+        <StatCard title="Avg Order Value" value={format(274.5)} icon={<BarChart3 className="w-6 h-6" />} trend={{ value: 2.1, isPositive: false }} />
       </div>
 
       {/* Revenue Trend + Sales by Region */}
@@ -128,11 +98,7 @@ export function SalesDashboard() {
                       style={{ height: `${(item.value / maxRevenue) * 100}%` }}
                       title={`Revenue: ${formatCurrency(item.value)}`}
                     />
-                    <div
-                      className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-t-sm"
-                      style={{ height: `${(item.target / maxRevenue) * 100}%` }}
-                      title={`Target: ${formatCurrency(item.target)}`}
-                    />
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-t-sm" style={{ height: `${(item.target / maxRevenue) * 100}%` }} title={`Target: ${formatCurrency(item.target)}`} />
                   </div>
                   <span className="text-[10px] text-gray-500 dark:text-gray-400">{item.month}</span>
                 </div>
@@ -149,15 +115,10 @@ export function SalesDashboard() {
               <div key={item.region}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-gray-700 dark:text-gray-300">{item.region}</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {formatCurrency(item.revenue)}
-                  </span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(item.revenue)}</span>
                 </div>
                 <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                  <div
-                    className="bg-primary-500 h-2 rounded-full transition-all"
-                    style={{ width: `${item.percentage * (100 / 28)}%` }}
-                  />
+                  <div className="bg-primary-500 h-2 rounded-full transition-all" style={{ width: `${item.percentage * (100 / 28)}%` }} />
                 </div>
               </div>
             ))}
@@ -174,12 +135,7 @@ export function SalesDashboard() {
             {/* Stacked bar */}
             <div className="flex rounded-full h-4 overflow-hidden mb-4">
               {orderStatusData.map((item) => (
-                <div
-                  key={item.status}
-                  className={`${item.color} transition-all`}
-                  style={{ width: `${item.percentage}%` }}
-                  title={`${item.status}: ${item.count}`}
-                />
+                <div key={item.status} className={`${item.color} transition-all`} style={{ width: `${item.percentage}%` }} title={`${item.status}: ${item.count}`} />
               ))}
             </div>
             <div className="space-y-2.5">
@@ -190,9 +146,7 @@ export function SalesDashboard() {
                     <span className="text-sm text-gray-600 dark:text-gray-400">{item.status}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {item.count.toLocaleString()}
-                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{item.count.toLocaleString()}</span>
                     <span className="text-xs text-gray-500 w-10 text-right">{item.percentage}%</span>
                   </div>
                 </div>
@@ -211,51 +165,26 @@ export function SalesDashboard() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-800">
-                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                      Product
-                    </th>
-                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                      Revenue
-                    </th>
-                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                      Units
-                    </th>
-                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                      Growth
-                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Product</th>
+                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Revenue</th>
+                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Units</th>
+                    <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Growth</th>
                   </tr>
                 </thead>
                 <tbody>
                   {topProducts.map((product) => (
-                    <tr
-                      key={product.sku}
-                      className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                    >
+                    <tr key={product.sku} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-6 py-3">
                         <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {product.name}
-                          </p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{product.name}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{product.sku}</p>
                         </div>
                       </td>
-                      <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        {formatCurrency(product.revenue)}
-                      </td>
-                      <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {product.units.toLocaleString()}
-                      </td>
+                      <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(product.revenue)}</td>
+                      <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{product.units.toLocaleString()}</td>
                       <td className="text-right px-6 py-3">
-                        <span
-                          className={`inline-flex items-center gap-0.5 text-sm font-medium ${
-                            product.growth >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {product.growth >= 0 ? (
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                          ) : (
-                            <ArrowDownRight className="w-3.5 h-3.5" />
-                          )}
+                        <span className={`inline-flex items-center gap-0.5 text-sm font-medium ${product.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {product.growth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                           {Math.abs(product.growth)}%
                         </span>
                       </td>
@@ -278,64 +207,38 @@ export function SalesDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800">
-                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                    Customer
-                  </th>
-                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                    Orders
-                  </th>
-                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                    Revenue
-                  </th>
-                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                    Revenue Share
-                  </th>
-                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">
-                    Last Order
-                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Customer</th>
+                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Orders</th>
+                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Revenue</th>
+                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Revenue Share</th>
+                  <th className="text-right text-xs font-medium text-gray-500 dark:text-gray-400 px-6 py-3">Last Order</th>
                 </tr>
               </thead>
               <tbody>
                 {topCustomers.map((customer, index) => (
-                  <tr
-                    key={customer.code}
-                    className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                  >
+                  <tr key={customer.code} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-sm font-bold text-primary-600 dark:text-primary-400">
                           {index + 1}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {customer.name}
-                          </p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{customer.name}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{customer.code}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
-                      {customer.orders}
-                    </td>
-                    <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                      {formatCurrency(customer.revenue)}
-                    </td>
+                    <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{customer.orders}</td>
+                    <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(customer.revenue)}</td>
                     <td className="text-right px-6 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <div className="w-16 bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
-                          <div
-                            className="bg-primary-500 h-1.5 rounded-full"
-                            style={{ width: `${(customer.revenue / 245800) * 100}%` }}
-                          />
+                          <div className="bg-primary-500 h-1.5 rounded-full" style={{ width: `${(customer.revenue / 245800) * 100}%` }} />
                         </div>
-                        <span className="text-xs text-gray-500 w-8 text-right">
-                          {((customer.revenue / 2450000) * 100).toFixed(0)}%
-                        </span>
+                        <span className="text-xs text-gray-500 w-8 text-right">{((customer.revenue / 2450000) * 100).toFixed(0)}%</span>
                       </div>
                     </td>
-                    <td className="text-right px-6 py-3 text-sm text-gray-500 dark:text-gray-400">
-                      {customer.lastOrder}
-                    </td>
+                    <td className="text-right px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{customer.lastOrder}</td>
                   </tr>
                 ))}
               </tbody>

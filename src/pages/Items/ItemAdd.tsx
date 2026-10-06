@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
@@ -13,6 +13,32 @@ import { SectionLabel } from '../../components/ui/SectionLabel';
 import { TwoOptionToggle } from '../../components/ui/TwoOptionToggle';
 import { Plus, Trash2, Upload, Edit } from 'lucide-react';
 import type { ItemFormData } from '../../types/Item';
+import { FormSkeleton, Skeleton, type FormSkeletonField } from '../../components/ui/skeleton';
+
+// Mirrors the Item tab: code; name; description; category/brand, group/barcode, weight/shelf life, volume; two toggles; image.
+const ITEM_TAB_FIELDS: FormSkeletonField[] = ['code', 'input', 'input', ['input', 'input'], ['input', 'input'], ['input', 'input'], ['input'], ['toggle', 'toggle']];
+const ITEM_TAB_WIDTHS = ['w-8', 'w-8', 'w-24'];
+
+/** The drawer opens on the Item tab, so that is what the skeleton shows — tab bar included. */
+function ItemFormSkeleton() {
+  return (
+    <div className="bg-gray-50 dark:bg-gray-900">
+      <div className="border-b border-gray-200 bg-white px-6 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex gap-6">
+          {ITEM_TAB_WIDTHS.map((w, i) => (
+            <div key={i} className="flex h-[46px] items-center">
+              <Skeleton className={`h-3.5 ${w}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-8 bg-white p-6 dark:bg-gray-800">
+        <FormSkeleton bare fields={ITEM_TAB_FIELDS} />
+        <FormSkeleton bare fields={['upload']} />
+      </div>
+    </div>
+  );
+}
 
 interface ItemAddProps {
   isOpen: boolean;
@@ -71,13 +97,7 @@ const defaultValues: ItemFormData = {
   catalogImage: '',
 };
 
-export function ItemAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-}: ItemAddProps) {
+export function ItemAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false }: ItemAddProps) {
   const [activeTab, setActiveTab] = useState<'item' | 'uom' | 'catalog'>('item');
 
   const {
@@ -92,24 +112,24 @@ export function ItemAdd({
 
   const [codeLocked, setCodeLocked] = useState(false);
 
-  const { fields, append, remove, update } = useFieldArray({
-    control,
-    name: 'secondaryUoms',
-  });
+  const { fields, append, remove, update } = useFieldArray({ control, name: 'secondaryUoms' });
 
-  const [stagedUom, setStagedUom] = useState<any>({
-    uomId: 0,
-    conversionFactor: 1,
-    price: 0,
-    upc: 0,
-    isSku: false,
-    purchasePrice: 0,
-    uomName: '',
-  });
+  const [stagedUom, setStagedUom] = useState<any>({ uomId: 0, conversionFactor: 1, price: 0, upc: 0, isSku: false, purchasePrice: 0, uomName: '' });
   const [editingUomIndex, setEditingUomIndex] = useState<number | null>(null);
 
   const [itemImageFile, setItemImageFile] = useState<File | null>(null);
   const [itemImagePreview, setItemImagePreview] = useState<string>('');
+
+  const savedOptions = useMemo(() => {
+    const d = (initialData ?? {}) as any;
+    const opt = (value: unknown, label?: string) => (value && label ? { value: String(value), label } : null);
+    return {
+      category: opt(d.itemCategoryId, d.itemCategory?.categoryName),
+      brand: opt(d.brandId, d.brand?.brandName),
+      group: opt(d.itemGroupId, d.itemGroup && (d.itemGroup.code ? `${d.itemGroup.code} - ${d.itemGroup.name}` : d.itemGroup.name)),
+      uom: opt(d.itemUomId, d.itemUom && `${d.itemUom.name} (${d.itemUom.code})`),
+    };
+  }, [initialData]);
 
   const watchIsProductCatalog = watch('isProductCatalog');
   const watchIsPromotional = watch('isPromotional');
@@ -133,11 +153,7 @@ export function ItemAdd({
       setCodeLocked(true);
     }
 
-    const formData = {
-      ...data,
-      itemCode: resolvedCode ?? data.itemCode,
-      itemImage: itemImageFile ? itemImageFile.name : data.itemImage,
-    };
+    const formData = { ...data, itemCode: resolvedCode ?? data.itemCode, itemImage: itemImageFile ? itemImageFile.name : data.itemImage };
     await onSubmit(formData);
     onClose();
   };
@@ -164,15 +180,7 @@ export function ItemAdd({
     } else {
       append(stagedUom);
     }
-    setStagedUom({
-      uomId: 0,
-      conversionFactor: 1,
-      price: 0,
-      upc: 0,
-      isSku: false,
-      purchasePrice: 0,
-      uomName: '',
-    });
+    setStagedUom({ uomId: 0, conversionFactor: 1, price: 0, upc: 0, isSku: false, purchasePrice: 0, uomName: '' });
   };
 
   const handleEditStagedUom = (index: number) => {
@@ -182,6 +190,8 @@ export function ItemAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<ItemFormSkeleton />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Item' : 'Add Item'}
@@ -198,7 +208,6 @@ export function ItemAdd({
       }
     >
       <form id="item-add-form" onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800">
-
         {/* Tabs Row */}
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex gap-6 overflow-x-auto">
@@ -207,10 +216,11 @@ export function ItemAdd({
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab as any)}
-                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === tab
-                  ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                  }`}
+                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                  activeTab === tab
+                    ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
               >
                 {tab === 'item' ? 'Item' : tab === 'uom' ? 'UOM' : 'Product Catalog'}
               </button>
@@ -220,49 +230,34 @@ export function ItemAdd({
 
         {/* Tab Content Area */}
         <div className="p-6 bg-white dark:bg-gray-800">
-
           {/* Item Tab */}
           {activeTab === 'item' && (
             <div className="space-y-6 max-w-4xl mx-auto">
-
               <div className="grid grid-cols-1 gap-8">
                 {/* Form Fields */}
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Item Code <span className="text-red-500 font-bold ml-0.5">*</span>
+                      </label>
                     </div>
                     <div className="flex items-center gap-2 relative">
-                      <Input
-                        {...register('itemCode')}
-                        placeholder="Auto-generated if empty"
-                        error={errors.itemCode?.message}
-                        disabled={codeLocked}
-                      />
+                      <Input {...register('itemCode')} placeholder="Configure the system to auto-generate the code." error={errors.itemCode?.message} disabled={codeLocked} />
                       <OrderCodeSettingsIcon label="Item Code" value={watch('itemCode') || ''} onChange={(v) => setValue('itemCode', v)} entityKey="item" onLockChange={setCodeLocked} />
                     </div>
                   </div>
-                  <Input
-                    label="Item Name" required
-                    {...register('itemName', { required: 'Name is required' })}
-                    error={errors.itemName?.message}
-                  />
-                  <Input
-                    label="Item Description"
-                    {...register('description')}
-                  />
+                  <Input label="Item Name" required {...register('itemName', { required: 'Name is required' })} error={errors.itemName?.message} />
+                  <Input label="Item Description" {...register('description')} />
 
                   <div className="grid grid-cols-2 gap-4">
                     <ItemCategorySelect
                       value={watch('itemCategoryId')?.toString() || ''}
                       onChange={(value) => setValue('itemCategoryId', value)}
+                      initialOption={savedOptions.category}
                       error={errors.itemCategoryId?.message}
                     />
-                    <BrandSelect
-                      value={watch('brandId')?.toString() || ''}
-                      onChange={(value) => setValue('brandId', value)}
-                      error={errors.brandId?.message}
-                    />
+                    <BrandSelect value={watch('brandId')?.toString() || ''} onChange={(value) => setValue('brandId', value)} initialOption={savedOptions.brand} error={errors.brandId?.message} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -270,62 +265,36 @@ export function ItemAdd({
                       label="Item Group"
                       value={watch('itemGroupId')?.toString() || ''}
                       onChange={(value) => setValue('itemGroupId', value)}
+                      initialOption={savedOptions.group}
                       required
                     />
-                    <Input
-                      label="Item Barcode"
-                      {...register('itemBarcode')}
-                    />
+                    <Input label="Item Barcode" {...register('itemBarcode')} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Item Weight (KG)"
-                      type="number"
-                      step="0.001"
-                      {...register('itemWeight', { valueAsNumber: true })}
-                    />
-                    <Input
-                      label="Item Shelf Life (Days)"
-                      type="number"
-                      {...register('itemShelfLife', { valueAsNumber: true })}
-                    />
+                    <Input label="Item Weight (KG)" type="number" step="0.001" {...register('itemWeight', { valueAsNumber: true })} />
+                    <Input label="Item Shelf Life (Days)" type="number" {...register('itemShelfLife', { valueAsNumber: true })} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      label="Volume (ltr)"
-                      type="number"
-                      step="0.01"
-                      {...register('volume', { valueAsNumber: true })}
-                    />
+                    <Input label="Volume (ltr)" type="number" step="0.01" {...register('volume', { valueAsNumber: true })} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-                        Is Promotional <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                        Is Promotional <span className="text-red-500 font-bold ml-0.5">*</span>
+                      </label>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={watchIsPromotional === true}
-                          onChange={(e) => setValue('isPromotional', e.target.checked)}
-                        />
+                        <input type="checkbox" className="sr-only peer" checked={watchIsPromotional === true} onChange={(e) => setValue('isPromotional', e.target.checked)} />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
                       </label>
                     </div>
 
                     <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-                        New Launch
-                      </label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">New Launch</label>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          {...register('isNewLaunch')}
-                        />
+                        <input type="checkbox" className="sr-only peer" {...register('isNewLaunch')} />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
                       </label>
                     </div>
@@ -343,44 +312,29 @@ export function ItemAdd({
                           <span className="font-semibold">Choose file</span> No file chosen
                         </p>
                       </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                      />
+                      <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                     </label>
                   </div>
                   {itemImagePreview && (
                     <div className="mt-4">
-                      <img
-                        src={itemImagePreview}
-                        alt="Preview"
-                        className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-                      />
+                      <img src={itemImagePreview} alt="Preview" className="h-32 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
                     </div>
                   )}
                 </div>
               </div>
-
             </div>
           )}
 
           {/* UOM Tab */}
           {activeTab === 'uom' && (
             <div className="space-y-8 max-w-4xl mx-auto">
-
               {/* Base UOM */}
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <ItemUomSelect
-                    label="Base UOM"
-                    value={watch('itemUomId')?.toString() || ''}
-                    onChange={(val) => setValue('itemUomId', val)}
-                    required
-                  />
+                  <ItemUomSelect label="Base UOM" value={watch('itemUomId')?.toString() || ''} onChange={(val) => setValue('itemUomId', val)} initialOption={savedOptions.uom} required />
                   <Input
-                    label="Base UOM Purchase Price" required
+                    label="Base UOM Purchase Price"
+                    required
                     type="number"
                     step="0.01"
                     {...register('baseUomPurchasePrice', { valueAsNumber: true, required: 'Required' })}
@@ -415,19 +369,8 @@ export function ItemAdd({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Base UOM UPC" required
-                    type="number"
-                    {...register('baseUomUpc', { valueAsNumber: true, required: 'Required' })}
-                    error={errors.baseUomUpc?.message}
-                  />
-                  <Input
-                    label="Base UOM Price" required
-                    type="number"
-                    step="0.01"
-                    {...register('baseUomPrice', { valueAsNumber: true, required: 'Required' })}
-                    error={errors.baseUomPrice?.message}
-                  />
+                  <Input label="Base UOM UPC" required type="number" {...register('baseUomUpc', { valueAsNumber: true, required: 'Required' })} error={errors.baseUomUpc?.message} />
+                  <Input label="Base UOM Price" required type="number" step="0.01" {...register('baseUomPrice', { valueAsNumber: true, required: 'Required' })} error={errors.baseUomPrice?.message} />
                 </div>
               </div>
 
@@ -443,22 +386,12 @@ export function ItemAdd({
                     value={stagedUom.uomId || ''}
                     onChange={(val) => setStagedUom((prev: any) => ({ ...prev, uomId: parseInt(val) }))}
                     onSelectOption={(opt) => setStagedUom((prev: any) => ({ ...prev, uomName: opt.label }))}
+                    initialOption={stagedUom.uomId && stagedUom.uomName ? { value: String(stagedUom.uomId), label: stagedUom.uomName } : null}
                   />
-                  <Input
-                    label="UPC"
-                    type="number"
-                    value={stagedUom.upc || ''}
-                    onChange={(e) => setStagedUom((prev: any) => ({ ...prev, upc: Number(e.target.value) }))}
-                  />
+                  <Input label="UPC" type="number" value={stagedUom.upc || ''} onChange={(e) => setStagedUom((prev: any) => ({ ...prev, upc: Number(e.target.value) }))} />
                 </div>
 
-                <Input
-                  label="Price"
-                  type="number"
-                  step="0.01"
-                  value={stagedUom.price || ''}
-                  onChange={(e) => setStagedUom((prev: any) => ({ ...prev, price: Number(e.target.value) }))}
-                />
+                <Input label="Price" type="number" step="0.01" value={stagedUom.price || ''} onChange={(e) => setStagedUom((prev: any) => ({ ...prev, price: Number(e.target.value) }))} />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Is stock keeping unit ?</label>
@@ -542,16 +475,16 @@ export function ItemAdd({
                   </div>
                 )}
               </div>
-
             </div>
           )}
 
           {/* Product Catalog Tab */}
           {activeTab === 'catalog' && (
             <div className="space-y-6 max-w-4xl mx-auto pb-8">
-
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Is Product Catalog <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Is Product Catalog <span className="text-red-500 font-bold ml-0.5">*</span>
+                </label>
                 <TwoOptionToggle value={watchIsProductCatalog === true} onChange={(v) => setValue('isProductCatalog', v)} />
               </div>
 
@@ -575,10 +508,8 @@ export function ItemAdd({
                   </div>
                 </div>
               )}
-
             </div>
           )}
-
         </div>
       </form>
     </Drawer>

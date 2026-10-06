@@ -8,10 +8,7 @@ import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon
 import { RouteSelect } from '../../components/shared/RouteSelect';
 import { CountryPhoneInput } from '../../components/ui/CountryPhoneInput';
 import { Eye, EyeOff, X } from 'lucide-react';
-import type {
-  SalesmanFormData,
-  Salesman,
-} from '../../types/Salesman';
+import type { SalesmanFormData, Salesman } from '../../types/Salesman';
 import { useSalesman } from '../../providers/SalesmanProvider';
 import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
 
@@ -69,20 +66,8 @@ const initialFormData: SalesmanFormData = {
   blockEndDate: '',
 };
 
-export function SalesmanAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: SalesmanAddProps) {
-  const {
-    addSalesman,
-    updateSalesmanData,
-    isAdding,
-    isUpdating,
-    supervisorOptions,
-    isLoadingRelatedData,
-  } = useSalesman();
+export function SalesmanAdd({ isOpen, onClose, data, onEvent }: SalesmanAddProps) {
+  const { addSalesman, updateSalesmanData, isAdding, isUpdating, supervisorOptions, isLoadingRelatedData } = useSalesman();
 
   const {
     register,
@@ -92,24 +77,20 @@ export function SalesmanAdd({
     setError,
     watch,
     setValue,
-    control
-  } = useForm<SalesmanFormData>({
-    defaultValues: initialFormData
-  });
+    control,
+  } = useForm<SalesmanFormData>({ defaultValues: initialFormData });
 
   const isEditing = !!data;
   const watchedTypeId = watch('salesmanTypeId');
   const watchedIsBlock = watch('isBlock');
 
-  const selectedType = SALESMAN_TYPES.find(t => t.id.toString() === watchedTypeId);
+  const selectedType = SALESMAN_TYPES.find((t) => t.id.toString() === watchedTypeId);
   const isMerchandising = selectedType?.name === 'Merchandiser';
   const entityLabel = isMerchandising ? 'Merchandiser' : 'Salesman';
 
-  const salesmanTypeOptions: SelectOption[] = SALESMAN_TYPES.map(t => ({ value: t.id, label: t.name }));
-  const salesmanRoleOptions: SelectOption[] = SALESMAN_ROLES
-    .filter(r => r.typeId === selectedType?.id)
-    .map(r => ({ value: r.id, label: r.name }));
-  const salesmanCategoryOptions: SelectOption[] = SALESMAN_CATEGORIES.map(c => ({ value: c.id, label: c.name }));
+  const salesmanTypeOptions: SelectOption[] = SALESMAN_TYPES.map((t) => ({ value: t.id, label: t.name }));
+  const salesmanRoleOptions: SelectOption[] = SALESMAN_ROLES.filter((r) => r.typeId === selectedType?.id).map((r) => ({ value: r.id, label: r.name }));
+  const salesmanCategoryOptions: SelectOption[] = SALESMAN_CATEGORIES.map((c) => ({ value: c.id, label: c.name }));
 
   const [showPassword, setShowPassword] = useState(false);
   const [codeLocked, setCodeLocked] = useState(false);
@@ -178,10 +159,7 @@ export function SalesmanAdd({
         result = await addSalesman(formData);
       }
 
-      onEvent?.({
-        eventType: 'SalesmanSaved',
-        salesman: result,
-      });
+      onEvent?.({ eventType: 'SalesmanSaved', salesman: result });
 
       reset(initialFormData);
       onClose();
@@ -190,9 +168,7 @@ export function SalesmanAdd({
       if (emailError) {
         setError('email', { message: emailError });
       }
-      setError('root', {
-        message: error.response?.data?.message || 'Failed to save salesman. Please try again.'
-      });
+      setError('root', { message: error.response?.data?.message || 'Failed to save salesman. Please try again.' });
     }
   };
 
@@ -203,14 +179,11 @@ export function SalesmanAdd({
 
   // Convert related data to SelectOptions
 
-  const supervisorOptionsList: SelectOption[] = supervisorOptions.map(supervisor => ({
-    value: supervisor.id.toString(),
-    label: supervisor.name
-  }));
+  const supervisorOptionsList: SelectOption[] = supervisorOptions.map((supervisor) => ({ value: supervisor.id.toString(), label: supervisor.name }));
   // The currently assigned supervisor may no longer be eligible (e.g. their
   // Supervisor role was removed) — keep them selectable so editing doesn't
   // silently blank the field.
-  if (data?.supervisor && !supervisorOptionsList.some(opt => opt.value === data.supervisor!.id.toString())) {
+  if (data?.supervisor && !supervisorOptionsList.some((opt) => opt.value === data.supervisor!.id.toString())) {
     supervisorOptionsList.unshift({ value: data.supervisor.id.toString(), label: data.supervisor.name });
   }
 
@@ -226,46 +199,24 @@ export function SalesmanAdd({
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={isEditing ? `Edit ${entityLabel}` : `Add ${entityLabel}`}
-      width="w-[700px]"
-      footer={footerContent}
-    >
+    <Drawer isOpen={isOpen} onClose={handleClose} title={isEditing ? `Edit ${entityLabel}` : `Add ${entityLabel}`} width="w-[700px]" footer={footerContent}>
       <form id="salesman-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-        {errors.root && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {errors.root.message}
-          </div>
-        )}
+        {errors.root && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{errors.root.message}</div>}
 
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {entityLabel} Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+              {entityLabel} Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
-            <Input
-              {...register('salesmanCode')}
-              placeholder="Auto-generated if empty"
-              error={errors.salesmanCode?.message}
-              disabled={codeLocked}
-            />
-            <OrderCodeSettingsIcon
-              label={`${entityLabel} Code`}
-              value={watch('salesmanCode') || ''}
-              onChange={(v) => setValue('salesmanCode', v)}
-              entityKey="salesman"
-              onLockChange={setCodeLocked}
-            />
+            <Input {...register('salesmanCode')} placeholder="Configure the system to auto-generate the code." error={errors.salesmanCode?.message} disabled={codeLocked} />
+            <OrderCodeSettingsIcon label={`${entityLabel} Code`} value={watch('salesmanCode') || ''} onChange={(v) => setValue('salesmanCode', v)} entityKey="salesman" onLockChange={setCodeLocked} />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Profile Image:
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profile Image:</label>
           <div className="flex items-center gap-2">
             <input
               ref={fileInputRef}
@@ -276,11 +227,7 @@ export function SalesmanAdd({
             />
             {watch('profileImage') && (
               <div className="relative shrink-0">
-                <img
-                  src={watch('profileImage')}
-                  alt="Profile Preview"
-                  className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                />
+                <img src={watch('profileImage')} alt="Profile Preview" className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
@@ -297,26 +244,16 @@ export function SalesmanAdd({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              First Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
-            <Input
-              {...register('firstname', {
-                required: 'First name is required',
-                validate: value => value.trim() !== '' || 'First name cannot be empty'
-              })}
-              error={errors.firstname?.message}
-            />
+              First Name <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
+            <Input {...register('firstname', { required: 'First name is required', validate: (value) => value.trim() !== '' || 'First name cannot be empty' })} error={errors.firstname?.message} />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Last Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
-            <Input
-              {...register('lastname', {
-                required: 'Last name is required',
-                validate: value => value?.trim() !== '' || 'Last name cannot be empty'
-              })}
-              error={errors.lastname?.message}
-            />
+              Last Name <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
+            <Input {...register('lastname', { required: 'Last name is required', validate: (value) => value?.trim() !== '' || 'Last name cannot be empty' })} error={errors.lastname?.message} />
           </div>
         </div>
 
@@ -378,42 +315,21 @@ export function SalesmanAdd({
         </div>
 
         <div>
-          <RouteSelect
-            value={watch('routeId')?.toString() || ''}
-            onChange={(value) => setValue('routeId', value)}
-            required
-            isLoading={isLoadingRelatedData}
-          />
+          <RouteSelect value={watch('routeId')?.toString() || ''} onChange={(value) => setValue('routeId', value)} required isLoading={isLoadingRelatedData} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Email
-          </label>
-          <Input
-            {...register('email', {
-              pattern: {
-                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                message: 'Please enter a valid email address'
-              }
-            })}
-            type="email"
-            error={errors.email?.message}
-          />
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+          <Input {...register('email', { pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Please enter a valid email address' } })} type="email" error={errors.email?.message} />
         </div>
 
         {!isEditing && (
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Password <span className="text-red-500 font-bold ml-0.5">*</span></label>
+              Password <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <Input
-              {...register('password', {
-                required: 'Password is required',
-                minLength: {
-                  value: 6,
-                  message: 'Password must be at least 6 characters'
-                }
-              })}
+              {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })}
               type={showPassword ? 'text' : 'password'}
               error={errors.password?.message}
               rightIcon={
@@ -426,9 +342,7 @@ export function SalesmanAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Salesman Supervisor
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salesman Supervisor</label>
           <Controller
             name="supervisorId"
             control={control}
@@ -444,25 +358,12 @@ export function SalesmanAdd({
         </div>
 
         <div>
-          <Controller
-            name="mobile"
-            control={control}
-            render={({ field }) => (
-              <CountryPhoneInput
-                label="Mobile"
-                value={field.value || ''}
-                onChange={field.onChange}
-                error={errors.mobile?.message}
-              />
-            )}
-          />
+          <Controller name="mobile" control={control} render={({ field }) => <CountryPhoneInput label="Mobile" value={field.value || ''} onChange={field.onChange} error={errors.mobile?.message} />} />
         </div>
 
         <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-              Is Block
-            </label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">Is Block</label>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -482,20 +383,11 @@ export function SalesmanAdd({
 
           {watchedIsBlock && (
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="date"
-                label="Block Start Date"
-                {...register('blockStartDate')}
-              />
-              <Input
-                type="date"
-                label="Block End Date"
-                {...register('blockEndDate')}
-              />
+              <Input type="date" label="Block Start Date" {...register('blockStartDate')} />
+              <Input type="date" label="Block End Date" {...register('blockEndDate')} />
             </div>
           )}
         </div>
-
       </form>
     </Drawer>
   );

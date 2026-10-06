@@ -35,7 +35,8 @@ export const deleteItemGroup = async (uuid: string) => {
   showToast.success('Item group deleted successfully');
 };
 
-export const getAllItemGroups = async (): Promise<any[]> => {
+export const getAllItemGroups = async (): Promise<{ value: string; label: string }[]> => {
   const response = await axiosInstance.get('/item-group/list?page=1&per_page=1000');
-  return response.data.data || response.data;
+  const groups = unwrapPaginated<{ id: number; uuid: string; code?: string; name?: string }>(response.data, 'itemGroups', 1000).data;
+  return groups.map((g) => ({ value: g.uuid ?? String(g.id), label: [g.code, g.name].filter(Boolean).join(' - ') }));
 };

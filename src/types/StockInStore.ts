@@ -33,15 +33,7 @@ export interface StockInStoreFormData {
   storeId: string;
   checkDate: string;
   salesmanId: string;
-  items: Array<{
-    itemId: string;
-    currentStock: number;
-    minStockLevel: number;
-    maxStockLevel: number;
-    unitPrice: number;
-    expiryDate?: string;
-    batchNumber?: string;
-  }>;
+  items: Array<{ itemId: string; currentStock: number; minStockLevel: number; maxStockLevel: number; unitPrice: number; expiryDate?: string; batchNumber?: string }>;
   notes?: string;
   status: 'pending' | 'verified' | 'approved';
 }

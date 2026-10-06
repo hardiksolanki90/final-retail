@@ -6,8 +6,7 @@ import axiosInstance from '../lib/axios';
 
 const SANCTUM_URL = (import.meta.env.VITE_APP_URL || 'http://api.retail-chain.test') + '/sanctum/csrf-cookie';
 
-export const getCsrfCookie = (): Promise<void> =>
-  axiosInstance.get(SANCTUM_URL, { baseURL: '' }).then(() => undefined);
+export const getCsrfCookie = (): Promise<void> => axiosInstance.get(SANCTUM_URL, { baseURL: '' }).then(() => undefined);
 
 // ─── Auth API calls ───────────────────────────────────────────────────────────
 
@@ -74,11 +73,7 @@ export const updateProfile = async (data: Partial<AuthUser>): Promise<AuthUser> 
 /**
  * Change password (requires current password).
  */
-export const changePassword = async (data: {
-  currentPassword: string;
-  newPassword: string;
-  newPasswordConfirmation: string;
-}): Promise<{ message: string }> => {
+export const changePassword = async (data: { currentPassword: string; newPassword: string; newPasswordConfirmation: string }): Promise<{ message: string }> => {
   const response = await axiosInstance.post('/auth/change-password', data);
   return response.data;
 };

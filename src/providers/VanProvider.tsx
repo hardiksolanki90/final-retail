@@ -1,17 +1,28 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateEntity } from '../hooks/useEntityDetail';
 import { getVanList, createVan, updateVan, deleteVan } from '../api/VanApi';
 import { showToast } from '../lib/toast';
 
 interface VanContextType {
-  data: any[]; meta: any; isLoading: boolean; error: Error | null;
-  searchTerm: string; setSearchTerm: (term: string) => void;
-  currentPage: number; setCurrentPage: (page: number) => void;
-  perPage: number; setPerPage: (perPage: number) => void;
-  selectedRowKeys: string[]; setSelectedRowKeys: (keys: string[]) => void;
-  addDrawerOpen: boolean; setAddDrawerOpen: (open: boolean) => void;
-  editingItem: any; setEditingItem: (item: any) => void;
-  handleDeleteWithConfirmation: (uuid: string) => void; refetch: () => void;
+  data: any[];
+  meta: any;
+  isLoading: boolean;
+  error: Error | null;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  perPage: number;
+  setPerPage: (perPage: number) => void;
+  selectedRowKeys: string[];
+  setSelectedRowKeys: (keys: string[]) => void;
+  addDrawerOpen: boolean;
+  setAddDrawerOpen: (open: boolean) => void;
+  editingItem: any;
+  setEditingItem: (item: any) => void;
+  handleDeleteWithConfirmation: (uuid: string) => void;
+  refetch: () => void;
   createVanData: (data: Record<string, any>) => Promise<any>;
   updateVanData: (uuid: string, data: Record<string, any>) => Promise<any>;
   isSaving: boolean;
@@ -28,30 +39,32 @@ export default function VanProvider({ children }: { children: ReactNode }) {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['van-list', currentPage, perPage, searchTerm],
-    queryFn: () => getVanList(currentPage, perPage, searchTerm),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['van-list', currentPage, perPage, searchTerm], queryFn: () => getVanList(currentPage, perPage, searchTerm), staleTime: 5 * 60 * 1000 });
 
   const deleteMutation = useMutation({
     mutationFn: deleteVan,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['van-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
+    onSuccess: () => {
+      invalidateEntity(queryClient, 'van-list', 'van');
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to delete');
+    },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
     if (window.confirm('Are you sure you want to delete this van?')) deleteMutation.mutate(uuid);
   };
 
-  const createMutation = useMutation({
-    mutationFn: (data: Record<string, any>) => createVan(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['van-list'] }),
-  });
+  const createMutation = useMutation({ mutationFn: (data: Record<string, any>) => createVan(data), onSuccess: () => invalidateEntity(queryClient, 'van-list', 'van') });
 
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, any> }) => updateVan(uuid, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['van-list'] }),
+    onSuccess: () => invalidateEntity(queryClient, 'van-list', 'van'),
   });
 
   const createVanData = (data: Record<string, any>) => createMutation.mutateAsync(data);
@@ -61,11 +74,27 @@ export default function VanProvider({ children }: { children: ReactNode }) {
   const meta = responseData?.meta ?? null;
 
   const value: VanContextType = {
-    data: items, meta, isLoading, error: error as Error | null,
-    searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
-    selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
-    editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
-    createVanData, updateVanData, isSaving: createMutation.isPending || updateMutation.isPending,
+    data: items,
+    meta,
+    isLoading,
+    error: error as Error | null,
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    addDrawerOpen,
+    setAddDrawerOpen,
+    editingItem,
+    setEditingItem,
+    handleDeleteWithConfirmation,
+    refetch: () => refetch(),
+    createVanData,
+    updateVanData,
+    isSaving: createMutation.isPending || updateMutation.isPending,
   };
 
   return <VanContext.Provider value={value}>{children}</VanContext.Provider>;

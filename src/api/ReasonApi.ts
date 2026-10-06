@@ -36,7 +36,10 @@ export const deleteReason = async (uuid: string) => {
   showToast.success('Reason deleted successfully');
 };
 
-export interface ReasonOption { value: number; label: string; }
+export interface ReasonOption {
+  value: number;
+  label: string;
+}
 
 export const getReasonOptions = async (): Promise<ReasonOption[]> => {
   const response = await axiosInstance.get('/reason-type/all?per_page=50');

@@ -38,7 +38,12 @@ export default function BeatProvider({ children }: { children: ReactNode }) {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['beat-list', currentPage, perPage, searchTerm, areaFilter],
     queryFn: () => getBeatList(currentPage, perPage, searchTerm, areaFilter || undefined),
     staleTime: 5 * 60 * 1000,

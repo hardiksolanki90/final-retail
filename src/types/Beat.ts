@@ -7,12 +7,7 @@ export interface Beat {
   beatName: string;
   name?: string; // alias of beatName from backend
   areaId?: number | null;
-  area?: {
-    id: number;
-    uuid: string;
-    code?: string;
-    name?: string;
-  } | null;
+  area?: { id: number; uuid: string; code?: string; name?: string } | null;
   status: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -27,11 +22,5 @@ export interface BeatFormData {
 
 export interface BeatListResponse {
   data: Beat[];
-  meta?: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    last_page: number;
-    has_more_pages?: boolean;
-  };
+  meta?: { current_page: number; per_page: number; total: number; last_page: number; has_more_pages?: boolean };
 }

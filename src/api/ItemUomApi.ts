@@ -15,7 +15,8 @@ export const getItemUomList = async (page = 1, perPage = 15, searchTerm?: string
 
 export const getAllItemUoms = async (): Promise<{ value: string; label: string }[]> => {
   const response = await axiosInstance.get('/item-uom/list?page=1&per_page=1000');
-  return response.data.data || response.data;
+  const uoms = unwrapPaginated<{ id: number; uuid: string; code?: string; name?: string }>(response.data, 'itemUoms', 1000).data;
+  return uoms.map((u) => ({ value: u.uuid ?? String(u.id), label: [u.code, u.name].filter(Boolean).join(' - ') }));
 };
 
 export const createItemUom = async (data: Record<string, any>) => {

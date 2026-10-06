@@ -2,11 +2,7 @@ import axiosInstance from '../lib/axios';
 import type { CreditNote, CreditNoteFormData, CreditNoteListResponse } from '../types/CreditNote';
 import type { SelectOption } from '../components/ui/Select';
 
-export const getCreditNoteList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-): Promise<CreditNoteListResponse> => {
+export const getCreditNoteList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<CreditNoteListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -15,13 +11,7 @@ export const getCreditNoteList = async (
   const response = await axiosInstance.get(`/credit-note/list?${params.toString()}`);
   const payload = response.data;
 
-  return {
-    data: payload.creditNotes ?? [],
-    total: payload.total ?? 0,
-    currentPage: payload.currentPage ?? page,
-    perPage,
-    lastPage: payload.lastPage ?? 1,
-  };
+  return { data: payload.creditNotes ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
 };
 
 export const getCreditNoteByUuid = async (uuid: string): Promise<CreditNote> => {
@@ -43,10 +33,7 @@ export const deleteCreditNote = async (uuid: string): Promise<void> => {
   await axiosInstance.post('/credit-note/delete', { id: uuid });
 };
 
-export const bulkActionCreditNotes = async (
-  uuids: string[],
-  action: 'activate' | 'deactivate' | 'delete',
-): Promise<void> => {
+export const bulkActionCreditNotes = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/credit-note/bulk-action', { uuids, action });
 };
 

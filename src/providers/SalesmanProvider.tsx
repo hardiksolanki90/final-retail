@@ -67,7 +67,6 @@ interface SalesmanContextType {
   loginHistory: SalesmanLoginHistory[] | undefined;
   isLoadingLoginHistory: boolean;
 
-
   // Related data
   countries: Country[];
   supervisorOptions: SupervisorOption[];
@@ -124,28 +123,18 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
     return [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]];
   });
 
-
   // Salesman list query
   const {
     data: salesmanData,
     isLoading,
     error,
     refetch: refetchSalesmen,
-  } = useQuery({
-    queryKey: ['salesman-list', searchTerm, currentPage, perPage, filters],
-    queryFn: () => getSalesmanList(currentPage, searchTerm, perPage, filters),
-    staleTime: 5 * 60 * 1000,
-  });
+  } = useQuery({ queryKey: ['salesman-list', searchTerm, currentPage, perPage, filters], queryFn: () => getSalesmanList(currentPage, searchTerm, perPage, filters), staleTime: 5 * 60 * 1000 });
 
   // Salesman sales data query
   const { data: salesmanSalesData, isLoading: isLoadingSales } = useQuery({
     queryKey: ['salesman-sales', selectedSalesmanForDrawer?.uuid, salesDateRange],
-    queryFn: () =>
-      getSalesmanSales(
-        selectedSalesmanForDrawer?.uuid!,
-        salesDateRange[0],
-        salesDateRange[1]
-      ),
+    queryFn: () => getSalesmanSales(selectedSalesmanForDrawer?.uuid!, salesDateRange[0], salesDateRange[1]),
     enabled: !!selectedSalesmanForDrawer?.uuid,
     staleTime: 5 * 60 * 1000,
   });
@@ -159,12 +148,7 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
   });
 
   // Related data queries
-  const { data: countries = [], isLoading: isLoadingCountries } = useQuery({
-    queryKey: ['countries'],
-    queryFn: getCountries,
-    staleTime: 10 * 60 * 1000,
-    enabled: isSalesmanModalVisible,
-  });
+  const { data: countries = [], isLoading: isLoadingCountries } = useQuery({ queryKey: ['countries'], queryFn: getCountries, staleTime: 10 * 60 * 1000, enabled: isSalesmanModalVisible });
 
   const { data: supervisorOptions = [], isLoading: isLoadingSupervisors } = useQuery({
     queryKey: ['supervisor-options'],
@@ -196,8 +180,7 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
   });
 
   const updateSalesmanMutation = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: SalesmanFormData }) =>
-      updateSalesman(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: SalesmanFormData }) => updateSalesman(uuid, data),
     onSuccess: () => {
       showToast.success('Salesman updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['salesman-list'] });
@@ -266,14 +249,10 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
       return;
     }
 
-    const bulkAction: SalesmanBulkAction = {
-      action: action as 'activate' | 'deactivate' | 'delete' | 'block' | 'unblock',
-      uuids: selectedRowKeys,
-    };
+    const bulkAction: SalesmanBulkAction = { action: action as 'activate' | 'deactivate' | 'delete' | 'block' | 'unblock', uuids: selectedRowKeys };
 
     bulkActionMutation.mutate(bulkAction);
   };
-
 
   const addSalesman = async (data: SalesmanFormData) => {
     return await addSalesmanMutation.mutateAsync(data);
@@ -287,9 +266,7 @@ export default function SalesmanProvider({ children }: SalesmanProviderProps) {
     deleteSalesmanMutation.mutate(uuid);
   };
 
-  const isLoadingRelatedData =
-    isLoadingCountries ||
-    isLoadingSupervisors;
+  const isLoadingRelatedData = isLoadingCountries || isLoadingSupervisors;
 
   const value: SalesmanContextType = {
     salesmanData,

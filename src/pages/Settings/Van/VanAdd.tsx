@@ -7,34 +7,23 @@ import { VanCategorySelect } from '../../../components/ui/VanCategorySelect';
 import type { VanFormData } from '../../../types/Van';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: Van Code, Plate, Type, Category, Description, Capacity.
+const VAN_FORM_SKELETON: FormSkeletonField[] = ['code', 'input', 'input', 'input', 'textarea', 'input'];
 
 interface VanAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: VanFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: VanFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: VanFormData = {
-  vanCode: '',
-  plateNumber: '',
-  description: '',
-  capacity: '',
-  vanTypeId: '',
-  vanCategoryId: '',
-  status: true,
-};
+const initialFormData: VanFormData = { vanCode: '', plateNumber: '', description: '', capacity: '', vanTypeId: '', vanCategoryId: '', status: true };
 
-export function VanAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: VanAddProps) {
+export function VanAdd({ isOpen, onClose, data, onEvent }: VanAddProps) {
   const initialData = data?.initialData;
+  const isLoading = data?.isLoading || false;
 
   const {
     register,
@@ -44,10 +33,8 @@ export function VanAdd({
     setError,
     watch,
     setValue,
-    control
-  } = useForm<VanFormData>({
-    defaultValues: initialFormData
-  });
+    control,
+  } = useForm<VanFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
@@ -69,14 +56,9 @@ export function VanAdd({
         setCodeLocked(true);
       }
 
-      await onEvent?.({
-        eventType: initialData ? 'VanUpdated' : 'VanCreated',
-        van: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'VanUpdated' : 'VanCreated', van: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving van'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving van' });
     }
   };
 
@@ -91,15 +73,13 @@ export function VanAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="van-form" disabled={isSubmitting}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -109,6 +89,8 @@ export function VanAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={VAN_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Van' : 'Add Van'}
@@ -125,35 +107,32 @@ export function VanAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Van Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700">
+              Van Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
               {...register('vanCode')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Van Code" value={watch('vanCode') || ''} onChange={(v) => setValue('vanCode', v)} entityKey="van" onLockChange={setCodeLocked} />
-            {errors.vanCode && (
-              <p className="text-red-600 text-xs mt-1">{errors.vanCode.message}</p>
-            )}
+            {errors.vanCode && <p className="text-red-600 text-xs mt-1">{errors.vanCode.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Plate Number <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Plate Number <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('plateNumber', {
-              required: 'Plate number is required',
-              validate: value => value.trim() !== '' || 'Plate number cannot be empty'
-            })}
+            {...register('plateNumber', { required: 'Plate number is required', validate: (value) => value.trim() !== '' || 'Plate number cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter plate number"
           />
-          {errors.plateNumber && (
-            <p className="text-red-600 text-xs mt-1">{errors.plateNumber.message}</p>
-          )}
+          {errors.plateNumber && <p className="text-red-600 text-xs mt-1">{errors.plateNumber.message}</p>}
         </div>
 
         <div>
@@ -161,14 +140,7 @@ export function VanAdd({
             name="vanTypeId"
             control={control}
             rules={{ required: 'Van type is required' }}
-            render={({ field }) => (
-              <VanTypeSelect
-                label="Van Type"
-                error={errors.vanTypeId?.message}
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
+            render={({ field }) => <VanTypeSelect label="Van Type" error={errors.vanTypeId?.message} value={field.value} onChange={field.onChange} />}
           />
         </div>
 
@@ -177,13 +149,7 @@ export function VanAdd({
             name="vanCategoryId"
             control={control}
             render={({ field }) => (
-              <VanCategorySelect
-                label="Van Category"
-                placeholder="Select van category (optional)"
-                error={errors.vanCategoryId?.message}
-                value={field.value}
-                onChange={field.onChange}
-              />
+              <VanCategorySelect label="Van Category" placeholder="Select van category (optional)" error={errors.vanCategoryId?.message} value={field.value} onChange={field.onChange} />
             )}
           />
         </div>
@@ -196,26 +162,19 @@ export function VanAdd({
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter description"
           />
-          {errors.description && (
-            <p className="text-red-600 text-xs mt-1">{errors.description.message}</p>
-          )}
+          {errors.description && <p className="text-red-600 text-xs mt-1">{errors.description.message}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
           <input
-            {...register('capacity', {
-              setValueAs: (v) => (v === '' ? '' : Number(v)),
-              validate: (v) => v === '' || v === undefined || Number(v) >= 1 || 'Capacity must be greater than 0'
-            })}
+            {...register('capacity', { setValueAs: (v) => (v === '' ? '' : Number(v)), validate: (v) => v === '' || v === undefined || Number(v) >= 1 || 'Capacity must be greater than 0' })}
             type="number"
             min="1"
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter capacity"
           />
-          {errors.capacity && (
-            <p className="text-red-600 text-xs mt-1">{errors.capacity.message}</p>
-          )}
+          {errors.capacity && <p className="text-red-600 text-xs mt-1">{errors.capacity.message}</p>}
         </div>
       </form>
     </Drawer>

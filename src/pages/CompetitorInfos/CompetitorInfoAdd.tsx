@@ -17,16 +17,7 @@ interface CompetitorInfoAddProps {
   categories?: SelectOption[];
 }
 
-export function CompetitorInfoAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  customers = [],
-  salesman = [],
-  categories = [],
-}: CompetitorInfoAddProps) {
+export function CompetitorInfoAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false, customers = [], salesman = [], categories = [] }: CompetitorInfoAddProps) {
   const {
     register,
     handleSubmit,
@@ -34,7 +25,7 @@ export function CompetitorInfoAdd({
     reset,
     setError,
     watch,
-    setValue
+    setValue,
   } = useForm<CompetitorInfoFormData>({
     defaultValues: {
       competitorName: '',
@@ -55,35 +46,37 @@ export function CompetitorInfoAdd({
       threats: '',
       opportunities: '',
       notes: '',
-      status: 'active'
-    }
+      status: 'active',
+    },
   });
 
   const watchedStatus = watch('status');
 
   useEffect(() => {
     if (isOpen) {
-      reset(initialData || {
-        competitorName: '',
-        competitorBrand: '',
-        customerId: '',
-        salesmanId: '',
-        observationDate: '',
-        productName: '',
-        productCategory: '',
-        price: 0,
-        promotionDetails: '',
-        displayType: '',
-        shelfSpace: '',
-        stockAvailability: 'in_stock',
-        marketShare: 0,
-        strengths: '',
-        weaknesses: '',
-        threats: '',
-        opportunities: '',
-        notes: '',
-        status: 'active'
-      });
+      reset(
+        initialData || {
+          competitorName: '',
+          competitorBrand: '',
+          customerId: '',
+          salesmanId: '',
+          observationDate: '',
+          productName: '',
+          productCategory: '',
+          price: 0,
+          promotionDetails: '',
+          displayType: '',
+          shelfSpace: '',
+          stockAvailability: 'in_stock',
+          marketShare: 0,
+          strengths: '',
+          weaknesses: '',
+          threats: '',
+          opportunities: '',
+          notes: '',
+          status: 'active',
+        }
+      );
     }
   }, [initialData, isOpen, reset]);
 
@@ -101,17 +94,14 @@ export function CompetitorInfoAdd({
         weaknesses: data.weaknesses?.trim() || '',
         threats: data.threats?.trim() || '',
         opportunities: data.opportunities?.trim() || '',
-        notes: data.notes?.trim() || ''
+        notes: data.notes?.trim() || '',
       };
 
       await onSubmit(trimmedData);
       onClose();
     } catch (error: any) {
       console.error('Error saving competitor info:', error);
-      setError('root', {
-        type: 'manual',
-        message: error?.message || 'Failed to save competitor info. Please try again.'
-      });
+      setError('root', { type: 'manual', message: error?.message || 'Failed to save competitor info. Please try again.' });
     }
   };
 
@@ -128,21 +118,19 @@ export function CompetitorInfoAdd({
     { value: 'counter', label: 'Counter' },
   ];
 
-  const defaultCategories: SelectOption[] = categories.length > 0 ? categories : [
-    { value: 'beverages', label: 'Beverages' },
-    { value: 'snacks', label: 'Snacks' },
-    { value: 'dairy', label: 'Dairy' },
-    { value: 'personal_care', label: 'Personal Care' },
-    { value: 'household', label: 'Household' },
-  ];
+  const defaultCategories: SelectOption[] =
+    categories.length > 0
+      ? categories
+      : [
+          { value: 'beverages', label: 'Beverages' },
+          { value: 'snacks', label: 'Snacks' },
+          { value: 'dairy', label: 'Dairy' },
+          { value: 'personal_care', label: 'Personal Care' },
+          { value: 'household', label: 'Household' },
+        ];
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Competitor Info' : 'Add Competitor Info'}
-      width="w-[700px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Competitor Info' : 'Add Competitor Info'} width="w-[700px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -155,12 +143,9 @@ export function CompetitorInfoAdd({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Competitor Name <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
-            <OrderCodeSettingsIcon label="Price" value="" onChange={() => { }} />
+            <OrderCodeSettingsIcon label="Price" value="" onChange={() => {}} />
             <input
-              {...register('competitorName', {
-                required: 'Competitor Name is required',
-                validate: value => value?.trim() ? true : 'Competitor Name is required'
-              })}
+              {...register('competitorName', { required: 'Competitor Name is required', validate: (value) => (value?.trim() ? true : 'Competitor Name is required') })}
               className="block w-full px-3 py-2 rounded-lg border transition-colors
                 bg-white dark:bg-gray-800
                 text-gray-900 dark:text-gray-100
@@ -168,19 +153,14 @@ export function CompetitorInfoAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Enter competitor name"
             />
-            {errors.competitorName && (
-              <p className="text-red-600 text-xs mt-1">{errors.competitorName.message}</p>
-            )}
+            {errors.competitorName && <p className="text-red-600 text-xs mt-1">{errors.competitorName.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Competitor Brand <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <input
-              {...register('competitorBrand', {
-                required: 'Competitor Brand is required',
-                validate: value => value?.trim() ? true : 'Competitor Brand is required'
-              })}
+              {...register('competitorBrand', { required: 'Competitor Brand is required', validate: (value) => (value?.trim() ? true : 'Competitor Brand is required') })}
               className="block w-full px-3 py-2 rounded-lg border transition-colors
                 bg-white dark:bg-gray-800
                 text-gray-900 dark:text-gray-100
@@ -188,9 +168,7 @@ export function CompetitorInfoAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Enter competitor brand"
             />
-            {errors.competitorBrand && (
-              <p className="text-red-600 text-xs mt-1">{errors.competitorBrand.message}</p>
-            )}
+            {errors.competitorBrand && <p className="text-red-600 text-xs mt-1">{errors.competitorBrand.message}</p>}
           </div>
         </div>
 
@@ -209,12 +187,12 @@ export function CompetitorInfoAdd({
             >
               <option value="">Select customer</option>
               {customers.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
-            {errors.customerId && (
-              <p className="text-red-600 text-xs mt-1">{errors.customerId.message}</p>
-            )}
+            {errors.customerId && <p className="text-red-600 text-xs mt-1">{errors.customerId.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -230,12 +208,12 @@ export function CompetitorInfoAdd({
             >
               <option value="">Select salesman</option>
               {salesman.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
-            {errors.salesmanId && (
-              <p className="text-red-600 text-xs mt-1">{errors.salesmanId.message}</p>
-            )}
+            {errors.salesmanId && <p className="text-red-600 text-xs mt-1">{errors.salesmanId.message}</p>}
           </div>
         </div>
 
@@ -252,9 +230,7 @@ export function CompetitorInfoAdd({
               border-gray-300 dark:border-gray-600
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
-          {errors.observationDate && (
-            <p className="text-red-600 text-xs mt-1">{errors.observationDate.message}</p>
-          )}
+          {errors.observationDate && <p className="text-red-600 text-xs mt-1">{errors.observationDate.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -263,10 +239,7 @@ export function CompetitorInfoAdd({
               Product Name <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <input
-              {...register('productName', {
-                required: 'Product Name is required',
-                validate: value => value?.trim() ? true : 'Product Name is required'
-              })}
+              {...register('productName', { required: 'Product Name is required', validate: (value) => (value?.trim() ? true : 'Product Name is required') })}
               className="block w-full px-3 py-2 rounded-lg border transition-colors
                 bg-white dark:bg-gray-800
                 text-gray-900 dark:text-gray-100
@@ -274,9 +247,7 @@ export function CompetitorInfoAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Enter product name"
             />
-            {errors.productName && (
-              <p className="text-red-600 text-xs mt-1">{errors.productName.message}</p>
-            )}
+            {errors.productName && <p className="text-red-600 text-xs mt-1">{errors.productName.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -292,12 +263,12 @@ export function CompetitorInfoAdd({
             >
               <option value="">Select category</option>
               {defaultCategories.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
-            {errors.productCategory && (
-              <p className="text-red-600 text-xs mt-1">{errors.productCategory.message}</p>
-            )}
+            {errors.productCategory && <p className="text-red-600 text-xs mt-1">{errors.productCategory.message}</p>}
           </div>
         </div>
 
@@ -316,9 +287,7 @@ export function CompetitorInfoAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Enter price"
             />
-            {errors.price && (
-              <p className="text-red-600 text-xs mt-1">{errors.price.message}</p>
-            )}
+            {errors.price && <p className="text-red-600 text-xs mt-1">{errors.price.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Market Share (%)</label>
@@ -335,9 +304,7 @@ export function CompetitorInfoAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Enter market share"
             />
-            {errors.marketShare && (
-              <p className="text-red-600 text-xs mt-1">{errors.marketShare.message}</p>
-            )}
+            {errors.marketShare && <p className="text-red-600 text-xs mt-1">{errors.marketShare.message}</p>}
           </div>
         </div>
 
@@ -367,7 +334,9 @@ export function CompetitorInfoAdd({
             >
               <option value="">Select display type</option>
               {displayTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
@@ -397,7 +366,9 @@ export function CompetitorInfoAdd({
           >
             <option value="">Select stock availability</option>
             {stockAvailabilityOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
         </div>
@@ -460,13 +431,11 @@ export function CompetitorInfoAdd({
             <button
               type="button"
               onClick={() => setValue('status', watchedStatus === 'active' ? 'inactive' : 'active')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-                }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
             >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-              />
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
           </div>
           <div className="flex gap-3">

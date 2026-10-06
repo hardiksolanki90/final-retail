@@ -1,13 +1,9 @@
-
 import { useState, useRef, useEffect } from 'react';
-import {
-  Filter,
-  Plus, Shield, Columns3, Download, Upload, ChevronDown, Check, X, Menu
-} from 'lucide-react';
+import { Filter, Plus, Shield, Columns3, Download, Upload, ChevronDown, Check, X, Menu } from 'lucide-react';
 import { UsersRolesAdd } from './UsersRolesAdd';
 import { UserAdd, type UserFormData } from './UserAdd';
 import { UsersList } from './UsersList';
-import { TableLoadingRow } from '../../../components/ui/TableLoadingRow';
+import { TableSkeletonRows, colsByKey } from '../../../components/ui/skeleton';
 import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { Pagination } from '../../../components/ui/Pagination';
 import { Tabs } from '../../../components/ui/Tabs';
@@ -16,8 +12,13 @@ import { useInviteUserMutations } from '../../../hooks/UsersRoles/useInviteUsers
 import type { UserRoleFormData } from '../../../types/UsersRoles';
 import type { InviteUser } from '../../../types/InviteUser';
 import { getInviteUserByUuid } from '../../../api/InviteUserApi';
+import { useEditDetail } from '../../../hooks/useEntityDetail';
 
-interface Column { key: string; label: string; visible: boolean; }
+interface Column {
+  key: string;
+  label: string;
+  visible: boolean;
+}
 
 export function UsersRolesList() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -27,6 +28,7 @@ export function UsersRolesList() {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [userAddDrawerOpen, setUserAddDrawerOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<InviteUser | null>(null);
+  const { initialData: editUser, isLoading: editUserLoading } = useEditDetail('invite-user', getInviteUserByUuid, editingUser);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -67,20 +69,25 @@ export function UsersRolesList() {
   const { roleOptions } = useAllRoles();
   const { createMutation: createUserMutation, updateMutation: updateUserMutation } = useInviteUserMutations();
 
-  const roleData = roles.map((r) => ({
-    id: r.uuid ?? '',
-    code: r.code,
-    name: r.name,
-    description: r.description ?? '—',
-  }));
+  const roleData = roles.map((r) => ({ id: r.uuid ?? '', code: r.code, name: r.name, description: r.description ?? '—' }));
 
   const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
 
   // Apply filters
-  const currentData = roleData.filter(c =>
-    (!appliedFilter.code || String(c.code ?? '').toLowerCase().includes(appliedFilter.code.toLowerCase())) &&
-    (!appliedFilter.name || String(c.name ?? '').toLowerCase().includes(appliedFilter.name.toLowerCase())) &&
-    (!appliedFilter.description || String(c.description ?? '').toLowerCase().includes(appliedFilter.description.toLowerCase()))
+  const currentData = roleData.filter(
+    (c) =>
+      (!appliedFilter.code ||
+        String(c.code ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.code.toLowerCase())) &&
+      (!appliedFilter.name ||
+        String(c.name ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.name.toLowerCase())) &&
+      (!appliedFilter.description ||
+        String(c.description ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.description.toLowerCase()))
   );
 
   const handleSelectAll = () => {
@@ -88,15 +95,11 @@ export function UsersRolesList() {
   };
 
   const handleSelectRow = (id: string) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    );
+    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
   const toggleColumn = (key: string) => {
-    setColumns((prev) =>
-      prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col))
-    );
+    setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   };
 
   const visibleColumns = columns.filter((col) => col.visible);
@@ -128,9 +131,7 @@ export function UsersRolesList() {
           <Shield className="w-6 h-6 text-[var(--text-primary)]" />
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">Users & Roles</h1>
-            <p className="text-[var(--text-secondary)] mt-1">
-              Manage users & roles
-            </p>
+            <p className="text-[var(--text-secondary)] mt-1">Manage users & roles</p>
           </div>
         </div>
 
@@ -140,18 +141,17 @@ export function UsersRolesList() {
             <>
               {/* Filter Button */}
               <button
-                onClick={() => setFilterOpen(prev => !prev)}
-                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
-                  ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                  : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-                  }`}
+                onClick={() => setFilterOpen((prev) => !prev)}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
+                  filterOpen || Object.values(appliedFilter).some(Boolean)
+                    ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                    : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+                }`}
               >
                 <Filter className="w-4 h-4" />
                 Filter
                 {Object.values(appliedFilter).some(Boolean) && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">
-                    {Object.values(appliedFilter).filter(Boolean).length}
-                  </span>
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">{Object.values(appliedFilter).filter(Boolean).length}</span>
                 )}
               </button>
               <div className="relative" ref={columnsRef}>
@@ -201,14 +201,20 @@ export function UsersRolesList() {
                   <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
                     <div className="py-1">
                       <button
-                        onClick={() => { setExportModalOpen(true); setMoreActionsOpen(false); }}
+                        onClick={() => {
+                          setExportModalOpen(true);
+                          setMoreActionsOpen(false);
+                        }}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                       >
                         <Download className="w-4 h-4" />
                         Export
                       </button>
                       <button
-                        onClick={() => { handleImport(); setMoreActionsOpen(false); }}
+                        onClick={() => {
+                          handleImport();
+                          setMoreActionsOpen(false);
+                        }}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                       >
                         <Upload className="w-4 h-4" />
@@ -222,7 +228,10 @@ export function UsersRolesList() {
           )}
           {activeTab === 'users' && (
             <button
-              onClick={() => { setEditingUser(null); setUserAddDrawerOpen(true); }}
+              onClick={() => {
+                setEditingUser(null);
+                setUserAddDrawerOpen(true);
+              }}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
@@ -240,33 +249,37 @@ export function UsersRolesList() {
             {
               key: 'users',
               label: 'Users',
-              content: <UsersList onEdit={async (user) => {
-                const uuid = user.uuid ?? String(user.id);
-                setEditingUser(uuid ? await getInviteUserByUuid(uuid).catch(() => user) : user);
-                setUserAddDrawerOpen(true);
-              }} />
+              content: (
+                <UsersList
+                  onEdit={(user) => {
+                    setEditingUser(user);
+                    setUserAddDrawerOpen(true);
+                  }}
+                />
+              ),
             },
             {
               key: 'roles',
               label: 'Roles',
               content: (
                 <div className="mt-6 space-y-6">
-
                   {/* Filter Accordion */}
                   {filterOpen && (
                     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
                       <div className="flex flex-wrap items-end gap-3">
-                        {([
-                          { key: 'code', label: 'Code' },
-                          { key: 'name', label: 'Name' },
-                          { key: 'description', label: 'Description' },
-                        ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
+                        {(
+                          [
+                            { key: 'code', label: 'Code' },
+                            { key: 'name', label: 'Name' },
+                            { key: 'description', label: 'Description' },
+                          ] as { key: keyof typeof filterDraft; label: string }[]
+                        ).map(({ key, label }) => (
                           <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                             <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
                             <input
                               type="text"
                               value={filterDraft[key]}
-                              onChange={e => setFilterDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                              onChange={(e) => setFilterDraft((prev) => ({ ...prev, [key]: e.target.value }))}
                               placeholder={`Filter by ${label.toLowerCase()}...`}
                               className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                             />
@@ -274,7 +287,9 @@ export function UsersRolesList() {
                         ))}
                         <div className="flex items-end gap-2 pb-0.5">
                           <button
-                            onClick={() => { setAppliedFilter({ ...filterDraft }); }}
+                            onClick={() => {
+                              setAppliedFilter({ ...filterDraft });
+                            }}
                             className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
                           >
                             Apply
@@ -310,10 +325,7 @@ export function UsersRolesList() {
                               />
                             </th>
                             {visibleColumns.map((column) => (
-                              <th
-                                key={column.key}
-                                className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
-                              >
+                              <th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                                 {column.label}
                               </th>
                             ))}
@@ -321,38 +333,36 @@ export function UsersRolesList() {
                         </thead>
                         <tbody className="divide-y divide-[var(--border-color)]">
                           {isLoading ? (
-                            <TableLoadingRow colSpan={visibleColumns.length + 1} label="Loading roles…" />
+                            <TableSkeletonRows rows={rowsPerPage} label="Loading roles" columns={['check', ...colsByKey(visibleColumns)]} dense />
                           ) : currentData.length === 0 ? (
                             <TableEmptyRow colSpan={visibleColumns.length + 1} label="No roles yet." />
-                          ) : currentData.map((role) => (
-                            <tr
-                              key={role.id}
-                              className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(role.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                                }`}
-                            >
-                              <td className="px-4 py-3">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedRows.includes(role.id)}
-                                  onChange={() => handleSelectRow(role.id)}
-                                  className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                                />
-                              </td>
-                              {visibleColumns.map((column) => (
-                                <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                                  {role[column.key as keyof typeof role]}
+                          ) : (
+                            currentData.map((role) => (
+                              <tr key={role.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(role.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                                <td className="px-4 py-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedRows.includes(role.id)}
+                                    onChange={() => handleSelectRow(role.id)}
+                                    className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                                  />
                                 </td>
-                              ))}
-                            </tr>
-                          ))}
+                                {visibleColumns.map((column) => (
+                                  <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
+                                    {role[column.key as keyof typeof role]}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))
+                          )}
                         </tbody>
                       </table>
                     </div>
                     <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
                   </div>
                 </div>
-              )
-            }
+              ),
+            },
           ]}
         />
       </div>
@@ -363,10 +373,7 @@ export function UsersRolesList() {
           <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4 text-[var(--text-primary)]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
               <h2 className="text-xl font-semibold">Export User Roles</h2>
-              <button
-                onClick={handleExportCancel}
-                className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors"
-              >
+              <button onClick={handleExportCancel} className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors">
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
             </div>
@@ -451,10 +458,7 @@ export function UsersRolesList() {
               >
                 Cancel
               </button>
-              <button
-                onClick={handleExportSubmit}
-                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
-              >
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">
                 Export
               </button>
             </div>
@@ -472,7 +476,10 @@ export function UsersRolesList() {
 
       <UserAdd
         isOpen={userAddDrawerOpen}
-        onClose={() => { setUserAddDrawerOpen(false); setEditingUser(null); }}
+        onClose={() => {
+          setUserAddDrawerOpen(false);
+          setEditingUser(null);
+        }}
         onSubmit={async (data: UserFormData) => {
           if (editingUser) {
             await updateUserMutation.mutateAsync({ uuid: editingUser.uuid, data });
@@ -481,13 +488,8 @@ export function UsersRolesList() {
           }
           setEditingUser(null);
         }}
-        initialData={editingUser ? {
-          firstname: editingUser.firstname,
-          lastname: editingUser.lastname ?? '',
-          email: editingUser.email,
-          mobile: editingUser.mobile ?? '',
-          roleId: editingUser.roleId ?? '',
-        } : undefined}
+        initialData={editUser ? { firstname: editUser.firstname, lastname: editUser.lastname ?? '', email: editUser.email, mobile: editUser.mobile ?? '', roleId: editUser.roleId ?? '' } : undefined}
+        isLoading={editUserLoading}
         rolesOptions={roleOptions}
       />
     </div>

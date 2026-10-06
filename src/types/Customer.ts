@@ -1,3 +1,25 @@
+/** One partner function (ship-to / sold-to / payer / bill-to). `value` is the customer's uuid, or 'same_as_customer'. */
+export interface CustomerPartner {
+  value: string;
+  label: string;
+  /** The partner is the customer itself. */
+  isSelf: boolean;
+  uuid: string;
+  code?: string | null;
+  shopName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  customerOfficeAddress?: string | null;
+  customerOfficeCity?: string | null;
+  customerOfficeState?: string | null;
+  customerOfficeZipcode?: string | null;
+  fullAddress?: string;
+  status?: boolean;
+}
+
 export interface Customer {
   id?: number;
   uuid?: string;
@@ -23,22 +45,20 @@ export interface Customer {
   creditLimit: number;
   creditDays?: number;
   availableCredit?: number;
-  trnNo?: string;
   image?: string;
   status: boolean;
+  /** The customer can sign in (login enabled on their user). */
   hasLoginAccess?: boolean;
-  user?: {
-    id: number;
-    uuid: string;
-    email: string;
-    status: boolean;
-  } | null;
   routeId?: number;
   salesmanId?: number;
   salesOrganisationId?: number;
   countryId?: number;
   regionId?: number;
   shipToPartyId?: number;
+  /** Saved partner functions in full: the edit form's dropdown value/label, plus the partner customer's own details. */
+  partners?: Partial<Record<'shipTo' | 'soldTo' | 'payer' | 'billTo', CustomerPartner | null>>;
+  country?: { id: number; uuid: string; name: string; countryCode?: string } | null;
+  region?: { id: number; uuid: string; name: string; code?: string } | null;
   soldToPartyId?: number;
   payerId?: number;
   billToPartyId?: number;
@@ -51,46 +71,14 @@ export interface Customer {
   updatedAt?: string;
 
   // Relationships
-  route?: {
-    id: number;
-    uuid: string;
-    name: string;
-  };
-  salesman?: {
-    id: number;
-    name: string;
-  };
-  salesOrganisation?: {
-    id: number;
-    uuid: string;
-    name: string;
-  };
-  customerType?: {
-    id: number;
-    uuid: string;
-    name: string;
-  };
-  customerCategory?: {
-    id: number;
-    uuid: string;
-    name: string;
-  };
-  customerGroup?: {
-    id: number;
-    uuid: string;
-    name: string;
-  };
-  channel?: {
-    id: number;
-    uuid: string;
-    name: string;
-  };
-  paymentTerm?: {
-    id: number;
-    uuid: string;
-    name: string;
-    days: number;
-  };
+  route?: { id: number; uuid: string; name: string };
+  salesman?: { id: number; name: string };
+  salesOrganisation?: { id: number; uuid: string; name: string };
+  customerType?: { id: number; uuid: string; name: string };
+  customerCategory?: { id: number; uuid: string; name: string };
+  customerGroup?: { id: number; uuid: string; name: string };
+  channel?: { id: number; uuid: string; name: string };
+  paymentTerm?: { id: number; uuid: string; name: string; days: number };
 }
 
 export interface CustomerFormData {
@@ -113,9 +101,9 @@ export interface CustomerFormData {
   balance?: number;
   creditLimit?: number;
   creditDays?: number;
-  trnNo?: string;
   image?: string;
   status?: boolean;
+  /** Let the customer sign in with their email; the password is needed when first enabling. */
   enableLogin?: boolean;
   password?: string;
   passwordConfirmation?: string;
@@ -137,29 +125,13 @@ export interface CustomerFormData {
 
 export interface CustomerListResponse {
   data: Customer[];
-  meta: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    last_page: number;
-    has_more_pages: boolean;
-    next_page_url?: string;
-    prev_page_url?: string;
-  };
+  meta: { current_page: number; per_page: number; total: number; last_page: number; has_more_pages: boolean; next_page_url?: string; prev_page_url?: string };
   message: string;
 }
 
 export interface CustomerSalesData {
-  salesData: Array<{
-    date: string;
-    totalValue: number;
-    orderCount: number;
-  }>;
-  summary: {
-    totalOrders: number;
-    totalAmount: number;
-    avgOrderValue: number;
-  };
+  salesData: Array<{ date: string; totalValue: number; orderCount: number }>;
+  summary: { totalOrders: number; totalAmount: number; avgOrderValue: number };
 }
 
 export interface CustomerType {

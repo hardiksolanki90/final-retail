@@ -8,11 +8,7 @@ export interface AreaOption {
   label: string;
 }
 
-export const getAreaList = async (
-  page = 1,
-  perPage = 15,
-  searchTerm?: string
-): Promise<AreaListResponse> => {
+export const getAreaList = async (page = 1, perPage = 15, searchTerm?: string): Promise<AreaListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -54,8 +50,6 @@ export const getAreaOptions = async (): Promise<AreaOption[]> => {
   const data = response.data?.areas ?? [];
   return data.map((a: { id: number; areaCode?: string; code?: string; areaName?: string; name?: string }) => ({
     value: a.id,
-    label: (a.areaCode ?? a.code)
-      ? `${a.areaCode ?? a.code} - ${a.areaName ?? a.name ?? ''}`
-      : (a.areaName ?? a.name ?? String(a.id)),
+    label: (a.areaCode ?? a.code) ? `${a.areaCode ?? a.code} - ${a.areaName ?? a.name ?? ''}` : (a.areaName ?? a.name ?? String(a.id)),
   }));
 };

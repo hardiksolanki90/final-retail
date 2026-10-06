@@ -1,11 +1,38 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { Input } from '../../components/ui/Input';
-import { Button, SaveButton, CancelButton } from '../../components/ui/Button';
-import { Plus, Trash2, FileText, ChevronLeft } from 'lucide-react';
-import type { SelectOption } from '../../components/ui/Select';
+import { SaveButton, CancelButton } from '../../components/ui/Button';
+import { FileText } from 'lucide-react';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import {
+  AddLineButton,
+  CodeField,
+  ControlledDate,
+  ControlledSelect,
+  DocSection,
+  DocumentShell,
+  LineCell,
+  LineFigure,
+  LineHeader,
+  QtyStepper,
+  LineStrip,
+  LineUomCell,
+  ReceiptRail,
+  SectionPair,
+  TaxNotice,
+  fieldGridCls,
+  wideCellCls,
+} from '../shared/DocumentForm';
+import { lineCols } from '../shared/DocumentForm/lineCols';
+import { LineItemSelect } from '../shared/DocumentForm/LineItemSelect';
+import { useKnownItems } from '../../hooks/useKnownItems';
+import { PdpDiscountCell, PdpPriceCell } from '../shared/DocumentForm/PdpLineCells';
+import { usePdpLinePreview } from '../../hooks/usePdpLinePreview';
+import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
+import { useCreateDocument, useDocumentFormOptions } from '../../hooks/useDocumentForm';
+import { useMoney } from '../../hooks/Currency/useMoney';
+import { computeLine, sumLines } from '../../utils/documentMath';
+import { useLineTaxRates } from '../../hooks/Tax/useLineTaxRates';
 
 type DebitNoteItem = {
   id: string;
@@ -28,6 +55,7 @@ type DebitNoteFormFields = {
   customerId: string;
   invoiceId: string;
   reason: string;
+  notes: string;
   items: DebitNoteItem[];
   grossTotal: number;
   vat: number;
@@ -37,22 +65,7 @@ type DebitNoteFormFields = {
   finalTotal: number;
 };
 
-
-
-const emptyItem: DebitNoteItem = {
-  id: '',
-  itemId: '',
-  itemName: '',
-  uom: '',
-  reason: '',
-  quantity: 1,
-  price: 0,
-  discount: 0,
-  vat: 0,
-  net: 0,
-  excise: 0,
-  total: 0,
-};
+const emptyItem: DebitNoteItem = { id: '', itemId: '', itemName: '', uom: '', reason: '', quantity: 1, price: 0, discount: 0, vat: 0, net: 0, excise: 0, total: 0 };
 
 const defaultValues: DebitNoteFormFields = {
   debitNoteNumber: '',
@@ -60,6 +73,7 @@ const defaultValues: DebitNoteFormFields = {
   customerId: '',
   invoiceId: '',
   reason: '',
+  notes: '',
   items: [{ ...emptyItem, id: '1' }],
   grossTotal: 0,
   vat: 0,
@@ -70,17 +84,16 @@ const defaultValues: DebitNoteFormFields = {
 };
 
 export function DebitNoteAdd() {
-  const data: any = {};
-  const customers = (data?.customers || []) as SelectOption[];
-  const invoices = (data?.invoices || []) as SelectOption[];
-  const reasons = (data?.reasons || []) as SelectOption[];
-  const items = (data?.items || []) as SelectOption[];
-  const uomOptions = (data?.uomOptions || []) as SelectOption[];
+  const { customers, invoices, reasons: reasonTypes } = useDocumentFormOptions();
+  const { known: knownItems, remember: rememberItems } = useKnownItems();
+  const createDebitNote = useCreateDocument('debit-note', 'Debit note');
+  // debit_notes.reason is free text, not an FK — store the reason's name.
+  const reasons = reasonTypes.map((r) => ({ value: r.label, label: r.label }));
 
   const navigate = useNavigate();
+  const [codeLocked, setCodeLocked] = useState(false);
 
-  const { control, register, handleSubmit, setValue, getValues, formState: { errors } } =
-    useForm<DebitNoteFormFields>({ defaultValues });
+  const { control, register, handleSubmit, setValue, getValues, watch } = useForm<DebitNoteFormFields>({ defaultValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchedItems = useWatch({ control, name: 'items' });
@@ -91,302 +104,168 @@ export function DebitNoteAdd() {
   const discountTotal = useWatch({ control, name: 'discount' });
   const finalTotal = useWatch({ control, name: 'finalTotal' });
 
-  const defaultReasons: SelectOption[] = reasons.length > 0 ? reasons : [
-    { value: 'price-adjustment', label: 'Price Adjustment' },
-    { value: 'additional-charges', label: 'Additional Charges' },
-    { value: 'shipping-charges', label: 'Shipping Charges' },
-    { value: 'late-payment', label: 'Late Payment Fee' },
-    { value: 'other', label: 'Other' },
-  ];
-
-  const defaultUomOptions: SelectOption[] = uomOptions.length > 0 ? uomOptions : [
-    { value: 'PCS', label: 'PCS' },
-    { value: 'KG', label: 'KG' },
-    { value: 'LTR', label: 'LTR' },
-    { value: 'BOX', label: 'BOX' },
-    { value: 'CTN', label: 'CTN' },
-  ];
-
   // Auto-calculate item net/total and overall totals
+  const customerId = useWatch({ control, name: 'customerId' });
+  const resolutions = usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
+
+  const { digits } = useMoney();
+  const taxRates = useLineTaxRates(
+    (watchedItems ?? []).map((item) => item?.itemId),
+    customerId
+  );
   const calculateTotals = useCallback(() => {
     if (!watchedItems) return;
-    let grossTotal = 0;
-    let vatTotal = 0;
-    let exciseTotal = 0;
-    let discountTotal = 0;
-
     const currentItems = getValues('items') || [];
+    const lines = watchedItems.map((item) => computeLine(item, digits, taxRates.forItem(item?.itemId)));
 
-    watchedItems.forEach((item, index) => {
-      const qty = Number(item.quantity) || 0;
-      const price = Number(item.price) || 0;
-      const discount = Number(item.discount) || 0;
-      const vat = Number(item.vat) || 0;
-      const excise = Number(item.excise) || 0;
-
-      const subtotal = qty * price;
-      const net = subtotal - discount;
-      const total = net + vat + excise;
-
-      const newNet = parseFloat(net.toFixed(2));
-      const newTotal = parseFloat(total.toFixed(2));
-
-      if (currentItems[index]?.net !== newNet) setValue(`items.${index}.net`, newNet);
-      if (currentItems[index]?.total !== newTotal) setValue(`items.${index}.total`, newTotal);
-
-      grossTotal += subtotal;
-      vatTotal += vat;
-      exciseTotal += excise;
-      discountTotal += discount;
+    lines.forEach((line, index) => {
+      if (currentItems[index]?.net !== line.net) setValue(`items.${index}.net`, line.net);
+      if (currentItems[index]?.total !== line.total) setValue(`items.${index}.total`, line.total);
+      if (currentItems[index]?.vat !== line.tax) setValue(`items.${index}.vat`, line.tax);
+      if (currentItems[index]?.excise !== line.excise) setValue(`items.${index}.excise`, line.excise);
     });
 
-    const netTotal = grossTotal - discountTotal;
-    const finalTotal = netTotal + vatTotal + exciseTotal;
-    
-    const newGross = parseFloat(grossTotal.toFixed(2));
-    const newVat = parseFloat(vatTotal.toFixed(2));
-    const newExcise = parseFloat(exciseTotal.toFixed(2));
-    const newDisc = parseFloat(discountTotal.toFixed(2));
-    const newNet = parseFloat(netTotal.toFixed(2));
-    const newFin = parseFloat(finalTotal.toFixed(2));
-
-    if (getValues('grossTotal') !== newGross) setValue('grossTotal', newGross);
-    if (getValues('vat') !== newVat) setValue('vat', newVat);
-    if (getValues('excise') !== newExcise) setValue('excise', newExcise);
-    if (getValues('discount') !== newDisc) setValue('discount', newDisc);
-    if (getValues('netTotal') !== newNet) setValue('netTotal', newNet);
-    if (getValues('finalTotal') !== newFin) setValue('finalTotal', newFin);
-  }, [watchedItems, setValue, getValues]);
+    const totals = sumLines(lines, digits);
+    if (getValues('grossTotal') !== totals.gross) setValue('grossTotal', totals.gross);
+    if (getValues('vat') !== totals.tax) setValue('vat', totals.tax);
+    if (getValues('excise') !== totals.excise) setValue('excise', totals.excise);
+    if (getValues('discount') !== totals.discount) setValue('discount', totals.discount);
+    if (getValues('netTotal') !== totals.net) setValue('netTotal', totals.net);
+    if (getValues('finalTotal') !== totals.total) setValue('finalTotal', totals.total);
+  }, [watchedItems, setValue, getValues, digits, taxRates]);
 
   useEffect(() => {
     calculateTotals();
   }, [calculateTotals]);
 
-  const onSubmit = (formData: DebitNoteFormFields) => {
-    console.log('Debit Note form data:', formData);
-    navigate('/debit-notes');
+  const onSubmit = async (formData: DebitNoteFormFields) => {
+    try {
+      const debitNoteNumber = await reserveCodeIfAuto('debit_note', formData.debitNoteNumber);
+      if (debitNoteNumber !== formData.debitNoteNumber) {
+        setValue('debitNoteNumber', debitNoteNumber ?? '');
+        setCodeLocked(true);
+      }
+
+      await createDebitNote.mutateAsync({
+        customerId: formData.customerId,
+        invoiceId: formData.invoiceId || undefined,
+        debitNoteNumber: debitNoteNumber || undefined,
+        debitNoteDate: formData.debitNoteDate || undefined,
+        reason: formData.reason || undefined,
+        notes: formData.notes || undefined,
+        items: formData.items
+          .filter((item) => item.itemId)
+          .map((item) => ({
+            itemId: item.itemId,
+            itemUomId: item.uom || undefined,
+            reason: item.reason || undefined,
+            quantity: Number(item.quantity) || 0,
+            price: Number(item.price) || 0,
+            discount: Number(item.discount) || 0,
+          })),
+      });
+      navigate('/debit-notes');
+    } catch {
+      // toast already shown by useCreateDocument's onError
+    }
   };
 
-  const selectClass = 'w-full px-2 py-1 border rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500';
+  const cols = lineCols({ reason: true, excise: taxRates.hasExcise });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Debit Note</h2>
-        </div>
-        <button
-          onClick={() => navigate('/debit-notes')}
-          className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-        >
-          <ChevronLeft className="w-4 h-4" /> Back
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="bg-gray-200 dark:bg-gray-700 px-4 py-6">
-          <div className="max-w-md">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Customer <span className="text-red-500 font-bold ml-0.5">*</span>
-            </label>
-            <select
-              {...register('customerId', { required: 'Customer is required' })}
-              className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Select Customer</option>
-              {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
+    <DocumentShell icon={FileText} eyebrow="Field Sales · New" title="Add Debit Note" onBack={() => navigate('/debit-notes')} onSubmit={handleSubmit(onSubmit)}>
+      <SectionPair>
+        <DocSection index={1} title="Reference">
+          <div className={fieldGridCls}>
+            <ControlledSelect control={control} name="customerId" rules={{ required: 'Customer is required' }} label="Customer" options={customers} placeholder="Select Customer" />
+            <ControlledSelect control={control} name="invoiceId" rules={{ required: 'Invoice is required' }} label="Invoice" options={invoices} placeholder="Select Invoice" />
           </div>
-        </div>
+        </DocSection>
 
-        <div className="bg-white dark:bg-gray-800 p-6">
-          <div className="grid grid-cols-2 gap-8 mb-8">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Invoice <span className="text-red-500 font-bold ml-0.5">*</span>
-                </label>
-                <select
-                  {...register('invoiceId', { required: 'Invoice is required' })}
-                  className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Select Invoice</option>
-                  {invoices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                {errors.invoiceId && <p className="text-sm text-red-500 mt-1">{errors.invoiceId.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Reason <span className="text-red-500 font-bold ml-0.5">*</span>
-                </label>
-                <select
-                  {...register('reason', { required: 'Reason is required' })}
-                  className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Select Reason</option>
-                  {defaultReasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                {errors.reason && <p className="text-sm text-red-500 mt-1">{errors.reason.message}</p>}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Debit Note Number</label>
-                  <OrderCodeSettingsIcon label="Debit Note Number" value="" onChange={() => {}} />
-                </div>
-                <Input
-                label="Debit Note Number"
-                {...register('debitNoteNumber')}
-                placeholder="Auto-generated"
-                disabled
-              />
-              </div>
-              <Input
-                label="Debit Note Date"
-                type="date"
-                {...register('debitNoteDate', { required: 'Date is required' })}
-                required
-              />
-            </div>
+        <DocSection index={2} title="Document">
+          <div className={fieldGridCls}>
+            <CodeField
+              label="Debit Note Number"
+              registration={register('debitNoteNumber')}
+              disabled={codeLocked}
+              action={
+                <OrderCodeSettingsIcon
+                  label="Debit Note Number"
+                  entityKey="debit_note"
+                  value={watch('debitNoteNumber') || ''}
+                  onChange={(v) => setValue('debitNoteNumber', v)}
+                  onLockChange={setCodeLocked}
+                />
+              }
+            />
+            <ControlledDate control={control} name="debitNoteDate" rules={{ required: 'Date is required' }} label="Debit Note Date" />
+            <ControlledSelect control={control} name="reason" rules={{ required: 'Reason is required' }} label="Reason" options={reasons} placeholder="Select Reason" />
           </div>
+        </DocSection>
+      </SectionPair>
 
-          {/* Items table */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-4">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-3 py-2 text-left">#</th>
-                  <th className="px-3 py-2 text-left">Item</th>
-                  <th className="px-3 py-2 text-left">UOM</th>
-                  <th className="px-3 py-2 text-left">Reason</th>
-                  <th className="px-3 py-2 text-left">Qty</th>
-                  <th className="px-3 py-2 text-left">Price</th>
-                  <th className="px-3 py-2 text-left">Discount</th>
-                  <th className="px-3 py-2 text-left">VAT</th>
-                  <th className="px-3 py-2 text-left">Net</th>
-                  <th className="px-3 py-2 text-left">Total</th>
-                  <th className="px-3 py-2 text-left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => (
-                  <tr key={field.id} className="border-t border-gray-200 dark:border-gray-700">
-                    <td className="px-3 py-2">{index + 1}</td>
-                    <td className="px-3 py-2">
-                      <select {...register(`items.${index}.itemId`)} className={selectClass}>
-                        <option value="">Select Item</option>
-                        {items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <select {...register(`items.${index}.uom`)} className={selectClass}>
-                        <option value="">UOM</option>
-                        {defaultUomOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <select {...register(`items.${index}.reason`)} className={selectClass}>
-                        <option value="">Reason</option>
-                        {defaultReasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                        className="w-16 px-2 py-1 border rounded text-sm"
-                        min="0"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.price`, { valueAsNumber: true })}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        step="0.01"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.discount`, { valueAsNumber: true })}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        step="0.01"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.vat`, { valueAsNumber: true })}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        step="0.01"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {(Number(watchedItems?.[index]?.net) || 0).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {(Number(watchedItems?.[index]?.total) || 0).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => fields.length > 1 && remove(index)}
-                        className="text-red-500 hover:text-red-700"
-                        disabled={fields.length === 1}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
 
-          <div className="flex justify-end mb-6">
-            <Button
-              type="button"
-              onClick={() => append({ ...emptyItem, id: Date.now().toString() })}
-              variant="primary"
-            >
-              <Plus className="w-4 h-4 mr-1" /> Add Item
-            </Button>
-          </div>
+      <DocSection index={3} title="Items" flush>
+        <LineHeader
+          cols={cols}
+          labels={['Item', 'UOM', 'Reason', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']}
+          numericLabels={[taxRates.taxCode]}
+        />
+        {fields.map((field, index) => (
+          <LineStrip key={field.id} index={index} cols={cols} onRemove={() => fields.length > 1 && remove(index)} canRemove={fields.length > 1}>
+            <LineCell label="Item" className={wideCellCls}>
+              <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} disabled={!customerId} />
+            </LineCell>
+            <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
+            <LineCell label="Reason">
+              <ControlledSelect control={control} name={`items.${index}.reason`} options={reasons} placeholder="Reason" />
+            </LineCell>
+            <LineCell label="Qty">
+              <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
+            </LineCell>
+            <PdpPriceCell resolution={resolutions[field.id]} aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
+            <PdpDiscountCell resolution={resolutions[field.id]} aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
+            <LineCell label="Net">
+              <LineFigure value={Number(watchedItems?.[index]?.net) || 0} />
+            </LineCell>
+            {taxRates.hasExcise && (
+              <LineCell label="Excise">
+                <LineFigure value={Number(watchedItems?.[index]?.excise) || 0} />
+              </LineCell>
+            )}
+            <LineCell label={taxRates.taxCode}>
+              <LineFigure value={Number(watchedItems?.[index]?.vat) || 0} />
+            </LineCell>
+            <LineCell label="Total">
+              <LineFigure value={Number(watchedItems?.[index]?.total) || 0} strong />
+            </LineCell>
+          </LineStrip>
+        ))}
+        <AddLineButton onClick={() => append({ ...emptyItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
+      </DocSection>
 
-          {/* Totals */}
-          <div className="flex justify-end">
-            <div className="w-80 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-2">
-              {([
-                ['Gross Total', grossTotal],
-                ['VAT', vatTotal],
-                ['Excise', exciseTotal],
-                ['Net Total', netTotal],
-                ['Discount', discountTotal],
-              ] as [string, number][]).map(([label, value]) => (
-                <div key={label} className="flex justify-between">
-                  <span>{label}</span>
-                  <span>AED {(Number(value) || 0).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>AED {(Number(finalTotal) || 0).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gray-200 dark:bg-gray-700 p-4 flex justify-end gap-3">
-          <CancelButton onClick={() => navigate('/debit-notes')}>Cancel</CancelButton>
-          <SaveButton type="submit">Save &amp; Submit</SaveButton>
-        </div>
-      </form>
-    </div>
+      <ReceiptRail
+        gross={grossTotal}
+        discount={discountTotal}
+        net={netTotal}
+        vat={vatTotal}
+        excise={exciseTotal}
+        taxLabel={taxRates.taxCode}
+        taxRate={taxRates.uniformRate}
+        taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
+        showExcise={taxRates.hasExcise}
+        total={finalTotal}
+        lineCount={fields.length}
+        noteRegister={register('notes')}
+      >
+        <SaveButton type="submit" fullWidth>
+          Save &amp; Submit
+        </SaveButton>
+        <CancelButton type="button" fullWidth onClick={() => navigate('/debit-notes')}>
+          Cancel
+        </CancelButton>
+      </ReceiptRail>
+    </DocumentShell>
   );
 }

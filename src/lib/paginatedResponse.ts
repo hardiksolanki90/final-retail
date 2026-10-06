@@ -1,14 +1,6 @@
 export interface NormalizedListResponse<T> {
   data: T[];
-  meta: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    last_page: number;
-    has_more_pages: boolean;
-    next_page_url: string | null;
-    prev_page_url: string | null;
-  };
+  meta: { current_page: number; per_page: number; total: number; last_page: number; has_more_pages: boolean; next_page_url: string | null; prev_page_url: string | null };
 }
 
 /**
@@ -17,11 +9,7 @@ export interface NormalizedListResponse<T> {
  * item array key varies per module. This normalizes that back into the
  * `{ data, meta }` shape every provider/list page already consumes.
  */
-export function unwrapPaginated<T>(
-  response: any,
-  itemName: string,
-  requestedPerPage: number
-): NormalizedListResponse<T> {
+export function unwrapPaginated<T>(response: any, itemName: string, requestedPerPage: number): NormalizedListResponse<T> {
   const items: T[] = Array.isArray(response?.[itemName]) ? response[itemName] : [];
   const currentPage = response?.currentPage ?? 1;
   const lastPage = response?.lastPage ?? 1;

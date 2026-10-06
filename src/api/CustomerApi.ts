@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import { queryClient } from '../lib/queryClient';
 import { showToast } from '../lib/toast';
 import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 import type {
@@ -19,12 +20,7 @@ import type {
 } from '../types/Customer';
 
 // Customer CRUD Operations
-export const getCustomerList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-  filters?: CustomerFilters
-): Promise<CustomerListResponse> => {
+export const getCustomerList = async (page: number = 1, searchTerm?: string, perPage: number = 15, filters?: CustomerFilters): Promise<CustomerListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -61,12 +57,7 @@ export const getCustomerList = async (
   return unwrapPaginated(response.data, 'customers', perPage) as CustomerListResponse;
 };
 
-export const getCustomerOptions = async (
-  page: number = 1,
-  search?: string,
-  perPage: number = 25,
-  filters?: CustomerFilters
-): Promise<NormalizedListResponse<CustomerSelectOption>> => {
+export const getCustomerOptions = async (page: number = 1, search?: string, perPage: number = 25, filters?: CustomerFilters): Promise<NormalizedListResponse<CustomerSelectOption>> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -83,16 +74,19 @@ export const getCustomerOptions = async (
     params.append('route_id', filters.routeId.toString());
   }
 
-  const response = await axiosInstance.get(`/customer/all?${params.toString()}`);
-  return unwrapPaginated(response.data, 'customers', perPage);
+  const url = `/customer/all?${params.toString()}`;
+
+  // One request per distinct URL, shared by every caller — the Customer form's four
+  // partner selects open together and used to send it four times. Cached for a minute;
+  // customer mutations invalidate 'customer-list', which drops these too.
+  return queryClient.fetchQuery<NormalizedListResponse<CustomerSelectOption>>({
+    queryKey: ['customer-list', 'options', url],
+    queryFn: async () => unwrapPaginated((await axiosInstance.get(url)).data, 'customers', perPage),
+    staleTime: 60 * 1000,
+  });
 };
 
-export const searchCustomers = async (
-  searchTerm: string,
-  page: number = 1,
-  perPage: number = 15,
-  filters?: CustomerFilters
-): Promise<CustomerListResponse> => {
+export const searchCustomers = async (searchTerm: string, page: number = 1, perPage: number = 15, filters?: CustomerFilters): Promise<CustomerListResponse> => {
   const params = new URLSearchParams();
   params.append('search', searchTerm);
   params.append('page', page.toString());
@@ -151,17 +145,13 @@ export const deleteCustomer = async (uuid: string): Promise<void> => {
   }
 };
 
-export const getCustomerSales = async (
-  uuid: string,
-  startDate?: string,
-  endDate?: string
-): Promise<CustomerSalesData> => {
+export const getCustomerSales = async (uuid: string, startDate?: string, endDate?: string): Promise<CustomerSalesData> => {
   const params = new URLSearchParams();
-  
+
   if (startDate) {
     params.append('start_date', startDate);
   }
-  
+
   if (endDate) {
     params.append('end_date', endDate);
   }
@@ -186,11 +176,7 @@ export const bulkActionCustomers = async (bulkAction: CustomerBulkAction): Promi
 };
 
 // Customer Types API
-export const getCustomerTypeOptions = async (
-  page: number = 1,
-  search?: string,
-  perPage: number = 25
-): Promise<NormalizedListResponse<CustomerType>> => {
+export const getCustomerTypeOptions = async (page: number = 1, search?: string, perPage: number = 25): Promise<NormalizedListResponse<CustomerType>> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -199,8 +185,13 @@ export const getCustomerTypeOptions = async (
     params.append('search', search);
   }
 
-  const response = await axiosInstance.get(`/customer-type/all?${params.toString()}`);
-  return unwrapPaginated(response.data, 'customerTypes', perPage);
+  const url = `/customer-type/all?${params.toString()}`;
+
+  // Shared and cached like getCustomerOptions — the Customer form's type select refetched this on every open.
+  return queryClient.fetchQuery<NormalizedListResponse<CustomerType>>({
+    queryKey: ['customer-type-options', url],
+    queryFn: async () => unwrapPaginated((await axiosInstance.get(url)).data, 'customerTypes', perPage),
+  });
 };
 
 export const getCustomerTypeDetails = async (uuid: string): Promise<CustomerType> => {
@@ -225,15 +216,14 @@ export const deleteCustomerType = async (uuid: string): Promise<void> => {
 // Customer Categories API
 export interface CustomerCategoryListResponse {
   data: any[];
-  meta?: { current_page: number; per_page: number; total: number; last_page: number; };
-  current_page?: number; per_page?: number; total?: number; last_page?: number;
+  meta?: { current_page: number; per_page: number; total: number; last_page: number; has_more_pages?: boolean };
+  current_page?: number;
+  per_page?: number;
+  total?: number;
+  last_page?: number;
 }
 
-export const getCustomerCategoryList = async (
-  page: number = 1,
-  perPage: number = 15,
-  searchTerm?: string
-): Promise<CustomerCategoryListResponse> => {
+export const getCustomerCategoryList = async (page: number = 1, perPage: number = 15, searchTerm?: string): Promise<CustomerCategoryListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -297,6 +287,15 @@ export const getChannels = async (): Promise<Channel[]> => {
   return response.data?.channels ?? [];
 };
 
+export const getChannelList = async (page: number = 1, perPage: number = 15, searchTerm?: string): Promise<CustomerCategoryListResponse> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+  if (searchTerm) params.append('search', searchTerm);
+  const response = await axiosInstance.get(`/channel/all?${params.toString()}`);
+  return unwrapPaginated(response.data, 'channels', perPage);
+};
+
 export const getChannelDetails = async (uuid: string): Promise<Channel> => {
   const response = await axiosInstance.get(`/channel/edit/${uuid}`);
   return response.data.data || response.data;
@@ -320,6 +319,15 @@ export const deleteChannel = async (uuid: string): Promise<void> => {
 export const getSalesOrganisations = async (): Promise<SalesOrganisation[]> => {
   const response = await axiosInstance.get('/sales-organisation/all?per_page=50');
   return response.data?.salesOrganisations ?? [];
+};
+
+export const getSalesOrganisationList = async (page: number = 1, perPage: number = 15, searchTerm?: string): Promise<CustomerCategoryListResponse> => {
+  const params = new URLSearchParams();
+  params.append('page', page.toString());
+  params.append('per_page', perPage.toString());
+  if (searchTerm) params.append('search', searchTerm);
+  const response = await axiosInstance.get(`/sales-organisation/all?${params.toString()}`);
+  return unwrapPaginated(response.data, 'salesOrganisations', perPage);
 };
 
 export const getSalesOrganisationDetails = async (uuid: string): Promise<SalesOrganisation> => {
@@ -393,8 +401,6 @@ export const deleteRoute = async (uuid: string): Promise<void> => {
 
 // Utility Functions
 export const exportCustomers = async (format: 'csv' | 'xlsx'): Promise<Blob> => {
-  const response = await axiosInstance.get(`/customer/export?format=${format}`, {
-    responseType: 'blob',
-  });
+  const response = await axiosInstance.get(`/customer/export?format=${format}`, { responseType: 'blob' });
   return response.data;
 };

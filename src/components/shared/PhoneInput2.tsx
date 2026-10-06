@@ -1,115 +1,99 @@
-import {
-  ChevronDown,
-  Search,
-} from 'lucide-react'
-import clsx from 'clsx'
-import { useEffect, useState } from 'react'
-import PhoneInput from 'react-phone-number-input'
-import { getCountryCallingCode } from 'react-phone-number-input/input'
-import { parsePhoneNumber } from 'libphonenumber-js'
-import 'react-phone-number-input/style.css'
+import { ChevronDown, Search } from 'lucide-react';
+import clsx from 'clsx';
+import { useEffect, useState } from 'react';
+import PhoneInput from 'react-phone-number-input';
+import { getCountryCallingCode } from 'react-phone-number-input/input';
+import { parsePhoneNumber } from 'libphonenumber-js';
+import 'react-phone-number-input/style.css';
 
 interface PhoneInput2Props {
-  value?: string
-  onChange: (value: string | undefined) => void
-  onBlur?: any
-  onInput?: (value: string) => void
-  placeholder?: string
-  disabled?: boolean
-  error?: boolean
-  className?: string
-  name?: string
-  id?: string
+  value?: string;
+  onChange: (value: string | undefined) => void;
+  onBlur?: any;
+  onInput?: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  error?: boolean;
+  className?: string;
+  name?: string;
+  id?: string;
 }
 
-const PhoneInput2 = ({
-  value,
-  onChange,
-  onBlur,
-  onInput,
-  placeholder = 'Enter phone number',
-  disabled = false,
-  error = false,
-  className = '',
-  name,
-  id,
-}: PhoneInput2Props) => {
-  const [transformedValue, setTransformedValue] = useState('')
+const PhoneInput2 = ({ value, onChange, onBlur, onInput, placeholder = 'Enter phone number', disabled = false, error = false, className = '', name, id }: PhoneInput2Props) => {
+  const [transformedValue, setTransformedValue] = useState('');
 
   function extractNumbers(input: string) {
-    return input.replace(/\D/g, '')
+    return input.replace(/\D/g, '');
   }
 
   function getCleanPhone(value: string) {
-    let cleanPhone = extractNumbers(value)
+    let cleanPhone = extractNumbers(value);
     if (cleanPhone.startsWith('1')) {
-      cleanPhone = cleanPhone.slice(1)
-      return `+1${cleanPhone}`
+      cleanPhone = cleanPhone.slice(1);
+      return `+1${cleanPhone}`;
     }
 
     if (!cleanPhone.startsWith('1')) {
-      return `+1${cleanPhone}`
+      return `+1${cleanPhone}`;
     }
 
-    return cleanPhone
+    return cleanPhone;
   }
 
   useEffect(() => {
     if (value) {
-      setTransformedValue(getCleanPhone(value))
+      setTransformedValue(getCleanPhone(value));
     }
-  }, [value])
+  }, [value]);
 
   const handlePhoneChange = (phoneValue: string | undefined) => {
     // onChange: keep the full value with country code
-    onChange(phoneValue)
+    onChange(phoneValue);
 
     // onInput: provide clean phone number without country code
     if (onInput && phoneValue) {
       // Extract the national number (without country code)
       try {
-        const phoneNumber = parsePhoneNumber(phoneValue)
+        const phoneNumber = parsePhoneNumber(phoneValue);
         if (phoneNumber) {
-          onInput(phoneNumber.nationalNumber)
+          onInput(phoneNumber.nationalNumber);
         } else {
-          onInput(phoneValue.replace(/\D/g, ''))
+          onInput(phoneValue.replace(/\D/g, ''));
         }
       } catch {
         // Fallback: remove non-digits
-        onInput(phoneValue.replace(/\D/g, ''))
+        onInput(phoneValue.replace(/\D/g, ''));
       }
     }
-  }
+  };
 
   // Custom country select component with search
   const CountrySelect = ({ value, onChange, options }: any) => {
-    const [isOpen, setIsOpen] = useState(false)
-    const [search, setSearch] = useState('')
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
 
     const filteredOptions = options.filter((option: any) => {
-      if (!option || !option.label || !option.value) return false
-      const countryName = option.label.toLowerCase()
-      const countryCode = option.value.toLowerCase()
-      const searchLower = search.toLowerCase()
-      return (
-        countryName.includes(searchLower) || countryCode.includes(searchLower)
-      )
-    })
+      if (!option || !option.label || !option.value) return false;
+      const countryName = option.label.toLowerCase();
+      const countryCode = option.value.toLowerCase();
+      const searchLower = search.toLowerCase();
+      return countryName.includes(searchLower) || countryCode.includes(searchLower);
+    });
 
     // Prioritize India, US, Canada at the top
     const prioritizedOptions = filteredOptions.sort((a: any, b: any) => {
-      const priority = { IN: 0 }
-      const aPriority = priority[a.value as keyof typeof priority] ?? 999
-      const bPriority = priority[b.value as keyof typeof priority] ?? 999
+      const priority = { IN: 0 };
+      const aPriority = priority[a.value as keyof typeof priority] ?? 999;
+      const bPriority = priority[b.value as keyof typeof priority] ?? 999;
 
       if (aPriority !== bPriority) {
-        return aPriority - bPriority
+        return aPriority - bPriority;
       }
 
-      return a.label.localeCompare(b.label)
-    })
+      return a.label.localeCompare(b.label);
+    });
 
-    const selectedOption = options.find((option: any) => option.value === value)
+    const selectedOption = options.find((option: any) => option.value === value);
 
     return (
       <div className="relative">
@@ -124,38 +108,24 @@ const PhoneInput2 = ({
             'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
             'dark:disabled:bg-gray-900 dark:disabled:text-gray-500',
             'flex items-center gap-2',
-            error
-              ? ''
-              : '',
+            error ? '' : '',
             disabled && 'cursor-not-allowed opacity-50'
           )}
         >
           {selectedOption && (
             <>
               <img
-                src={`https://flagcdn.com/24x18/${
-                  selectedOption.value?.toLowerCase() || 'us'
-                }.png`}
+                src={`https://flagcdn.com/24x18/${selectedOption.value?.toLowerCase() || 'us'}.png`}
                 alt={`${selectedOption.label} flag`}
                 className="h-4 w-6 object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjE4IiBmaWxsPSIjRjNGNEY2Ii8+Cjwvc3ZnPgo=`
+                  e.currentTarget.src = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjE4IiBmaWxsPSIjRjNGNEY2Ii8+Cjwvc3ZnPgo=`;
                 }}
               />
-              <span className="text-sm font-medium dark:text-white">
-                +
-                {selectedOption.value
-                  ? getCountryCallingCode(selectedOption.value)
-                  : '1'}
-              </span>
+              <span className="text-sm font-medium dark:text-white">+{selectedOption.value ? getCountryCallingCode(selectedOption.value) : '1'}</span>
             </>
           )}
-          <ChevronDown
-            className={clsx(
-              'h-4 w-4 text-gray-400 transition-transform',
-              isOpen && 'rotate-180'
-            )}
-          />
+          <ChevronDown className={clsx('h-4 w-4 text-gray-400 transition-transform', isOpen && 'rotate-180')} />
         </button>
 
         {isOpen && (
@@ -182,9 +152,9 @@ const PhoneInput2 = ({
                     key={option.value}
                     type="button"
                     onClick={() => {
-                      onChange(option.value)
-                      setIsOpen(false)
-                      setSearch('')
+                      onChange(option.value);
+                      setIsOpen(false);
+                      setSearch('');
                     }}
                     className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
@@ -193,23 +163,17 @@ const PhoneInput2 = ({
                       alt={`${option.label} flag`}
                       className="h-4 w-6 object-cover"
                       onError={(e) => {
-                        e.currentTarget.src = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjE4IiBmaWxsPSIjRjNGNEY2Ii8+Cjwvc3ZnPgo=`
+                        e.currentTarget.src = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjE4IiBmaWxsPSIjRjNGNEY2Ii8+Cjwvc3ZnPgo=`;
                       }}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                        {option.label || ''}
-                      </div>
+                      <div className="truncate text-sm font-medium text-gray-900 dark:text-white">{option.label || ''}</div>
                     </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      +{option.value ? getCountryCallingCode(option.value) : ''}
-                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">+{option.value ? getCountryCallingCode(option.value) : ''}</span>
                   </button>
                 ))
               ) : (
-                <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                  No countries found
-                </div>
+                <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No countries found</div>
               )}
             </div>
           </div>
@@ -220,14 +184,14 @@ const PhoneInput2 = ({
           <div
             className="fixed inset-0 z-40"
             onClick={() => {
-              setIsOpen(false)
-              setSearch('')
+              setIsOpen(false);
+              setSearch('');
             }}
           />
         )}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className={clsx('relative', className)}>
@@ -251,9 +215,7 @@ const PhoneInput2 = ({
         }}
         className={clsx(
           'react-phone-number-input flex rounded-lg border transition-colors',
-          error
-            ? 'border-red-500 focus-within:ring-red-500 focus-within:border-red-500'
-            : 'border-gray-300 dark:border-gray-600 focus-within:ring-primary-500 focus-within:border-primary-500',
+          error ? 'border-red-500 focus-within:ring-red-500 focus-within:border-red-500' : 'border-gray-300 dark:border-gray-600 focus-within:ring-primary-500 focus-within:border-primary-500',
           'focus-within:ring-2'
         )}
         maxLength={14}
@@ -281,7 +243,7 @@ const PhoneInput2 = ({
         }
       `}</style>
     </div>
-  )
-}
+  );
+};
 
-export default PhoneInput2
+export default PhoneInput2;

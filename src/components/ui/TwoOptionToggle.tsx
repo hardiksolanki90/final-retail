@@ -16,18 +16,14 @@ export function TwoOptionToggle({ value, onChange, trueLabel = 'Yes', falseLabel
       <button
         type="button"
         onClick={() => onChange(true)}
-        className={`relative z-10 py-1.5 rounded-md text-sm font-medium transition-colors ${
-          value ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'
-        }`}
+        className={`relative z-10 py-1.5 rounded-md text-sm font-medium transition-colors ${value ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}
       >
         {trueLabel}
       </button>
       <button
         type="button"
         onClick={() => onChange(false)}
-        className={`relative z-10 py-1.5 rounded-md text-sm font-medium transition-colors ${
-          !value ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'
-        }`}
+        className={`relative z-10 py-1.5 rounded-md text-sm font-medium transition-colors ${!value ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}`}
       >
         {falseLabel}
       </button>

@@ -15,11 +15,7 @@ export const downloadBlob = (blob: Blob, filename: string): void => {
 /**
  * Utility function to export data with proper error handling
  */
-export const handleExport = async (
-  exportFn: () => Promise<Blob>,
-  filename: string,
-  onError?: (error: unknown) => void
-): Promise<void> => {
+export const handleExport = async (exportFn: () => Promise<Blob>, filename: string, onError?: (error: unknown) => void): Promise<void> => {
   try {
     const blob = await exportFn();
     downloadBlob(blob, filename);

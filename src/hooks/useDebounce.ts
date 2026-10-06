@@ -25,10 +25,7 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
 /**
  * Custom hook for debouncing a callback function
  */
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
-  delay: number = 500
-): (...args: Parameters<T>) => void {
+export function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number = 500): (...args: Parameters<T>) => void {
   const [timeoutId, setTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const debouncedCallback = (...args: Parameters<T>) => {

@@ -9,266 +9,193 @@ import { X } from 'lucide-react';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
 
 interface RouteItemGroupingAddProps {
-  isOpen: boolean;
-  onClose: () => void;
-  data?: any;
-  onEvent?: (data: any) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    data?: any;
+    onEvent?: (data: any) => void;
 }
 
-export function RouteItemGroupingAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: RouteItemGroupingAddProps) {
-  const initialData = data?.initialData;
-  const isLoading = data?.isLoading || false;
-  const routes = data?.routes || [];
-  const items = data?.items || [];
-  
-  const defaultValues: RouteItemGroupingFormData = {
-    routeId: '',
-    groupName: '',
-    description: '',
-    priority: 1,
-    effectiveDate: '',
-    expiryDate: '',
-    itemIds: [],
-    status: 'active',
-  };
+export function RouteItemGroupingAdd({ isOpen, onClose, data, onEvent }: RouteItemGroupingAddProps) {
+    const initialData = data?.initialData;
+    const isLoading = data?.isLoading || false;
+    const routes = data?.routes || [];
+    const items = data?.items || [];
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    setValue,
-    watch,
-    setError,
-    clearErrors
-  } = useForm<RouteItemGroupingFormData>({
-    defaultValues,
-    mode: 'onBlur'
-  });
+    const defaultValues: RouteItemGroupingFormData = { routeId: '', groupName: '', description: '', priority: 1, effectiveDate: '', expiryDate: '', itemIds: [], status: 'active' };
 
-  const watchedItemIds = watch('itemIds') || [];
-  const watchedStatus = watch('status');
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        reset,
+        setValue,
+        watch,
+        setError,
+        clearErrors,
+    } = useForm<RouteItemGroupingFormData>({ defaultValues, mode: 'onBlur' });
 
-  useEffect(() => {
-    if (initialData && isOpen) {
-      reset(initialData);
-      setSelectedItems(initialData.itemIds || []);
-    } else if (isOpen && !initialData) {
-      reset(defaultValues);
-      setSelectedItems([]);
-    }
-  }, [initialData, isOpen, reset]);
+    const watchedItemIds = watch('itemIds') || [];
+    const watchedStatus = watch('status');
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-  // Sync selected items with watched itemIds
-  useEffect(() => {
-    setSelectedItems(watchedItemIds);
-  }, [watchedItemIds]);
+    useEffect(() => {
+        if (initialData && isOpen) {
+            reset(initialData);
+            setSelectedItems(initialData.itemIds || []);
+        } else if (isOpen && !initialData) {
+            reset(defaultValues);
+            setSelectedItems([]);
+        }
+    }, [initialData, isOpen, reset]);
 
-  const handleSelectChange = (field: keyof RouteItemGroupingFormData, value: string) => {
-    setValue(field, value);
-    clearErrors(field);
-  };
+    // Sync selected items with watched itemIds
+    useEffect(() => {
+        setSelectedItems(watchedItemIds);
+    }, [watchedItemIds]);
 
-  const handleAddItem = (itemId: string) => {
-    if (itemId && !selectedItems.includes(itemId)) {
-      const newItems = [...selectedItems, itemId];
-      setSelectedItems(newItems);
-      setValue('itemIds', newItems);
-      clearErrors('itemIds');
-    }
-  };
+    const handleSelectChange = (field: keyof RouteItemGroupingFormData, value: string) => {
+        setValue(field, value);
+        clearErrors(field);
+    };
 
-  const handleRemoveItem = (itemId: string) => {
-    const newItems = selectedItems.filter((id) => id !== itemId);
-    setSelectedItems(newItems);
-    setValue('itemIds', newItems);
-    clearErrors('itemIds');
-  };
+    const handleAddItem = (itemId: string) => {
+        if (itemId && !selectedItems.includes(itemId)) {
+            const newItems = [...selectedItems, itemId];
+            setSelectedItems(newItems);
+            setValue('itemIds', newItems);
+            clearErrors('itemIds');
+        }
+    };
 
+    const handleRemoveItem = (itemId: string) => {
+        const newItems = selectedItems.filter((id) => id !== itemId);
+        setSelectedItems(newItems);
+        setValue('itemIds', newItems);
+        clearErrors('itemIds');
+    };
 
-  const onFormSubmit = async (data: RouteItemGroupingFormData) => {
-    try {
-      // Validate that at least one item is added
-      if (!data.itemIds || data.itemIds.length === 0) {
-        setError('itemIds', { type: 'required', message: 'At least one item is required' });
-        return;
-      }
-      
-      onEvent?.({
-        eventType: initialData ? 'RouteItemGroupingUpdated' : 'RouteItemGroupingCreated',
-        routeItemGrouping: data,
-      });
-    } catch (error: any) {
-      console.error('Error saving route item grouping:', error);
-      if (error.response?.data?.errors) {
-        Object.entries(error.response.data.errors).forEach(([field, message]) => {
-          setError(field as keyof RouteItemGroupingFormData, { 
-            type: 'server', 
-            message: Array.isArray(message) ? message[0] : message 
-          });
-        });
-      }
-    }
-  };
+    const onFormSubmit = async (data: RouteItemGroupingFormData) => {
+        try {
+            // Validate that at least one item is added
+            if (!data.itemIds || data.itemIds.length === 0) {
+                setError('itemIds', { type: 'required', message: 'At least one item is required' });
+                return;
+            }
 
-  return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Route Item Grouping' : 'Add Route Item Grouping'}
-      width="w-[700px]"
-    >
-      <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-        <Select
-          label="Route"
-          {...register('routeId', {
-            required: 'Route is required'
-          })}
-          onChange={(e) => handleSelectChange('routeId', e.target.value)}
-          options={routes}
-          placeholder="Select route"
-          error={errors.routeId?.message}
-          required
-        />
+            onEvent?.({ eventType: initialData ? 'RouteItemGroupingUpdated' : 'RouteItemGroupingCreated', routeItemGrouping: data });
+        } catch (error: any) {
+            console.error('Error saving route item grouping:', error);
+            if (error.response?.data?.errors) {
+                Object.entries(error.response.data.errors).forEach(([field, message]) => {
+                    setError(field as keyof RouteItemGroupingFormData, { type: 'server', message: Array.isArray(message) ? message[0] : message });
+                });
+            }
+        }
+    };
 
-        <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Name</label>
-                  <OrderCodeSettingsIcon label="Group Name" value="" onChange={() => {}} />
+    return (
+        <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Route Item Grouping' : 'Add Route Item Grouping'} width="w-[700px]">
+            <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
+                <Select
+                    label="Route"
+                    {...register('routeId', { required: 'Route is required' })}
+                    onChange={(e) => handleSelectChange('routeId', e.target.value)}
+                    options={routes}
+                    placeholder="Select route"
+                    error={errors.routeId?.message}
+                    required
+                />
+
+                <div>
+                    <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Name</label>
+                        <OrderCodeSettingsIcon label="Group Name" value="" onChange={() => {}} />
+                    </div>
+                    <Input
+                        label="Group Name"
+                        {...register('groupName', { required: 'Group Name is required', validate: (value) => value?.trim() || 'Group Name is required' })}
+                        error={errors.groupName?.message}
+                        placeholder="Enter group name"
+                        required
+                    />
                 </div>
+
+                <Input label="Description" {...register('description')} placeholder="Enter description" error={errors.description?.message} />
+
                 <Input
-          label="Group Name"
-          {...register('groupName', {
-            required: 'Group Name is required',
-            validate: (value) => value?.trim() || 'Group Name is required'
-          })}
-          error={errors.groupName?.message}
-          placeholder="Enter group name"
-          required
-        />
-              </div>
+                    label="Priority"
+                    type="number"
+                    {...register('priority', { required: 'Priority is required', valueAsNumber: true, min: { value: 1, message: 'Priority must be 1 or greater' } })}
+                    placeholder="Enter priority"
+                    min="1"
+                    error={errors.priority?.message}
+                    required
+                />
 
-        <Input
-          label="Description"
-          {...register('description')}
-          placeholder="Enter description"
-          error={errors.description?.message}
-        />
+                <div className="grid grid-cols-2 gap-4">
+                    <Input label="Effective Date" type="date" {...register('effectiveDate', { required: 'Effective Date is required' })} error={errors.effectiveDate?.message} required />
+                    <Input label="Expiry Date" type="date" {...register('expiryDate')} error={errors.expiryDate?.message} />
+                </div>
 
-        <Input
-          label="Priority"
-          type="number"
-          {...register('priority', {
-            required: 'Priority is required',
-            valueAsNumber: true,
-            min: { value: 1, message: 'Priority must be 1 or greater' }
-          })}
-          placeholder="Enter priority"
-          min="1"
-          error={errors.priority?.message}
-          required
-        />
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)]">Items {errors.itemIds && <span className="text-red-500 ml-1">*</span>}</label>
+                    <div className="flex gap-2">
+                        <Select
+                            value=""
+                            onChange={(e) => handleAddItem(e.target.value)}
+                            options={items.filter((item: any) => !selectedItems.includes(item.value))}
+                            placeholder="Select item to add"
+                            className="flex-1"
+                        />
+                    </div>
+                    {errors.itemIds && <p className="text-sm text-red-500">{errors.itemIds?.message}</p>}
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Effective Date"
-            type="date"
-            {...register('effectiveDate', {
-              required: 'Effective Date is required'
-            })}
-            error={errors.effectiveDate?.message}
-            required
-          />
-          <Input
-            label="Expiry Date"
-            type="date"
-            {...register('expiryDate')}
-            error={errors.expiryDate?.message}
-          />
-        </div>
+                    {selectedItems.length > 0 && (
+                        <div className="mt-3 space-y-2 max-h-60 overflow-y-auto border border-[var(--border-color)] rounded-lg p-3">
+                            {selectedItems.map((itemId) => {
+                                const item = items.find((i: any) => i.value === itemId);
+                                return (
+                                    <div key={itemId} className="flex items-center justify-between bg-[var(--bg-secondary)] px-3 py-2 rounded-md">
+                                        <span className="text-sm text-[var(--text-primary)]">{item?.label || itemId}</span>
+                                        <button type="button" onClick={() => handleRemoveItem(itemId)} className="text-red-500 hover:text-red-700 transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-[var(--text-secondary)]">
-            Items {errors.itemIds && <span className="text-red-500 ml-1">*</span>}
-          </label>
-          <div className="flex gap-2">
-            <Select
-              value=""
-              onChange={(e) => handleAddItem(e.target.value)}
-              options={items.filter((item: any) => !selectedItems.includes(item.value))}
-              placeholder="Select item to add"
-              className="flex-1"
-            />
-          </div>
-          {errors.itemIds && (
-            <p className="text-sm text-red-500">{errors.itemIds?.message}</p>
-          )}
+                {errors.root && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">{errors.root.message}</p>
+                    </div>
+                )}
 
-          {selectedItems.length > 0 && (
-            <div className="mt-3 space-y-2 max-h-60 overflow-y-auto border border-[var(--border-color)] rounded-lg p-3">
-              {selectedItems.map((itemId) => {
-                const item = items.find((i: any) => i.value === itemId);
-                return (
-                  <div
-                    key={itemId}
-                    className="flex items-center justify-between bg-[var(--bg-secondary)] px-3 py-2 rounded-md"
-                  >
-                    <span className="text-sm text-[var(--text-primary)]">
-                      {item?.label || itemId}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItem(itemId)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {errors.root && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{errors.root.message}</p>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
-            <button
-              type="button"
-              onClick={() => handleSelectChange('status', watchedStatus === 'active' ? 'inactive' : 'active')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-                watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                  watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-          <div className="flex gap-3">
-            <CancelButton onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </CancelButton>
-            <SaveButton type="submit" disabled={isSubmitting || isLoading}>
-              {isSubmitting || isLoading ? 'Saving...' : initialData ? 'Update' : 'Save'}
-            </SaveButton>
-          </div>
-        </div>
-      </form>
-    </Drawer>
-  );
+                <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+                        <button
+                            type="button"
+                            onClick={() => handleSelectChange('status', watchedStatus === 'active' ? 'inactive' : 'active')}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                                watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+                    <div className="flex gap-3">
+                        <CancelButton onClick={onClose} disabled={isSubmitting}>
+                            Cancel
+                        </CancelButton>
+                        <SaveButton type="submit" disabled={isSubmitting || isLoading}>
+                            {isSubmitting || isLoading ? 'Saving...' : initialData ? 'Update' : 'Save'}
+                        </SaveButton>
+                    </div>
+                </div>
+            </form>
+        </Drawer>
+    );
 }

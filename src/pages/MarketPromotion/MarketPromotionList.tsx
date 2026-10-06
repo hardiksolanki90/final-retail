@@ -1,31 +1,121 @@
-
 import { useState, useRef, useEffect } from 'react';
-import {
-  Filter,
-  Plus,
-  Columns3,
-  Download,
-  Upload,
-  ChevronDown,
-  Check,
-  Trash2,
-  Archive,
-  Tag,
-  X,
-  Menu,
-  Image,
-} from 'lucide-react';
+import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu, Image } from 'lucide-react';
 import { Pagination } from '../../components/ui/Pagination';
+import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
 
 const marketPromotionData = [
-  { id: 1, date: '2024-01-15', merchandiserName: 'John Smith', customerCode: 'CUST001', customerName: 'Acme Store', itemCode: 'ITM001', itemType: 'Beverage', qty: 100, validFrom: '2024-01-15', validTo: '2024-02-15', description: 'Buy 2 Get 1 Free', image: 'promo1.jpg' },
-  { id: 2, date: '2024-01-16', merchandiserName: 'Sarah Johnson', customerCode: 'CUST002', customerName: 'Metro Mart', itemCode: 'ITM002', itemType: 'Snacks', qty: 200, validFrom: '2024-01-16', validTo: '2024-02-16', description: '20% Off Display', image: 'promo2.jpg' },
-  { id: 3, date: '2024-01-17', merchandiserName: 'Mike Brown', customerCode: 'CUST003', customerName: 'Quick Shop', itemCode: 'ITM003', itemType: 'Dairy', qty: 150, validFrom: '2024-01-17', validTo: '2024-02-17', description: 'End Cap Promo', image: 'promo3.jpg' },
-  { id: 4, date: '2024-01-18', merchandiserName: 'Emily Davis', customerCode: 'CUST004', customerName: 'Super Store', itemCode: 'ITM004', itemType: 'Frozen', qty: 80, validFrom: '2024-01-18', validTo: '2024-02-18', description: 'Special Bundle', image: 'promo4.jpg' },
-  { id: 5, date: '2024-01-19', merchandiserName: 'John Smith', customerCode: 'CUST005', customerName: 'City Market', itemCode: 'ITM005', itemType: 'Beverage', qty: 120, validFrom: '2024-01-19', validTo: '2024-02-19', description: 'Floor Display', image: 'promo5.jpg' },
-  { id: 6, date: '2024-01-20', merchandiserName: 'Sarah Johnson', customerCode: 'CUST006', customerName: 'Fresh Foods', itemCode: 'ITM006', itemType: 'Bakery', qty: 90, validFrom: '2024-01-20', validTo: '2024-02-20', description: 'Shelf Talker', image: 'promo6.jpg' },
-  { id: 7, date: '2024-01-21', merchandiserName: 'Mike Brown', customerCode: 'CUST007', customerName: 'Daily Needs', itemCode: 'ITM007', itemType: 'Snacks', qty: 175, validFrom: '2024-01-21', validTo: '2024-02-21', description: 'Combo Offer', image: 'promo7.jpg' },
-  { id: 8, date: '2024-01-22', merchandiserName: 'Emily Davis', customerCode: 'CUST008', customerName: 'Corner Shop', itemCode: 'ITM008', itemType: 'Dairy', qty: 60, validFrom: '2024-01-22', validTo: '2024-02-22', description: 'Sampling Event', image: 'promo8.jpg' },
+  {
+    id: 1,
+    date: '2024-01-15',
+    merchandiserName: 'John Smith',
+    customerCode: 'CUST001',
+    customerName: 'Acme Store',
+    itemCode: 'ITM001',
+    itemType: 'Beverage',
+    qty: 100,
+    validFrom: '2024-01-15',
+    validTo: '2024-02-15',
+    description: 'Buy 2 Get 1 Free',
+    image: 'promo1.jpg',
+  },
+  {
+    id: 2,
+    date: '2024-01-16',
+    merchandiserName: 'Sarah Johnson',
+    customerCode: 'CUST002',
+    customerName: 'Metro Mart',
+    itemCode: 'ITM002',
+    itemType: 'Snacks',
+    qty: 200,
+    validFrom: '2024-01-16',
+    validTo: '2024-02-16',
+    description: '20% Off Display',
+    image: 'promo2.jpg',
+  },
+  {
+    id: 3,
+    date: '2024-01-17',
+    merchandiserName: 'Mike Brown',
+    customerCode: 'CUST003',
+    customerName: 'Quick Shop',
+    itemCode: 'ITM003',
+    itemType: 'Dairy',
+    qty: 150,
+    validFrom: '2024-01-17',
+    validTo: '2024-02-17',
+    description: 'End Cap Promo',
+    image: 'promo3.jpg',
+  },
+  {
+    id: 4,
+    date: '2024-01-18',
+    merchandiserName: 'Emily Davis',
+    customerCode: 'CUST004',
+    customerName: 'Super Store',
+    itemCode: 'ITM004',
+    itemType: 'Frozen',
+    qty: 80,
+    validFrom: '2024-01-18',
+    validTo: '2024-02-18',
+    description: 'Special Bundle',
+    image: 'promo4.jpg',
+  },
+  {
+    id: 5,
+    date: '2024-01-19',
+    merchandiserName: 'John Smith',
+    customerCode: 'CUST005',
+    customerName: 'City Market',
+    itemCode: 'ITM005',
+    itemType: 'Beverage',
+    qty: 120,
+    validFrom: '2024-01-19',
+    validTo: '2024-02-19',
+    description: 'Floor Display',
+    image: 'promo5.jpg',
+  },
+  {
+    id: 6,
+    date: '2024-01-20',
+    merchandiserName: 'Sarah Johnson',
+    customerCode: 'CUST006',
+    customerName: 'Fresh Foods',
+    itemCode: 'ITM006',
+    itemType: 'Bakery',
+    qty: 90,
+    validFrom: '2024-01-20',
+    validTo: '2024-02-20',
+    description: 'Shelf Talker',
+    image: 'promo6.jpg',
+  },
+  {
+    id: 7,
+    date: '2024-01-21',
+    merchandiserName: 'Mike Brown',
+    customerCode: 'CUST007',
+    customerName: 'Daily Needs',
+    itemCode: 'ITM007',
+    itemType: 'Snacks',
+    qty: 175,
+    validFrom: '2024-01-21',
+    validTo: '2024-02-21',
+    description: 'Combo Offer',
+    image: 'promo7.jpg',
+  },
+  {
+    id: 8,
+    date: '2024-01-22',
+    merchandiserName: 'Emily Davis',
+    customerCode: 'CUST008',
+    customerName: 'Corner Shop',
+    itemCode: 'ITM008',
+    itemType: 'Dairy',
+    qty: 60,
+    validFrom: '2024-01-22',
+    validTo: '2024-02-22',
+    description: 'Sampling Event',
+    image: 'promo8.jpg',
+  },
 ];
 
 interface Column {
@@ -38,6 +128,7 @@ export function MarketPromotionList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -91,13 +182,32 @@ export function MarketPromotionList() {
   const endIndex = startIndex + rowsPerPage;
 
   // Apply filters
-  const filteredData = marketPromotionData.filter(c =>
-    (!appliedFilter.date || String(c.date ?? '').toLowerCase().includes(appliedFilter.date.toLowerCase())) &&
-    (!appliedFilter.merchandiserName || String(c.merchandiserName ?? '').toLowerCase().includes(appliedFilter.merchandiserName.toLowerCase())) &&
-    (!appliedFilter.customerCode || String(c.customerCode ?? '').toLowerCase().includes(appliedFilter.customerCode.toLowerCase())) &&
-    (!appliedFilter.customerName || String(c.customerName ?? '').toLowerCase().includes(appliedFilter.customerName.toLowerCase())) &&
-    (!appliedFilter.itemCode || String(c.itemCode ?? '').toLowerCase().includes(appliedFilter.itemCode.toLowerCase())) &&
-    (!appliedFilter.itemType || String(c.itemType ?? '').toLowerCase().includes(appliedFilter.itemType.toLowerCase()))
+  const filteredData = marketPromotionData.filter(
+    (c) =>
+      (!appliedFilter.date ||
+        String(c.date ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.date.toLowerCase())) &&
+      (!appliedFilter.merchandiserName ||
+        String(c.merchandiserName ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.merchandiserName.toLowerCase())) &&
+      (!appliedFilter.customerCode ||
+        String(c.customerCode ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.customerCode.toLowerCase())) &&
+      (!appliedFilter.customerName ||
+        String(c.customerName ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.customerName.toLowerCase())) &&
+      (!appliedFilter.itemCode ||
+        String(c.itemCode ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.itemCode.toLowerCase())) &&
+      (!appliedFilter.itemType ||
+        String(c.itemType ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.itemType.toLowerCase()))
   );
   const currentData = filteredData.slice(startIndex, endIndex);
 
@@ -153,9 +263,7 @@ export function MarketPromotionList() {
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
-                  {selectedRows.length}
-                </span>
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRows.length}</span>
                 <ChevronDown className="w-4 h-4" />
               </button>
               {bulkActionOpen && (
@@ -182,18 +290,17 @@ export function MarketPromotionList() {
 
           {/* Filter Button */}
           <button
-            onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
-              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-              }`}
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
+              filterOpen || Object.values(appliedFilter).some(Boolean)
+                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            }`}
           >
             <Filter className="w-4 h-4" />
             Filter
             {Object.values(appliedFilter).some(Boolean) && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">
-                {Object.values(appliedFilter).filter(Boolean).length}
-              </span>
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">{Object.values(appliedFilter).filter(Boolean).length}</span>
             )}
           </button>
           <div className="relative" ref={columnsRef}>
@@ -273,20 +380,22 @@ export function MarketPromotionList() {
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
-            {([
-              { key: 'date', label: 'Date' },
-              { key: 'merchandiserName', label: 'Merchandiser Name' },
-              { key: 'customerCode', label: 'Customer Code' },
-              { key: 'customerName', label: 'Customer Name' },
-              { key: 'itemCode', label: 'Item Code' },
-              { key: 'itemType', label: 'Item Type' },
-            ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
+            {(
+              [
+                { key: 'date', label: 'Date' },
+                { key: 'merchandiserName', label: 'Merchandiser Name' },
+                { key: 'customerCode', label: 'Customer Code' },
+                { key: 'customerName', label: 'Customer Name' },
+                { key: 'itemCode', label: 'Item Code' },
+                { key: 'itemType', label: 'Item Type' },
+              ] as { key: keyof typeof filterDraft; label: string }[]
+            ).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
                 <input
                   type="text"
                   value={filterDraft[key]}
-                  onChange={e => setFilterDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                  onChange={(e) => setFilterDraft((prev) => ({ ...prev, [key]: e.target.value }))}
                   placeholder={`Filter by ${label.toLowerCase()}...`}
                   className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
@@ -294,7 +403,9 @@ export function MarketPromotionList() {
             ))}
             <div className="flex items-end gap-2 pb-0.5">
               <button
-                onClick={() => { setAppliedFilter({ ...filterDraft }); }}
+                onClick={() => {
+                  setAppliedFilter({ ...filterDraft });
+                }}
                 className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
               >
                 Apply
@@ -329,44 +440,46 @@ export function MarketPromotionList() {
                   />
                 </th>
                 {visibleColumns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap"
-                  >
+                  <th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap">
                     {column.label}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
-                <tr
-                  key={item.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                    }`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(item.id)}
-                      onChange={() => handleSelectRow(item.id)}
-                      className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                    />
-                  </td>
-                  {visibleColumns.map((column) => (
-                    <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)] whitespace-nowrap">
-                      {column.key === 'image' ? (
-                        <button className="inline-flex cursor-pointer items-center gap-1 text-primary-600 hover:text-primary-700">
-                          <Image className="w-4 h-4" />
-                          View
-                        </button>
-                      ) : (
-                        item[column.key as keyof typeof item]
-                      )}
+              {isLoading ? (
+                <TableSkeletonRows
+                  rows={rowsPerPage}
+                  label="Loading market promotions"
+                  columns={['check', ...colsByKey(visibleColumns, { date: 'date', validFrom: 'date', validTo: 'date', image: 'badge' })]}
+                  dense
+                />
+              ) : (
+                currentData.map((item) => (
+                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(item.id)}
+                        onChange={() => handleSelectRow(item.id)}
+                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                      />
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    {visibleColumns.map((column) => (
+                      <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)] whitespace-nowrap">
+                        {column.key === 'image' ? (
+                          <button className="inline-flex cursor-pointer items-center gap-1 text-primary-600 hover:text-primary-700">
+                            <Image className="w-4 h-4" />
+                            View
+                          </button>
+                        ) : (
+                          item[column.key as keyof typeof item]
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -455,10 +568,7 @@ export function MarketPromotionList() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
-              <button
-                onClick={handleExportSubmit}
-                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
-              >
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">
                 Export
               </button>
               <button

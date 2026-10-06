@@ -4,7 +4,7 @@ import {
   Users,
   SlidersHorizontal,
   Percent,
-  DollarSign,
+  Banknote,
   Landmark,
   Warehouse,
   Globe,
@@ -26,7 +26,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
-import { settingsMenu } from '../../data/menuData';
 import { useAuth } from '../../context/AuthContext';
 
 interface SettingsDrawerProps {
@@ -40,7 +39,7 @@ const iconMap: Record<string, LucideIcon> = {
   users: Users,
   sliders: SlidersHorizontal,
   percent: Percent,
-  'dollar-sign': DollarSign,
+  banknote: Banknote,
   landmark: Landmark,
   warehouse: Warehouse,
   globe: Globe,
@@ -63,7 +62,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
   const location = useLocation();
-  const { hasPermission } = useAuth();
+  const { settingsMenu } = useAuth();
 
   const getIcon = (iconName: string) => {
     const IconComponent = iconMap[iconName];
@@ -78,7 +77,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
     <Drawer isOpen={isOpen} onClose={onClose} title="Settings" width="w-80">
       <nav className="py-2">
         <ul className="space-y-1 px-3">
-          {settingsMenu.filter((item) => !item.permission || hasPermission(item.permission)).map((item) => (
+          {settingsMenu.map((item) => (
             <li key={item.id}>
               <Link
                 to={item.path}
@@ -89,13 +88,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                <span
-                  className={
-                    isActive(item.path)
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'
-                  }
-                >
+                <span className={isActive(item.path) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'}>
                   {getIcon(item.icon)}
                 </span>
                 <span>{item.name}</span>

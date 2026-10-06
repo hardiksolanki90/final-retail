@@ -42,6 +42,7 @@ export interface CreditNoteFormData {
   customerId: string;
   invoiceId: string;
   reason: string;
+  notes?: string;
   items: CreditNoteItem[];
   grossTotal: number;
   vat: number;

@@ -7,6 +7,8 @@ import { Building2, MapPin, ShieldCheck, ClipboardCheck, ArrowRight, ArrowLeft, 
 import { useOrganisation, useUpdateOrganisation } from '../../hooks/Organisation/useOrganisation';
 import { useCountryMasters } from '../../hooks/Country/useCountryMasters';
 import { CountryMasterSelect } from '../../components/shared/CountryMasterSelect';
+import { StateSelect } from '../../components/ui/StateSelect';
+import { CurrencyMasterLabel, CurrencyMasterSelect } from '../../components/shared/CurrencyMasterSelect';
 import { showToast } from '../../lib/toast';
 import { useAuth } from '../../context/AuthContext';
 import type { OrganisationFormData } from '../../types/Organisation';
@@ -64,14 +66,7 @@ const STEPS: { key: string; title: string; tag: string; blurb: string; icon: typ
         icon: ShieldCheck,
         fields: ['org_tax_id', 'gst_reg_date', 'is_batch_enabled', 'is_credit_limit_enabled'],
     },
-    {
-        key: 'review',
-        title: 'Review',
-        tag: 'FINAL_CHECK',
-        blurb: 'CONFIRM BEFORE THIS GOES LIVE.',
-        icon: ClipboardCheck,
-        fields: [],
-    },
+    { key: 'review', title: 'Review', tag: 'FINAL_CHECK', blurb: 'CONFIRM BEFORE THIS GOES LIVE.', icon: ClipboardCheck, fields: [] },
 ];
 
 export const OrganisationAdd: React.FC = () => {
@@ -81,59 +76,40 @@ export const OrganisationAdd: React.FC = () => {
     const { organisation, isSuccess: orgFetched } = useOrganisation();
     const updateMutation = useUpdateOrganisation();
     const [step, setStep] = React.useState(0);
-    const { register, handleSubmit, reset, trigger, setValue, watch, control, setError, formState: { errors } } = useForm<OrganisationFormData>({
-        defaultValues: initialFormData
-    });
+    const {
+        register,
+        handleSubmit,
+        reset,
+        trigger,
+        setValue,
+        watch,
+        control,
+        setError,
+        formState: { errors },
+    } = useForm<OrganisationFormData>({ defaultValues: initialFormData });
     const formValues = watch();
-
-    // De-duplicated currency list derived from the country master data itself —
-    // no separate endpoint needed, and it covers every currency a real country
-    // selection could produce (not just a hardcoded handful).
-    const currencyOptions = React.useMemo(() => {
-        const byCode = new Map<string, string>();
-        countryMasters.forEach((master) => {
-            if (master.currencyCode) byCode.set(master.currencyCode, master.currency || master.currencyCode);
-        });
-        return Array.from(byCode.entries()).sort(([a], [b]) => a.localeCompare(b));
-    }, [countryMasters]);
 
     // Still needed for PhoneInput's defaultCountry — CountryMasterSelect owns
     // the ISO-code<->master mapping for the picker itself now.
-    const codeByMasterId = React.useCallback(
-        (id: string) => countryMasters.find((m) => String(m.id) === id)?.countryCode || '',
-        [countryMasters]
-    );
+    const codeByMasterId = React.useCallback((id: string) => countryMasters.find((m) => String(m.id) === id)?.countryCode || '', [countryMasters]);
 
     // Derived live from the selected country's own tax profile (same data the
     // picker already fetched) — flips instantly on country change, no save
     // round-trip, and never guesses a system-specific default like "GSTIN".
-    const selectedTaxProfile = React.useMemo(
-        () => countryMasters.find((m) => String(m.id) === formValues.country_master_id)?.taxProfile ?? null,
-        [countryMasters, formValues.country_master_id]
-    );
-    const taxIdLabel = selectedTaxProfile?.registrationNumberLabel
-        ? `${selectedTaxProfile.registrationNumberLabel} Number`
-        : 'Tax Registration Number';
-    const taxRegDateLabel = selectedTaxProfile?.registrationNumberLabel
-        ? `${selectedTaxProfile.registrationNumberLabel} Reg Date`
-        : 'Registration Date';
+    const selectedTaxProfile = React.useMemo(() => countryMasters.find((m) => String(m.id) === formValues.country_master_id)?.taxProfile ?? null, [countryMasters, formValues.country_master_id]);
+    const taxIdLabel = selectedTaxProfile?.registrationNumberLabel ? `${selectedTaxProfile.registrationNumberLabel} Number` : 'Tax Registration Number';
+    const taxRegDateLabel = selectedTaxProfile?.registrationNumberLabel ? `${selectedTaxProfile.registrationNumberLabel} Reg Date` : 'Registration Date';
 
     const reviewRows = React.useMemo(() => {
         const selectedCountry = countryMasters.find((m) => String(m.id) === formValues.country_master_id);
-        const selectedCurrency = currencyOptions.find(([code]) => code === formValues.org_currency);
-        const address = [formValues.org_street1, formValues.org_street2, formValues.org_city, formValues.org_state, formValues.org_postal]
-            .filter(Boolean)
-            .join(', ');
-        const modules = [
-            formValues.is_batch_enabled && 'Batch Tracking',
-            formValues.is_credit_limit_enabled && 'Credit Limit',
-        ].filter(Boolean).join(', ');
+        const address = [formValues.org_street1, formValues.org_street2, formValues.org_city, formValues.org_state, formValues.org_postal].filter(Boolean).join(', ');
+        const modules = [formValues.is_batch_enabled && 'Batch Tracking', formValues.is_credit_limit_enabled && 'Credit Limit'].filter(Boolean).join(', ');
 
         return [
             ['Organisation', formValues.org_name],
             ['Company ID', formValues.org_company_id],
             ['Country', selectedCountry?.name ?? ''],
-            ['Currency', selectedCurrency ? `${selectedCurrency[0]} — ${selectedCurrency[1]}` : (formValues.org_currency ?? '')],
+            ['Currency', formValues.org_currency ? <CurrencyMasterLabel code={formValues.org_currency} /> : ''],
             ['Fiscal Year', formValues.org_fasical_year ?? ''],
             ['Organisation Phone', formValues.org_phone],
             ['Contact', formValues.org_contact_person ?? ''],
@@ -141,13 +117,13 @@ export const OrganisationAdd: React.FC = () => {
             [taxIdLabel, formValues.org_tax_id ?? ''],
             ['Modules', modules || 'None'],
         ] as const;
-    }, [formValues, countryMasters, currencyOptions, taxIdLabel]);
+    }, [formValues, countryMasters, taxIdLabel]);
 
     React.useEffect(() => {
         const orgData = organisation || authOrg || user?.organisation;
         const isComplete = orgData?.is_complete || organisationComplete;
-        const hasData = Boolean(orgData?.id || orgData?.org_name || (user as any)?.organisation_id);
-        
+        const hasData = Boolean(orgData?.uuid || orgData?.org_name);
+
         if (hasData && isComplete) {
             navigate('/organisation/view', { replace: true });
         }
@@ -172,7 +148,7 @@ export const OrganisationAdd: React.FC = () => {
                 org_phone: organisation.org_phone || '',
                 org_contact_person: organisation.org_contact_person || '',
                 org_contact_person_number: organisation.org_contact_person_number || '',
-                org_currency: organisation.org_currency || 'USD',
+                org_currency: organisation.org_currency || '',
                 org_fasical_year: organisation.org_fasical_year || '',
                 is_batch_enabled: Boolean(organisation.is_batch_enabled),
                 is_credit_limit_enabled: Boolean(organisation.is_credit_limit_enabled),
@@ -212,10 +188,12 @@ export const OrganisationAdd: React.FC = () => {
         if (e.key === 'Enter' && !isLastStep) e.preventDefault();
     };
 
-    const inputClass = "font-mono-ui w-full border-2 border-[#0B0D0A]/15 bg-transparent py-2.5 px-3.5 text-sm text-[#0B0D0A] outline-none transition-[box-shadow,border-color] placeholder:text-[#0B0D0A]/30 focus:border-[#FF5A1F] focus:shadow-[4px_4px_0_0_#FF5A1F] dark:border-[#F5F3ED]/20 dark:text-[#F5F3ED] dark:placeholder:text-[#F5F3ED]/30";
-    const labelClass = "font-mono-ui mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0B0D0A]/70 dark:text-[#F5F3ED]/70";
-    const errorClass = "font-mono-ui mt-1.5 text-[11px] text-[#FF5A1F]";
-    const phoneInputClass = "font-mono-ui border-2 border-[#0B0D0A]/15 bg-transparent py-2.5 pl-3.5 pr-11 text-sm text-[#0B0D0A] transition-[box-shadow,border-color] focus-within:border-[#FF5A1F] focus-within:shadow-[4px_4px_0_0_#FF5A1F] dark:border-[#F5F3ED]/20 dark:text-[#F5F3ED] focus:outline-none ring-0";
+    const inputClass =
+        'font-mono-ui w-full border-2 border-[#0B0D0A]/15 bg-transparent py-2.5 px-3.5 text-sm text-[#0B0D0A] outline-none transition-[box-shadow,border-color] placeholder:text-[#0B0D0A]/30 focus:border-[#FF5A1F] focus:shadow-[4px_4px_0_0_#FF5A1F] dark:border-[#F5F3ED]/20 dark:text-[#F5F3ED] dark:placeholder:text-[#F5F3ED]/30';
+    const labelClass = 'font-mono-ui mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0B0D0A]/70 dark:text-[#F5F3ED]/70';
+    const errorClass = 'font-mono-ui mt-1.5 text-[11px] text-[#FF5A1F]';
+    const phoneInputClass =
+        'font-mono-ui border-2 border-[#0B0D0A]/15 bg-transparent py-2.5 pl-3.5 pr-11 text-sm text-[#0B0D0A] transition-[box-shadow,border-color] focus-within:border-[#FF5A1F] focus-within:shadow-[4px_4px_0_0_#FF5A1F] dark:border-[#F5F3ED]/20 dark:text-[#F5F3ED] focus:outline-none ring-0';
 
     return (
         <div className="min-h-screen grid lg:grid-cols-12 bg-[#F5F3ED] dark:bg-[#0B0D0A]">
@@ -227,9 +205,7 @@ export const OrganisationAdd: React.FC = () => {
                     <div className="flex h-10 w-10 items-center justify-center border-2 border-[#F5F3ED]">
                         <Building2 className="h-5 w-5 text-[#F5F3ED]" strokeWidth={2} />
                     </div>
-                    <span className="font-mono-ui text-xs tracking-[0.25em] text-[#F5F3ED]/70">
-                        FINAL_RETAIL // ONBOARD
-                    </span>
+                    <span className="font-mono-ui text-xs tracking-[0.25em] text-[#F5F3ED]/70">FINAL_RETAIL // ONBOARD</span>
                 </div>
 
                 <div className="relative z-10">
@@ -239,9 +215,7 @@ export const OrganisationAdd: React.FC = () => {
                     <h1 key={STEPS[step].key} className="font-display -mt-8 max-w-md text-5xl font-bold leading-[0.98] tracking-tight text-[#F5F3ED] animate-fade-up">
                         {STEPS[step].title}
                     </h1>
-                    <p className="font-mono-ui mt-5 max-w-sm text-xs leading-relaxed tracking-wide text-[#F5F3ED]/50">
-                        {STEPS[step].blurb}
-                    </p>
+                    <p className="font-mono-ui mt-5 max-w-sm text-xs leading-relaxed tracking-wide text-[#F5F3ED]/50">{STEPS[step].blurb}</p>
 
                     <ul className="mt-10 space-y-4">
                         {STEPS.map((s, i) => {
@@ -249,30 +223,20 @@ export const OrganisationAdd: React.FC = () => {
                             const state = i < step ? 'done' : i === step ? 'current' : 'pending';
                             return (
                                 <li key={s.key}>
-                                    <button
-                                        type="button"
-                                        onClick={() => i < step && setStep(i)}
-                                        disabled={i > step}
-                                        className="flex w-full items-center gap-3 text-left disabled:cursor-not-allowed"
-                                    >
+                                    <button type="button" onClick={() => i < step && setStep(i)} disabled={i > step} className="flex w-full items-center gap-3 text-left disabled:cursor-not-allowed">
                                         <span
                                             className={
                                                 'flex h-8 w-8 shrink-0 items-center justify-center border-2 font-mono-ui text-[11px] transition-colors ' +
                                                 (state === 'done'
                                                     ? 'border-[#FF5A1F] bg-[#FF5A1F] text-[#0B0D0A]'
                                                     : state === 'current'
-                                                        ? 'border-[#FF5A1F] text-[#FF5A1F]'
-                                                        : 'border-[#F5F3ED]/20 text-[#F5F3ED]/30')
+                                                      ? 'border-[#FF5A1F] text-[#FF5A1F]'
+                                                      : 'border-[#F5F3ED]/20 text-[#F5F3ED]/30')
                                             }
                                         >
                                             {state === 'done' ? <Check className="h-4 w-4" strokeWidth={2.5} /> : <StepIcon className="h-3.5 w-3.5" strokeWidth={2} />}
                                         </span>
-                                        <span
-                                            className={
-                                                'font-mono-ui text-xs tracking-[0.15em] ' +
-                                                (state === 'pending' ? 'text-[#F5F3ED]/30' : 'text-[#F5F3ED]/80')
-                                            }
-                                        >
+                                        <span className={'font-mono-ui text-xs tracking-[0.15em] ' + (state === 'pending' ? 'text-[#F5F3ED]/30' : 'text-[#F5F3ED]/80')}>
                                             {String(i + 1).padStart(2, '0')} — {s.tag}
                                         </span>
                                     </button>
@@ -295,35 +259,27 @@ export const OrganisationAdd: React.FC = () => {
                 <div className="mx-auto w-full max-w-2xl">
                     <div className="font-mono-ui mb-8 flex items-center justify-between text-[10px] tracking-[0.2em] text-[#0B0D0A]/40 dark:text-[#F5F3ED]/40">
                         <span>ORG / SETUP</span>
-                        <span>{String(step + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}</span>
+                        <span>
+                            {String(step + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
+                        </span>
                     </div>
 
                     {/* mobile step dots (rail is desktop-only) */}
                     <div className="mb-6 flex items-center gap-2 lg:hidden">
                         {STEPS.map((s, i) => (
-                            <div
-                                key={s.key}
-                                className={
-                                    'h-1.5 flex-1 ' + (i <= step ? 'bg-[#FF5A1F]' : 'bg-[#0B0D0A]/10 dark:bg-[#F5F3ED]/10')
-                                }
-                            />
+                            <div key={s.key} className={'h-1.5 flex-1 ' + (i <= step ? 'bg-[#FF5A1F]' : 'bg-[#0B0D0A]/10 dark:bg-[#F5F3ED]/10')} />
                         ))}
                     </div>
 
                     <div className="animate-fade-up">
-                        <h2 className="font-display text-3xl font-bold tracking-tight text-[#0B0D0A] dark:text-[#F5F3ED]">
-                            {STEPS[step].title}
-                        </h2>
-                        <p className="font-mono-ui mt-2 text-xs tracking-wide text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">
-                            {STEPS[step].blurb}
-                        </p>
+                        <h2 className="font-display text-3xl font-bold tracking-tight text-[#0B0D0A] dark:text-[#F5F3ED]">{STEPS[step].title}</h2>
+                        <p className="font-mono-ui mt-2 text-xs tracking-wide text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">{STEPS[step].blurb}</p>
                     </div>
 
                     <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormKeyDown} className="mt-8" noValidate>
                         {errors.root && (
                             <div className="mb-6 border-2 border-[#FF5A1F] bg-[#FF5A1F]/10 px-4 py-3 text-sm text-[#0B0D0A] dark:text-[#F5F3ED]">
-                                <span className="font-mono-ui text-[10px] font-semibold tracking-[0.2em]">SAVE_FAILED —</span>{' '}
-                                {errors.root.message}
+                                <span className="font-mono-ui text-[10px] font-semibold tracking-[0.2em]">SAVE_FAILED —</span> {errors.root.message}
                             </div>
                         )}
 
@@ -331,7 +287,9 @@ export const OrganisationAdd: React.FC = () => {
                         {step === 0 && (
                             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Country <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                                    <label className={labelClass}>
+                                        Country <span className="text-red-500 font-bold ml-0.5">*</span>
+                                    </label>
                                     <Controller
                                         name="country_master_id"
                                         control={control}
@@ -345,38 +303,29 @@ export const OrganisationAdd: React.FC = () => {
                                                     if (master?.currencyCode) setValue('org_currency', master.currencyCode);
                                                 }}
                                                 placeholder="Select country"
-                                                selectButtonClassName="!rounded-none !border-2 !border-[#0B0D0A]/15 !bg-transparent !font-mono-ui !text-sm !text-[#0B0D0A] dark:!border-[#F5F3ED]/20 dark:!text-[#F5F3ED]"
                                             />
                                         )}
                                     />
                                     {errors.country_master_id ? (
                                         <p className={errorClass}>{errors.country_master_id.message}</p>
                                     ) : (
-                                        <p className="font-mono-ui mt-1.5 text-[11px] text-[#0B0D0A]/40 dark:text-[#F5F3ED]/40">
-                                            Sets the default currency and tax system below.
-                                        </p>
+                                        <p className="font-mono-ui mt-1.5 text-[11px] text-[#0B0D0A]/40 dark:text-[#F5F3ED]/40">Sets the default currency and tax system below.</p>
                                     )}
                                 </div>
 
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Organisation Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
-                                    <input
-                                        type="text"
-                                        {...register('org_name', { required: 'Organisation name is required' })}
-                                        className={inputClass}
-                                        placeholder="Acme Distribution Co."
-                                    />
+                                    <label className={labelClass}>
+                                        Organisation Name <span className="text-red-500 font-bold ml-0.5">*</span>
+                                    </label>
+                                    <input type="text" {...register('org_name', { required: 'Organisation name is required' })} className={inputClass} placeholder="Acme Distribution Co." />
                                     {errors.org_name && <p className={errorClass}>{errors.org_name.message}</p>}
                                 </div>
 
                                 <div>
-                                    <label className={labelClass}>Company ID <span className="text-red-500 font-bold ml-0.5">*</span></label>
-                                    <input
-                                        type="text"
-                                        {...register('org_company_id', { required: 'Company ID is required' })}
-                                        className={inputClass}
-                                        placeholder="CO-00142"
-                                    />
+                                    <label className={labelClass}>
+                                        Company ID <span className="text-red-500 font-bold ml-0.5">*</span>
+                                    </label>
+                                    <input type="text" {...register('org_company_id', { required: 'Company ID is required' })} className={inputClass} placeholder="CO-00142" />
                                     {errors.org_company_id && <p className={errorClass}>{errors.org_company_id.message}</p>}
                                 </div>
 
@@ -386,12 +335,12 @@ export const OrganisationAdd: React.FC = () => {
                                         name="org_currency"
                                         control={control}
                                         render={({ field }) => (
-                                            <select {...field} className={inputClass}>
-                                                <option value="">Select currency</option>
-                                                {currencyOptions.map(([code, name]) => (
-                                                    <option key={code} value={code}>{code} — {name}</option>
-                                                ))}
-                                            </select>
+                                            <CurrencyMasterSelect
+                                                value={field.value}
+                                                onChange={(master) => field.onChange(master?.code ?? '')}
+                                                placeholder="Select currency"
+                                                className="!rounded-none !border-2 !border-[#0B0D0A]/15 !bg-transparent !font-mono-ui !text-sm !text-[#0B0D0A] dark:!border-[#F5F3ED]/20 dark:!text-[#F5F3ED]"
+                                            />
                                         )}
                                     />
                                 </div>
@@ -401,7 +350,9 @@ export const OrganisationAdd: React.FC = () => {
                                     <select {...register('org_fasical_year')} className={inputClass}>
                                         <option value="">Select fiscal year</option>
                                         {FISCAL_YEAR_OPTIONS.map((option) => (
-                                            <option key={option} value={option}>{option}</option>
+                                            <option key={option} value={option}>
+                                                {option}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -412,7 +363,9 @@ export const OrganisationAdd: React.FC = () => {
                         {step === 1 && (
                             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Organisation Phone <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                                    <label className={labelClass}>
+                                        Organisation Phone <span className="text-red-500 font-bold ml-0.5">*</span>
+                                    </label>
                                     <Controller
                                         name="org_phone"
                                         control={control}
@@ -446,13 +399,10 @@ export const OrganisationAdd: React.FC = () => {
                                 </div>
 
                                 <div className="sm:col-span-2">
-                                    <label className={labelClass}>Street 1 <span className="text-red-500 font-bold ml-0.5">*</span></label>
-                                    <input
-                                        type="text"
-                                        {...register('org_street1', { required: 'Street is required' })}
-                                        className={inputClass}
-                                        placeholder="Street address line 1"
-                                    />
+                                    <label className={labelClass}>
+                                        Street 1 <span className="text-red-500 font-bold ml-0.5">*</span>
+                                    </label>
+                                    <input type="text" {...register('org_street1', { required: 'Street is required' })} className={inputClass} placeholder="Street address line 1" />
                                     {errors.org_street1 && <p className={errorClass}>{errors.org_street1.message}</p>}
                                 </div>
 
@@ -468,7 +418,28 @@ export const OrganisationAdd: React.FC = () => {
 
                                 <div>
                                     <label className={labelClass}>State / Province</label>
-                                    <input type="text" {...register('org_state')} className={inputClass} placeholder="State" />
+                                    <Controller
+                                        name="org_state"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <StateSelect
+                                                countryCode={codeByMasterId(formValues.country_master_id ?? '')}
+                                                value={field.value ?? ''}
+                                                onChange={field.onChange}
+                                                fallback={
+                                                    <input
+                                                        type="text"
+                                                        value={field.value ?? ''}
+                                                        onChange={field.onChange}
+                                                        onBlur={field.onBlur}
+                                                        ref={field.ref}
+                                                        className={inputClass}
+                                                        placeholder="State"
+                                                    />
+                                                }
+                                            />
+                                        )}
+                                    />
                                 </div>
 
                                 <div>
@@ -498,14 +469,10 @@ export const OrganisationAdd: React.FC = () => {
                                             {selectedTaxProfile.taxSystem} — {selectedTaxProfile.taxName}
                                         </p>
                                         {selectedTaxProfile.jurisdictionLevel.length > 0 && (
-                                            <p className="font-mono-ui mt-1.5 text-[11px] text-[#0B0D0A]/60 dark:text-[#F5F3ED]/60">
-                                                Jurisdiction: {selectedTaxProfile.jurisdictionLevel.join(', ')}
-                                            </p>
+                                            <p className="font-mono-ui mt-1.5 text-[11px] text-[#0B0D0A]/60 dark:text-[#F5F3ED]/60">Jurisdiction: {selectedTaxProfile.jurisdictionLevel.join(', ')}</p>
                                         )}
                                         {selectedTaxProfile.calculationNotes && (
-                                            <p className="font-mono-ui mt-1.5 text-[11px] text-[#0B0D0A]/60 dark:text-[#F5F3ED]/60">
-                                                {selectedTaxProfile.calculationNotes}
-                                            </p>
+                                            <p className="font-mono-ui mt-1.5 text-[11px] text-[#0B0D0A]/60 dark:text-[#F5F3ED]/60">{selectedTaxProfile.calculationNotes}</p>
                                         )}
                                     </div>
                                 )}
@@ -513,26 +480,22 @@ export const OrganisationAdd: React.FC = () => {
                                 <div>
                                     <span className={labelClass}>Feature Modules</span>
                                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                        {([
+                                        {[
                                             { name: 'is_batch_enabled' as const, label: 'Batch Tracking', desc: 'Lot / batch traceability for items.' },
                                             { name: 'is_credit_limit_enabled' as const, label: 'Credit Limit', desc: 'Enforce customer credit ceilings.' },
-                                        ]).map((mod) => (
+                                        ].map((mod) => (
                                             <label
                                                 key={mod.name}
                                                 className="group relative flex cursor-pointer flex-col gap-1 border-2 border-[#0B0D0A]/15 p-4 transition-all hover:border-[#0B0D0A]/30 has-[:checked]:border-[#FF5A1F] has-[:checked]:shadow-[4px_4px_0_0_#FF5A1F] dark:border-[#F5F3ED]/20 dark:hover:border-[#F5F3ED]/40"
                                             >
                                                 <input type="checkbox" {...register(mod.name)} className="peer sr-only" />
                                                 <span className="flex items-center justify-between">
-                                                    <span className="font-mono-ui text-xs font-semibold tracking-[0.1em] text-[#0B0D0A] dark:text-[#F5F3ED]">
-                                                        {mod.label.toUpperCase()}
-                                                    </span>
+                                                    <span className="font-mono-ui text-xs font-semibold tracking-[0.1em] text-[#0B0D0A] dark:text-[#F5F3ED]">{mod.label.toUpperCase()}</span>
                                                     <span className="flex h-5 w-5 shrink-0 items-center justify-center border-2 border-[#0B0D0A]/20 peer-checked:border-[#FF5A1F] peer-checked:bg-[#FF5A1F] dark:border-[#F5F3ED]/30">
                                                         <Check className="hidden h-3.5 w-3.5 text-[#0B0D0A] peer-checked:block" strokeWidth={3} />
                                                     </span>
                                                 </span>
-                                                <span className="font-mono-ui text-[11px] leading-relaxed text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">
-                                                    {mod.desc}
-                                                </span>
+                                                <span className="font-mono-ui text-[11px] leading-relaxed text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">{mod.desc}</span>
                                             </label>
                                         ))}
                                     </div>
@@ -544,16 +507,9 @@ export const OrganisationAdd: React.FC = () => {
                         {step === 3 && (
                             <div className="border-2 border-[#0B0D0A]/15 dark:border-[#F5F3ED]/20">
                                 {reviewRows.map(([label, value]) => (
-                                    <div
-                                        key={label}
-                                        className="flex items-center justify-between gap-4 border-b-2 border-[#0B0D0A]/10 px-4 py-3 last:border-b-0 dark:border-[#F5F3ED]/10"
-                                    >
-                                        <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">
-                                            {label}
-                                        </span>
-                                        <span className="font-mono-ui text-right text-sm text-[#0B0D0A] dark:text-[#F5F3ED]">
-                                            {value || '—'}
-                                        </span>
+                                    <div key={label} className="flex items-center justify-between gap-4 border-b-2 border-[#0B0D0A]/10 px-4 py-3 last:border-b-0 dark:border-[#F5F3ED]/10">
+                                        <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">{label}</span>
+                                        <span className="font-mono-ui text-right text-sm text-[#0B0D0A] dark:text-[#F5F3ED]">{value || '—'}</span>
                                     </div>
                                 ))}
                             </div>
@@ -585,7 +541,9 @@ export const OrganisationAdd: React.FC = () => {
                                     disabled={updateMutation.isPending}
                                     className="g cursor-pointerroup flex items-center gap-2 border-2 border-[#0B0D0A] bg-[#0B0D0A] px-6 py-3 text-sm font-semibold tracking-wide text-[#F5F3ED] shadow-[6px_6px_0_0_#FF5A1F] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_0_#FF5A1F] active:translate-x-0 active:translate-y-0 active:shadow-[3px_3px_0_0_#FF5A1F] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#F5F3ED] dark:bg-[#F5F3ED] dark:text-[#0B0D0A]"
                                 >
-                                    {updateMutation.isPending ? 'SAVING…' : (
+                                    {updateMutation.isPending ? (
+                                        'SAVING…'
+                                    ) : (
                                         <>
                                             SAVE & SUBMIT
                                             <Check className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

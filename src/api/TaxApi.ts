@@ -9,6 +9,17 @@ export const getTaxTypes = async (): Promise<string[]> => {
   return response.data?.data ?? [];
 };
 
+export interface TaxRegion {
+  code: string;
+  name: string;
+}
+
+/** States / provinces of a country (default: the organisation's) — empty when its tax doesn't vary by region. */
+export const getTaxRegions = async (countryCode?: string | null): Promise<TaxRegion[]> => {
+  const response = await axiosInstance.get('/tax-rate/regions', { params: countryCode ? { countryCode } : undefined });
+  return response.data?.data ?? [];
+};
+
 export const getTaxList = async (page = 1, perPage = 15, searchTerm?: string): Promise<TaxListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
@@ -36,6 +47,6 @@ export const getTaxDetails = async (uuid: string): Promise<any> => {
 };
 
 export const deleteTax = async (uuid: string) => {
-  await axiosInstance.delete(`/tax-rate/delete/${uuid}`);
+  await axiosInstance.post('/tax-rate/delete', { id: uuid });
   showToast.success('Tax deleted successfully');
 };

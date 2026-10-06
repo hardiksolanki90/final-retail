@@ -5,16 +5,11 @@ import { Input } from '../../../components/ui/Input';
 const DUMMY_DATA: any[] = [];
 
 export function ViewInventoryPostTab() {
-  const searchableCols = [
-    'Date', 'Item Code', 'Item', 'Customer Code', 'Customer', 'UOM', 'Capacity'
-  ];
-  const unsearchableCols = [
-    'Good Saleable Qty', 'Refill Qty', 'Reorder Qty', 'Fill', 'Out Of Stock'
-  ];
+  const searchableCols = ['Date', 'Item Code', 'Item', 'Customer Code', 'Customer', 'UOM', 'Capacity'];
+  const unsearchableCols = ['Good Saleable Qty', 'Refill Qty', 'Reorder Qty', 'Fill', 'Out Of Stock'];
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 space-y-4">
-      
       {/* Filters section */}
       <div className="flex items-end gap-4 p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
         <div className="w-[180px]">
@@ -26,12 +21,8 @@ export function ViewInventoryPostTab() {
           <Input value="MOHAMMED AKTER SUPERMARKET LLC-BR." readOnly className="h-9 text-sm" />
         </div>
         <div className="flex items-center gap-2 mb-0.5">
-          <button className="h-9 cursor-pointer px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
-            Filter
-          </button>
-          <button className="h-9 cursor-pointer px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors">
-            All
-          </button>
+          <button className="h-9 cursor-pointer px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">Filter</button>
+          <button className="h-9 cursor-pointer px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors">All</button>
         </div>
       </div>
 
@@ -40,7 +31,7 @@ export function ViewInventoryPostTab() {
         <table className="w-full text-left whitespace-nowrap">
           <thead className="bg-[#0f0f0f] text-white">
             <tr>
-              {searchableCols.map(col => (
+              {searchableCols.map((col) => (
                 <th key={col} className="px-4 py-3 text-xs font-bold tracking-wider relative min-w-[120px]">
                   <div className="flex items-center justify-between gap-1 cursor-pointer hover:text-gray-300 transition-colors">
                     <span>{col}</span>
@@ -48,7 +39,7 @@ export function ViewInventoryPostTab() {
                   </div>
                 </th>
               ))}
-              {unsearchableCols.map(col => (
+              {unsearchableCols.map((col) => (
                 <th key={col} className="px-4 py-3 text-xs font-bold tracking-wider relative min-w-[120px]">
                   {col}
                 </th>

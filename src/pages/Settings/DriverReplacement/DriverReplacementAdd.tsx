@@ -4,35 +4,26 @@ import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { Select } from '../../../components/ui/Select';
 import type { DriverReplacementFormData } from '../../../types/DriverReplacement';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: Old/New Salesman, Old/New Van, Reason, Date.
+const DRIVER_REPLACEMENT_FORM_SKELETON: FormSkeletonField[] = ['input', 'input', 'input', 'input', 'input', 'input'];
 
 interface DriverReplacementAddProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: DriverReplacementFormData) => void | Promise<void>;
   initialData?: DriverReplacementFormData;
+  /** The record's details are still loading — a loader covers the form. */
+  isLoading?: boolean;
   salesmanOptions: { value: number; label: string }[];
   vanOptions: { value: number; label: string }[];
   reasonOptions: { value: number; label: string }[];
 }
 
-const initialFormData: DriverReplacementFormData = {
-  oldSalesmanId: '',
-  newSalesmanId: '',
-  oldVanId: '',
-  newVanId: '',
-  reasonId: '',
-  date: '',
-};
+const initialFormData: DriverReplacementFormData = { oldSalesmanId: '', newSalesmanId: '', oldVanId: '', newVanId: '', reasonId: '', date: '' };
 
-export function DriverReplacementAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  salesmanOptions,
-  vanOptions,
-  reasonOptions,
-}: DriverReplacementAddProps) {
+export function DriverReplacementAdd({ isOpen, onClose, onSubmit, initialData, salesmanOptions, vanOptions, reasonOptions, isLoading = false }: DriverReplacementAddProps) {
   const {
     handleSubmit,
     formState: { errors, isSubmitting },
@@ -46,9 +37,7 @@ export function DriverReplacementAdd({
   } = useForm<DriverReplacementFormData>({ defaultValues: initialFormData });
 
   const watchedOldVanId = watch('oldVanId');
-  const newVanOptions = watchedOldVanId
-    ? vanOptions.filter((o) => String(o.value) !== String(watchedOldVanId))
-    : vanOptions;
+  const newVanOptions = watchedOldVanId ? vanOptions.filter((o) => String(o.value) !== String(watchedOldVanId)) : vanOptions;
 
   useEffect(() => {
     if (initialData) reset(initialData);
@@ -79,7 +68,9 @@ export function DriverReplacementAdd({
 
   const footerContent = (
     <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+      <CancelButton onClick={onClose} disabled={isSubmitting}>
+        Cancel
+      </CancelButton>
       <SaveButton type="submit" form="driver-replacement-form" disabled={isSubmitting}>
         {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
       </SaveButton>
@@ -87,7 +78,15 @@ export function DriverReplacementAdd({
   );
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Driver Replacement' : 'Add Driver Replacement'} width="w-[500px]" footer={footerContent}>
+    <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={DRIVER_REPLACEMENT_FORM_SKELETON} />}
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? 'Edit Driver Replacement' : 'Add Driver Replacement'}
+      width="w-[500px]"
+      footer={footerContent}
+    >
       <form id="driver-replacement-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -103,7 +102,8 @@ export function DriverReplacementAdd({
             rules={{ required: 'Old Salesman is required' }}
             render={({ field }) => (
               <Select
-                label="Old Salesman" required
+                label="Old Salesman"
+                required
                 placeholder="Select salesman"
                 searchable
                 options={salesmanOptions}
@@ -122,7 +122,8 @@ export function DriverReplacementAdd({
             rules={{ required: 'New Salesman is required' }}
             render={({ field }) => (
               <Select
-                label="New Salesman" required
+                label="New Salesman"
+                required
                 placeholder="Select salesman"
                 searchable
                 options={salesmanOptions}
@@ -189,8 +190,14 @@ export function DriverReplacementAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date <span className="text-red-500 font-bold ml-0.5">*</span></label>
-          <input type="date" {...register('date', { required: 'Date is required' })} className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
+          <input
+            type="date"
+            {...register('date', { required: 'Date is required' })}
+            className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
           {errors.date && <p className="text-red-600 text-xs mt-1">{errors.date.message}</p>}
         </div>
       </form>

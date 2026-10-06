@@ -22,9 +22,7 @@ const ResetPassword: React.FC = () => {
     formState: { errors, isSubmitting },
     setError,
     watch,
-  } = useForm<ResetPasswordFormData>({
-    defaultValues: { password: '', passwordConfirmation: '' },
-  });
+  } = useForm<ResetPasswordFormData>({ defaultValues: { password: '', passwordConfirmation: '' } });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -37,12 +35,7 @@ const ResetPassword: React.FC = () => {
       showToast.success('Password reset. Sign in with your new password.');
       navigate('/login', { replace: true });
     } catch (error: any) {
-      setError('root', {
-        message:
-          error.response?.data?.errors?.email?.[0] ||
-          error.response?.data?.message ||
-          'An unexpected error occurred. Please try again.',
-      });
+      setError('root', { message: error.response?.data?.errors?.email?.[0] || error.response?.data?.message || 'An unexpected error occurred. Please try again.' });
     }
   };
 
@@ -56,39 +49,26 @@ const ResetPassword: React.FC = () => {
           <div className="flex h-10 w-10 items-center justify-center border-2 border-[#F5F3ED]">
             <Boxes className="h-5 w-5 text-[#F5F3ED]" strokeWidth={2} />
           </div>
-          <span className="font-mono-ui text-xs tracking-[0.25em] text-[#F5F3ED]/70">
-            FINAL_RETAIL // RDMS
-          </span>
+          <span className="font-mono-ui text-xs tracking-[0.25em] text-[#F5F3ED]/70">FINAL_RETAIL // RDMS</span>
         </div>
 
         <div className="relative z-10">
-          <span
-            className="font-mono-ui block select-none text-[7rem] font-medium leading-none text-[#F5F3ED]/10 animate-fade-up"
-            style={{ animationDelay: '80ms' }}
-          >
+          <span className="font-mono-ui block select-none text-[7rem] font-medium leading-none text-[#F5F3ED]/10 animate-fade-up" style={{ animationDelay: '80ms' }}>
             N.03
           </span>
-          <h1
-            className="font-display -mt-8 max-w-md text-6xl font-bold leading-[0.98] tracking-tight text-[#F5F3ED] animate-fade-up"
-            style={{ animationDelay: '160ms' }}
-          >
+          <h1 className="font-display -mt-8 max-w-md text-6xl font-bold leading-[0.98] tracking-tight text-[#F5F3ED] animate-fade-up" style={{ animationDelay: '160ms' }}>
             New keys,
             <br />
             cut fresh.
           </h1>
-          <p
-            className="font-mono-ui mt-6 max-w-sm text-xs leading-relaxed tracking-wide text-[#F5F3ED]/50 animate-fade-up"
-            style={{ animationDelay: '240ms' }}
-          >
+          <p className="font-mono-ui mt-6 max-w-sm text-xs leading-relaxed tracking-wide text-[#F5F3ED]/50 animate-fade-up" style={{ animationDelay: '240ms' }}>
             SET A NEW PASSWORD TO REGAIN ACCESS TO THE DISTRIBUTION CONSOLE.
           </p>
         </div>
 
         <div className="relative z-10 animate-fade-up" style={{ animationDelay: '400ms' }}>
           <div className="auth-stripe mb-6 h-1.5 w-24" />
-          <p className="font-mono-ui text-[10px] tracking-[0.2em] text-[#F5F3ED]/40">
-            © 2026 FINAL RETAIL — B2B DISTRIBUTION OS / ORG: MULTI-TENANT
-          </p>
+          <p className="font-mono-ui text-[10px] tracking-[0.2em] text-[#F5F3ED]/40">© 2026 FINAL RETAIL — B2B DISTRIBUTION OS / ORG: MULTI-TENANT</p>
         </div>
       </div>
 
@@ -101,20 +81,13 @@ const ResetPassword: React.FC = () => {
           </div>
 
           <div className="animate-fade-up" style={{ animationDelay: '60ms' }}>
-            <h2 className="font-display text-4xl font-bold tracking-tight text-[#0B0D0A] dark:text-[#F5F3ED]">
-              Reset password
-            </h2>
-            <p className="font-mono-ui mt-3 text-xs tracking-wide text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">
-              CHOOSE A NEW PASSWORD FOR {email || 'YOUR ACCOUNT'}.
-            </p>
+            <h2 className="font-display text-4xl font-bold tracking-tight text-[#0B0D0A] dark:text-[#F5F3ED]">Reset password</h2>
+            <p className="font-mono-ui mt-3 text-xs tracking-wide text-[#0B0D0A]/50 dark:text-[#F5F3ED]/50">CHOOSE A NEW PASSWORD FOR {email || 'YOUR ACCOUNT'}.</p>
           </div>
 
           {missingLinkParams ? (
             <div className="animate-fade-up mt-9 border-2 border-[#FF5A1F] bg-[#FF5A1F]/10 px-4 py-3 text-sm text-[#0B0D0A] dark:text-[#F5F3ED]">
-              <span className="font-mono-ui text-[10px] font-semibold tracking-[0.2em]">
-                INVALID_LINK —
-              </span>{' '}
-              This reset link is missing or malformed.{' '}
+              <span className="font-mono-ui text-[10px] font-semibold tracking-[0.2em]">INVALID_LINK —</span> This reset link is missing or malformed.{' '}
               <Link to="/forgot-password" className="font-semibold text-[#FF5A1F] underline underline-offset-4">
                 Request a new one
               </Link>
@@ -124,27 +97,18 @@ const ResetPassword: React.FC = () => {
             <form onSubmit={handleSubmit(onFormSubmit)} className="mt-9 space-y-5" noValidate>
               {errors.root && (
                 <div className="animate-fade-up border-2 border-[#FF5A1F] bg-[#FF5A1F]/10 px-4 py-3 text-sm text-[#0B0D0A] dark:text-[#F5F3ED]">
-                  <span className="font-mono-ui text-[10px] font-semibold tracking-[0.2em]">
-                    RESET_FAILED —
-                  </span>{' '}
-                  {errors.root.message}
+                  <span className="font-mono-ui text-[10px] font-semibold tracking-[0.2em]">RESET_FAILED —</span> {errors.root.message}
                 </div>
               )}
 
               <div className="animate-fade-up" style={{ animationDelay: '120ms' }}>
-                <label
-                  htmlFor="password"
-                  className="font-mono-ui mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0B0D0A]/70 dark:text-[#F5F3ED]/70"
-                >
+                <label htmlFor="password" className="font-mono-ui mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0B0D0A]/70 dark:text-[#F5F3ED]/70">
                   New Password
                 </label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0B0D0A]/40 dark:text-[#F5F3ED]/40" />
                   <input
-                    {...register('password', {
-                      required: 'Password is required',
-                      minLength: { value: 8, message: 'At least 8 characters' },
-                    })}
+                    {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })}
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="new-password"
@@ -160,25 +124,17 @@ const ResetPassword: React.FC = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="font-mono-ui mt-1.5 text-[11px] text-[#FF5A1F]">{errors.password.message}</p>
-                )}
+                {errors.password && <p className="font-mono-ui mt-1.5 text-[11px] text-[#FF5A1F]">{errors.password.message}</p>}
               </div>
 
               <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
-                <label
-                  htmlFor="passwordConfirmation"
-                  className="font-mono-ui mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0B0D0A]/70 dark:text-[#F5F3ED]/70"
-                >
+                <label htmlFor="passwordConfirmation" className="font-mono-ui mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0B0D0A]/70 dark:text-[#F5F3ED]/70">
                   Confirm New Password
                 </label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0B0D0A]/40 dark:text-[#F5F3ED]/40" />
                   <input
-                    {...register('passwordConfirmation', {
-                      required: 'Please confirm your new password',
-                      validate: (val) => val === watch('password') || 'Passwords do not match',
-                    })}
+                    {...register('passwordConfirmation', { required: 'Please confirm your new password', validate: (val) => val === watch('password') || 'Passwords do not match' })}
                     id="passwordConfirmation"
                     type={showConfirm ? 'text' : 'password'}
                     autoComplete="new-password"
@@ -194,11 +150,7 @@ const ResetPassword: React.FC = () => {
                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.passwordConfirmation && (
-                  <p className="font-mono-ui mt-1.5 text-[11px] text-[#FF5A1F]">
-                    {errors.passwordConfirmation.message}
-                  </p>
-                )}
+                {errors.passwordConfirmation && <p className="font-mono-ui mt-1.5 text-[11px] text-[#FF5A1F]">{errors.passwordConfirmation.message}</p>}
               </div>
 
               <div className="animate-fade-up pt-2" style={{ animationDelay: '240ms' }}>
@@ -223,10 +175,7 @@ const ResetPassword: React.FC = () => {
           <div className="animate-fade-up pt-6 text-center" style={{ animationDelay: '300ms' }}>
             <p className="font-mono-ui text-[11px] tracking-wide text-[#0B0D0A]/60 dark:text-[#F5F3ED]/60">
               REMEMBERED IT?{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-[#FF5A1F] underline underline-offset-4 hover:text-[#e04f18]"
-              >
+              <Link to="/login" className="font-semibold text-[#FF5A1F] underline underline-offset-4 hover:text-[#e04f18]">
                 SIGN IN
               </Link>
             </p>

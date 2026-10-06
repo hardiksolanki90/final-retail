@@ -35,18 +35,21 @@ export const deleteVan = async (uuid: string) => {
   showToast.success('Van deleted successfully');
 };
 
-export interface VanOption { value: number; label: string; }
+export interface VanOption {
+  value: number;
+  label: string;
+}
 
 export const getVanOptions = async (): Promise<VanOption[]> => {
   const response = await axiosInstance.get('/van/all?per_page=50');
   const data = response.data?.vans ?? [];
-  return data.map((v: { id: number; vanCode?: string; plateNumber?: string }) => ({
-    value: v.id,
-    label: `${v.vanCode || ''} - ${v.plateNumber || ''}`.replace(/^ - | - $/g, ''),
-  }));
+  return data.map((v: { id: number; vanCode?: string; plateNumber?: string }) => ({ value: v.id, label: `${v.vanCode || ''} - ${v.plateNumber || ''}`.replace(/^ - | - $/g, '') }));
 };
 
-export interface VanTypeOption { value: number; label: string; }
+export interface VanTypeOption {
+  value: number;
+  label: string;
+}
 
 // Van Master is a compound entity (vans + van_types + van_categories) —
 // these feed the Van Add form's relationship dropdowns.
@@ -62,7 +65,10 @@ export const createVanType = async (data: Record<string, any>) => {
   return response.data;
 };
 
-export interface VanCategoryOption { value: number; label: string; }
+export interface VanCategoryOption {
+  value: number;
+  label: string;
+}
 
 export const getVanCategoryOptions = async (): Promise<VanCategoryOption[]> => {
   const response = await axiosInstance.get('/van-category/all?per_page=50');

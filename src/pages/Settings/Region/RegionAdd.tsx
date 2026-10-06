@@ -11,26 +11,13 @@ import { getAllCountries } from '../../../api/CountryApi';
 interface RegionAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: RegionFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: RegionFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: RegionFormData = {
-  countryId: '',
-  regionCode: '',
-  regionName: '',
-  status: true,
-};
+const initialFormData: RegionFormData = { countryId: '', regionCode: '', regionName: '', status: true };
 
-export function RegionAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: RegionAddProps) {
+export function RegionAdd({ isOpen, onClose, data, onEvent }: RegionAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
 
@@ -41,19 +28,13 @@ export function RegionAdd({
     reset,
     setError,
     watch,
-    setValue
-  } = useForm<RegionFormData>({
-    defaultValues: initialFormData
-  });
+    setValue,
+  } = useForm<RegionFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
 
-  const { data: countryOptions = [] } = useQuery({
-    queryKey: ['country-options'],
-    queryFn: getAllCountries,
-    staleTime: 10 * 60 * 1000,
-  });
+  const { data: countryOptions = [] } = useQuery({ queryKey: ['country-options'], queryFn: getAllCountries, staleTime: 10 * 60 * 1000 });
 
   useEffect(() => {
     if (initialData) {
@@ -72,14 +53,9 @@ export function RegionAdd({
         setCodeLocked(true);
       }
 
-      await onEvent?.({
-        eventType: initialData ? 'RegionUpdated' : 'RegionCreated',
-        region: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'RegionUpdated' : 'RegionCreated', region: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving region'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving region' });
     }
   };
 
@@ -94,15 +70,13 @@ export function RegionAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="region-form" disabled={isLoading || isSubmitting}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -111,13 +85,7 @@ export function RegionAdd({
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Region' : 'Add Region'}
-      width="w-[500px]"
-      footer={footerContent}
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Region' : 'Add Region'} width="w-[500px]" footer={footerContent}>
       <form id="region-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -128,53 +96,51 @@ export function RegionAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Region Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700">
+              Region Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
               {...register('regionCode')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Region Code" value={watch('regionCode') || ''} onChange={(v) => setValue('regionCode', v)} entityKey="region" onLockChange={setCodeLocked} />
-            {errors.regionCode && (
-              <p className="text-red-600 text-xs mt-1">{errors.regionCode.message}</p>
-            )}
+            {errors.regionCode && <p className="text-red-600 text-xs mt-1">{errors.regionCode.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Region Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Region Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('regionName', {
-              required: 'Region name is required',
-              validate: value => value.trim() !== '' || 'Region name cannot be empty'
-            })}
+            {...register('regionName', { required: 'Region name is required', validate: (value) => value.trim() !== '' || 'Region name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter region name"
           />
-          {errors.regionName && (
-            <p className="text-red-600 text-xs mt-1">{errors.regionName.message}</p>
-          )}
+          {errors.regionName && <p className="text-red-600 text-xs mt-1">{errors.regionName.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Country <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Country <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <select
             {...register('countryId', { required: 'Country is required', valueAsNumber: true })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select country</option>
-            {countryOptions.map(opt => (
-              <option key={opt.id} value={opt.id}>{opt.name}</option>
+            {countryOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.name}
+              </option>
             ))}
           </select>
-          {errors.countryId && (
-            <p className="text-red-600 text-xs mt-1">{errors.countryId.message}</p>
-          )}
+          {errors.countryId && <p className="text-red-600 text-xs mt-1">{errors.countryId.message}</p>}
         </div>
-
       </form>
     </Drawer>
   );

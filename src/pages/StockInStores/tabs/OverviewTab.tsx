@@ -52,9 +52,7 @@ export function OverviewTab({ selectedItem }: OverviewTabProps) {
                 <User className="w-4 h-4" />
                 <span>{customer.code}</span>
               </div>
-              <div className="text-sm text-[var(--text-primary)] font-medium leading-tight h-10 mt-1">
-                {customer.name}
-              </div>
+              <div className="text-sm text-[var(--text-primary)] font-medium leading-tight h-10 mt-1">{customer.name}</div>
             </div>
           ))}
         </div>

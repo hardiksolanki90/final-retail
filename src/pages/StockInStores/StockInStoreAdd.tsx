@@ -51,15 +51,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
   const [capacity, setCapacity] = useState('');
 
   // Items grid state
-  const [addedItems, setAddedItems] = useState<AddedItem[]>([
-    {
-      id: '1',
-      itemId: 'itm1',
-      itemName: 'Oasis LL Plain 4G1X1',
-      itemUom: 'BT',
-      capacity: '33',
-    }
-  ]);
+  const [addedItems, setAddedItems] = useState<AddedItem[]>([{ id: '1', itemId: 'itm1', itemName: 'Oasis LL Plain 4G1X1', itemUom: 'BT', capacity: '33' }]);
 
   // Validation
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,13 +73,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
     const itemOption = ITEM_OPTIONS.find((i) => i.value === selectedItemId);
     const uomOption = UOM_OPTIONS.find((i) => i.value === selectedUom);
 
-    const newItem: AddedItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      itemId: selectedItemId,
-      itemName: itemOption?.label || '',
-      itemUom: uomOption?.label || '',
-      capacity: capacity,
-    };
+    const newItem: AddedItem = { id: Math.random().toString(36).substr(2, 9), itemId: selectedItemId, itemName: itemOption?.label || '', itemUom: uomOption?.label || '', capacity: capacity };
 
     setAddedItems([...addedItems, newItem]);
 
@@ -113,62 +99,36 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
       return;
     }
 
-    console.log('Saving Data:', {
-      activityName,
-      dateFrom,
-      dateTo,
-      assignedCustomers,
-      items: addedItems,
-    });
+    console.log('Saving Data:', { activityName, dateFrom, dateTo, assignedCustomers, items: addedItems });
 
     onClose();
   };
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Add Inventory"
-      width="w-[500px] md:w-[700px] lg:w-[700px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title="Add Inventory" width="w-[500px] md:w-[700px] lg:w-[700px]">
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
           {/* Main Form Fields */}
           <div className="space-y-4">
             <div className="grid grid-cols-[160px_1fr] items-center gap-4">
               <label className="text-sm text-[var(--text-secondary)]">
                 Activity Name<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
-              <Input
-                value={activityName}
-                onChange={(e) => setActivityName(e.target.value)}
-                error={errors.activityName}
-              />
+              <Input value={activityName} onChange={(e) => setActivityName(e.target.value)} error={errors.activityName} />
             </div>
 
             <div className="grid grid-cols-[160px_1fr] items-center gap-4">
               <label className="text-sm text-[var(--text-secondary)]">
                 Date From<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                error={errors.dateFrom}
-              />
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} error={errors.dateFrom} />
             </div>
 
             <div className="grid grid-cols-[160px_1fr] items-center gap-4">
               <label className="text-sm text-[var(--text-secondary)]">
                 Date TO<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                error={errors.dateTo}
-              />
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} error={errors.dateTo} />
             </div>
 
             <div className="grid grid-cols-[160px_1fr] items-start gap-4">
@@ -176,12 +136,7 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
                 Assign Customers<span className="text-red-500 font-bold ml-0.5">*</span>
               </label>
               <div>
-                <MultiSelect
-                  options={CUSTOMER_OPTIONS}
-                  value={assignedCustomers}
-                  onChange={setAssignedCustomers}
-                  error={errors.assignedCustomers}
-                />
+                <MultiSelect options={CUSTOMER_OPTIONS} value={assignedCustomers} onChange={setAssignedCustomers} error={errors.assignedCustomers} />
               </div>
             </div>
           </div>
@@ -194,29 +149,15 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-[160px_1fr] items-center gap-4">
                 <label className="text-sm text-[var(--text-secondary)]">Item</label>
-                <Select
-                  value={selectedItemId}
-                  onChange={(e) => setSelectedItemId(e.target.value)}
-                  options={ITEM_OPTIONS}
-                  placeholder="Select Item"
-                />
+                <Select value={selectedItemId} onChange={(e) => setSelectedItemId(e.target.value)} options={ITEM_OPTIONS} placeholder="Select Item" />
               </div>
               <div className="grid grid-cols-[160px_1fr] items-center gap-4">
                 <label className="text-sm text-[var(--text-secondary)]">Item Uom</label>
-                <Select
-                  value={selectedUom}
-                  onChange={(e) => setSelectedUom(e.target.value)}
-                  options={UOM_OPTIONS}
-                  placeholder="Select UOM"
-                />
+                <Select value={selectedUom} onChange={(e) => setSelectedUom(e.target.value)} options={UOM_OPTIONS} placeholder="Select UOM" />
               </div>
               <div className="grid grid-cols-[160px_1fr] items-center gap-4">
                 <label className="text-sm text-[var(--text-secondary)]">Capacity</label>
-                <Input
-                  value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  placeholder="Enter capacity"
-                />
+                <Input value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Enter capacity" />
               </div>
 
               <div className="flex justify-end">
@@ -258,17 +199,10 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
                       <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{item.capacity}</td>
                       <td className="px-4 py-3 text-sm text-center">
                         <div className="flex items-center justify-center gap-3">
-                          <button
-                            type="button"
-                            className="text-[va cursor-pointerr(--text-secondary)] hover:text-blue-600 transition-colors"
-                          >
+                          <button type="button" className="text-[va cursor-pointerr(--text-secondary)] hover:text-blue-600 transition-colors">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="text-[var(--text-secondary)] hover:text-red-600 transition-colors"
-                          >
+                          <button type="button" onClick={() => handleRemoveItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-600 transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -283,12 +217,8 @@ export function StockInStoreAdd({ isOpen, onClose }: StockInStoreAddProps) {
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-card)] flex justify-end gap-3 rounded-b-xl">
-          <CancelButton onClick={onClose}>
-            Cancel
-          </CancelButton>
-          <SaveButton onClick={handleSave}>
-            Save
-          </SaveButton>
+          <CancelButton onClick={onClose}>Cancel</CancelButton>
+          <SaveButton onClick={handleSave}>Save</SaveButton>
         </div>
       </div>
     </Drawer>

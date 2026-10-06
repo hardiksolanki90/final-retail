@@ -48,8 +48,20 @@ export interface DebitNoteFormData {
   finalTotal: number;
 }
 
+/** One row of GET /debit-note/list. */
+export interface DebitNoteListRow {
+  uuid: string;
+  noteNo: string;
+  invoiceNo: string | null;
+  customer: string | null;
+  date: string | null;
+  amount: number;
+  reason: string | null;
+  status: boolean;
+}
+
 export interface DebitNoteListResponse {
-  data: DebitNote[];
+  data: DebitNoteListRow[];
   total: number;
   currentPage: number;
   perPage: number;

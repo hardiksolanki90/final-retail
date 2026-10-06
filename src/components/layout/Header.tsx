@@ -1,17 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Search,
-  Bell,
-  Settings,
-  Sun,
-  Moon,
-  Monitor,
-  User,
-  LogOut,
-  ChevronDown,
-  Menu,
-} from 'lucide-react';
+import { Search, Bell, Settings, Sun, Moon, Monitor, User, LogOut, ChevronDown, Menu } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { NotificationDrawer } from './NotificationDrawer';
@@ -70,11 +59,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           {/* Left Section - Menu Toggle & Search */}
           <div className="flex items-center gap-4">
             {/* Mobile Menu Toggle */}
-            <button
-              onClick={onMenuToggle}
-              className="p-2 cursor-pointer rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 lg:hidden transition-colors"
-              aria-label="Toggle menu"
-            >
+            <button onClick={onMenuToggle} className="p-2 cursor-pointer rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 lg:hidden transition-colors" aria-label="Toggle menu">
               <Menu className="w-5 h-5 text-[var(--text-secondary)]" />
             </button>
 
@@ -152,15 +137,14 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
             {/* Profile Dropdown */}
             <div ref={profileRef} className="relative ml-2">
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-              >
+              <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
                 <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                   <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-[var(--text-primary)]">{user?.firstname} {user?.lastname}</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    {user?.firstname} {user?.lastname}
+                  </p>
                   <p className="text-xs text-[var(--text-muted)]">{user?.email}</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-[var(--text-muted)] hidden md:block" />
@@ -170,7 +154,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
               {isProfileOpen && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg py-1 z-50">
                   <div className="px-4 py-3 border-b border-[var(--border-color)]">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{user?.firstname} {user?.lastname}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                      {user?.firstname} {user?.lastname}
+                    </p>
                     <p className="text-xs text-[var(--text-muted)]">{user?.email}</p>
                   </div>
                   <Link
@@ -209,14 +195,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </header>
 
       {/* Drawers */}
-      <NotificationDrawer
-        isOpen={isNotificationDrawerOpen}
-        onClose={() => setIsNotificationDrawerOpen(false)}
-      />
-      <SettingsDrawer
-        isOpen={isSettingsDrawerOpen}
-        onClose={() => setIsSettingsDrawerOpen(false)}
-      />
+      <NotificationDrawer isOpen={isNotificationDrawerOpen} onClose={() => setIsNotificationDrawerOpen(false)} />
+      <SettingsDrawer isOpen={isSettingsDrawerOpen} onClose={() => setIsSettingsDrawerOpen(false)} />
     </>
   );
 }

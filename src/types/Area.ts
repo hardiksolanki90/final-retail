@@ -22,11 +22,5 @@ export interface AreaFormData {
 
 export interface AreaListResponse {
   data: Area[];
-  meta?: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    last_page: number;
-    has_more_pages?: boolean;
-  };
+  meta?: { current_page: number; per_page: number; total: number; last_page: number; has_more_pages?: boolean };
 }

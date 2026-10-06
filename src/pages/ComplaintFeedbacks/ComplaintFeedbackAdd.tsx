@@ -32,16 +32,7 @@ const defaultValues: ComplaintFeedbackFormData = {
   attachments: [],
 };
 
-export function ComplaintFeedbackAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  customers = [],
-  salesman = [],
-  orders = [],
-}: ComplaintFeedbackAddProps) {
+export function ComplaintFeedbackAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false, customers = [], salesman = [], orders = [] }: ComplaintFeedbackAddProps) {
   const {
     register,
     handleSubmit,
@@ -83,24 +74,24 @@ export function ComplaintFeedbackAdd({
     { value: 'closed', label: 'Closed' },
   ];
 
-  const selectClass = 'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500';
+  const selectClass =
+    'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500';
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Complaint/Feedback' : 'Add Complaint/Feedback'}
-      width="w-[700px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Complaint/Feedback' : 'Add Complaint/Feedback'} width="w-[700px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {/* Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Type <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
-          <OrderCodeSettingsIcon label="Related Order (Optional)" value="" onChange={() => { }} />
+          <OrderCodeSettingsIcon label="Related Order (Optional)" value="" onChange={() => {}} />
           <select {...register('type', { required: 'Type is required' })} className={selectClass}>
-            {typeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {typeOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
           {errors.type && <p className="text-sm text-red-500 mt-1">{errors.type.message}</p>}
         </div>
@@ -113,7 +104,11 @@ export function ComplaintFeedbackAdd({
             </label>
             <select {...register('customerId', { required: 'Customer is required' })} className={selectClass}>
               <option value="">Select customer</option>
-              {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {customers.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
           </div>
@@ -124,7 +119,11 @@ export function ComplaintFeedbackAdd({
             </label>
             <select {...register('salesmanId', { required: 'Salesman is required' })} className={selectClass}>
               <option value="">Select salesman</option>
-              {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {salesman.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
           </div>
@@ -132,22 +131,18 @@ export function ComplaintFeedbackAdd({
 
         {/* Related Order */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Related Order (Optional)
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Related Order (Optional)</label>
           <select {...register('orderId')} className={selectClass}>
             <option value="">Select order</option>
-            {orders.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {orders.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </div>
 
-        <Input
-          label="Subject"
-          {...register('subject', { required: 'Subject is required' })}
-          error={errors.subject?.message}
-          placeholder="Enter subject"
-          required
-        />
+        <Input label="Subject" {...register('subject', { required: 'Subject is required' })} error={errors.subject?.message} placeholder="Enter subject" required />
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -169,7 +164,11 @@ export function ComplaintFeedbackAdd({
             </label>
             <select {...register('category', { required: 'Category is required' })} className={selectClass}>
               <option value="">Select category</option>
-              {categoryOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {categoryOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.category && <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>}
           </div>
@@ -178,17 +177,23 @@ export function ComplaintFeedbackAdd({
               Priority <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
             <select {...register('priority')} className={selectClass}>
-              {priorityOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {priorityOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Status
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
           <select {...register('status')} className={selectClass}>
-            {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {statusOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -203,7 +208,9 @@ export function ComplaintFeedbackAdd({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+            Cancel
+          </CancelButton>
           <SaveButton type="submit" disabled={isLoading || isSubmitting}>
             {isLoading || isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>

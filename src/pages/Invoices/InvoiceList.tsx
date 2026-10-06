@@ -1,21 +1,37 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  Filter, Plus, Columns3, Download, Upload, ChevronDown, Check,
-  Trash2, Archive, Tag, X, Menu,
-} from 'lucide-react';
+import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useInvoice } from '../../providers/InvoiceProvider';
 import type { Invoice } from '../../types/Invoice';
-import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableSkeletonRows } from '../../components/ui/skeleton';
 import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
+import { useMoney } from '../../hooks/Currency/useMoney';
 
-interface Column { key: string; label: string; visible: boolean; }
+interface Column {
+  key: string;
+  label: string;
+  visible: boolean;
+}
 
 export function InvoiceList() {
+  const { format: formatMoney } = useMoney();
+  const navigate = useNavigate();
   const {
-    invoiceData, isLoading, error, currentPage, setCurrentPage, perPage, setPerPage,
-    searchTerm, setSearchTerm, selectedRowKeys, setSelectedRowKeys,
-    handleDeleteWithConfirmation, handleBulkAction, handleRowClick,
+    invoiceData,
+    isLoading,
+    error,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    searchTerm,
+    setSearchTerm,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    handleDeleteWithConfirmation,
+    handleBulkAction,
+    handleRowClick,
   } = useInvoice();
 
   const invoices: Invoice[] = Array.isArray(invoiceData?.invoices)
@@ -62,17 +78,28 @@ export function InvoiceList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleColumn = (key: string) => setColumns(prev => prev.map(col => col.key === key ? { ...col, visible: !col.visible } : col));
-
-
-
+  const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
 
   const allSelected = invoices.length > 0 && selectedRowKeys.length === invoices.length;
-  const handleSelectAll = () => setSelectedRowKeys(allSelected ? [] : invoices.map(i => i.uuid!));
-  const handleSelectRow = (uuid: string) => setSelectedRowKeys(selectedRowKeys.includes(uuid) ? selectedRowKeys.filter(k => k !== uuid) : [...selectedRowKeys, uuid]);
-  const applySearch = () => { setSearchTerm(searchDraft); setCurrentPage(1); };
-  const clearSearch = () => { setSearchDraft(''); setSearchTerm(''); setCurrentPage(1); setFilterOpen(false); };
-  const handleExportSubmit = () => { setExportModalOpen(false); setExportType('specific'); setExportFromDate(''); setExportToDate(''); setExportFormat(''); };
+  const handleSelectAll = () => setSelectedRowKeys(allSelected ? [] : invoices.map((i) => i.uuid!));
+  const handleSelectRow = (uuid: string) => setSelectedRowKeys(selectedRowKeys.includes(uuid) ? selectedRowKeys.filter((k) => k !== uuid) : [...selectedRowKeys, uuid]);
+  const applySearch = () => {
+    setSearchTerm(searchDraft);
+    setCurrentPage(1);
+  };
+  const clearSearch = () => {
+    setSearchDraft('');
+    setSearchTerm('');
+    setCurrentPage(1);
+    setFilterOpen(false);
+  };
+  const handleExportSubmit = () => {
+    setExportModalOpen(false);
+    setExportType('specific');
+    setExportFromDate('');
+    setExportToDate('');
+    setExportFormat('');
+  };
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
@@ -89,9 +116,30 @@ export function InvoiceList() {
   };
 
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => { handleBulkAction('delete'); setBulkActionOpen(false); } },
-    { label: 'Mark as Paid', icon: Archive, action: () => { handleBulkAction('pay'); setBulkActionOpen(false); } },
-    { label: 'Cancel Selected', icon: Tag, action: () => { handleBulkAction('cancel'); setBulkActionOpen(false); } },
+    {
+      label: 'Delete Selected',
+      icon: Trash2,
+      action: () => {
+        handleBulkAction('delete');
+        setBulkActionOpen(false);
+      },
+    },
+    {
+      label: 'Mark as Paid',
+      icon: Archive,
+      action: () => {
+        handleBulkAction('pay');
+        setBulkActionOpen(false);
+      },
+    },
+    {
+      label: 'Cancel Selected',
+      icon: Tag,
+      action: () => {
+        handleBulkAction('cancel');
+        setBulkActionOpen(false);
+      },
+    },
   ];
 
   return (
@@ -104,23 +152,102 @@ export function InvoiceList() {
         <div className="flex flex-wrap items-center gap-2">
           {selectedRowKeys.length > 0 && (
             <div className="relative" ref={bulkActionRef}>
-              <button onClick={() => setBulkActionOpen(!bulkActionOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
-                Bulk Action <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRowKeys.length}</span><ChevronDown className="w-4 h-4" />
+              <button
+                onClick={() => setBulkActionOpen(!bulkActionOpen)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+              >
+                Bulk Action <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRowKeys.length}</span>
+                <ChevronDown className="w-4 h-4" />
               </button>
-              {bulkActionOpen && (<div className="absolute right-0 mt-2 w-52 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20"><div className="py-1">{bulkActions.map(a => (<button key={a.label} onClick={a.action} className="w-full cursor-pointer flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><a.icon className="w-4 h-4" />{a.label}</button>))}</div></div>)}
+              {bulkActionOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
+                  <div className="py-1">
+                    {bulkActions.map((a) => (
+                      <button
+                        key={a.label}
+                        onClick={a.action}
+                        className="w-full cursor-pointer flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      >
+                        <a.icon className="w-4 h-4" />
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-          <button onClick={() => setFilterOpen(prev => !prev)} className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}>
-            <Filter className="w-4 h-4" />Filter{searchTerm && <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">1</span>}
+          <button
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
+          >
+            <Filter className="w-4 h-4" />
+            Filter{searchTerm && <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">1</span>}
           </button>
           <div className="relative" ref={columnsRef}>
-            <button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"><Columns3 className="w-4 h-4" />Columns<ChevronDown className="w-4 h-4" /></button>
-            {columnsDropdownOpen && (<div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20"><div className="py-1">{columns.map(col => (<button key={col.key} onClick={() => toggleColumn(col.key)} className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><span>{col.label}</span>{col.visible && <Check className="w-4 h-4 text-primary-600" />}</button>))}</div></div>)}
+            <button
+              onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+            >
+              <Columns3 className="w-4 h-4" />
+              Columns
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {columnsDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
+                <div className="py-1">
+                  {columns.map((col) => (
+                    <button
+                      key={col.key}
+                      onClick={() => toggleColumn(col.key)}
+                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
+                      <span>{col.label}</span>
+                      {col.visible && <Check className="w-4 h-4 text-primary-600" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <button onClick={() => { }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"><Plus className="w-4 h-4" />Create</button>
+          <button
+            onClick={() => navigate('/invoice/add')}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Create
+          </button>
           <div className="relative" ref={moreActionsRef}>
-            <button onClick={() => setMoreActionsOpen(!moreActionsOpen)} className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"><Menu className="w-5 h-5" /><ChevronDown className="w-4 h-4" /></button>
-            {moreActionsOpen && (<div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20"><div className="py-1"><button onClick={() => { setExportModalOpen(true); setMoreActionsOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Download className="w-4 h-4" />Export</button><button onClick={() => setMoreActionsOpen(false)} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Upload className="w-4 h-4" />Import</button></div></div>)}
+            <button
+              onClick={() => setMoreActionsOpen(!moreActionsOpen)}
+              className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {moreActionsOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setExportModalOpen(true);
+                      setMoreActionsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+                  <button
+                    onClick={() => setMoreActionsOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -130,43 +257,107 @@ export function InvoiceList() {
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
               <label className="text-xs font-medium text-[var(--text-secondary)]">Search</label>
-              <input type="text" value={searchDraft} onChange={e => setSearchDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && applySearch()} placeholder="Search by invoice #, customer…" className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+              <input
+                type="text"
+                value={searchDraft}
+                onChange={(e) => setSearchDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && applySearch()}
+                placeholder="Search by invoice #, customer…"
+                className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
             </div>
             <div className="flex items-end gap-2 pb-0.5">
-              <button onClick={applySearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">Apply</button>
-              <button onClick={clearSearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors">Clear</button>
+              <button onClick={applySearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                Apply
+              </button>
+              <button
+                onClick={clearSearch}
+                className="px-4 cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
+              >
+                Clear
+              </button>
             </div>
           </div>
         </div>
       )}
 
       <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6 relative min-h-[200px] mx-6">
-        {error && (<div className="absolute inset-0 z-10 flex items-center justify-center"><div className="text-red-500 font-medium">Error loading invoices: {error.message}</div></div>)}
+        {error && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
+            <div className="text-red-500 font-medium">Error loading invoices: {error.message}</div>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead><tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
-              <th className="w-12 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={handleSelectAll} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Invoice #</th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Order #</th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Customer</th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Amount</th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Status</th>
-              <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Actions</th>
-            </tr></thead>
+            <thead>
+              <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
+                <th className="w-12 px-4 py-3">
+                  <input type="checkbox" checked={allSelected} onChange={handleSelectAll} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Invoice #</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Order #</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Customer</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Amount</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Actions</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {isLoading ? (<TableLoadingRow colSpan={8} label="Loading invoices…" />) : invoices.length === 0 ? (<TableEmptyRow colSpan={8} label="No invoices found." />) : invoices.map((invoice: any) => (
-                <tr key={invoice?.uuid} onClick={() => handleRowClick(invoice)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                  <td className="px-4 py-4 whitespace-nowrap"><input type="checkbox" checked={selectedRowKeys.includes(invoice?.uuid ?? "")} onChange={(e) => { e.stopPropagation(); handleSelectRow(invoice?.uuid ?? ""); }} onClick={e => e.stopPropagation()} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><span className="text-sm font-mono text-[var(--text-secondary)]">{invoice?.invoice_number ?? invoice?.invoiceNumber ?? ''}</span></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><span className="text-sm text-[var(--text-secondary)]">{invoice?.order?.order_number ?? '—'}</span></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><span className="text-sm font-medium text-[var(--text-primary)]">{invoice?.customer?.name ?? invoice?.customer_name ?? '—'}</span></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><span className="text-sm text-[var(--text-secondary)]">{invoice?.invoice_date ?? invoice?.date ?? invoice?.created_at ?? '—'}</span></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><span className="text-sm font-medium text-green-600 dark:text-green-400">{invoice?.total != null ? `$${Number(invoice.total).toFixed(2)}` : '—'}</span></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(invoice?.status ?? '')}`}>{invoice?.status ?? '—'}</span></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><div className="flex items-center justify-end gap-2"><button className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md" onClick={(e) => { e.stopPropagation(); handleDeleteWithConfirmation(invoice?.uuid ?? ""); }}><Trash2 size={14} strokeWidth={2.5} /><span>Delete</span></button></div></td>
-                </tr>
-              ))}
+              {isLoading ? (
+                <TableSkeletonRows rows={perPage} label="Loading invoices" columns={['check', 'text', 'text', 'text', 'date', 'text', 'badge', 'action']} />
+              ) : invoices.length === 0 ? (
+                <TableEmptyRow colSpan={8} label="No invoices found." />
+              ) : (
+                invoices.map((invoice: any) => (
+                  <tr key={invoice?.uuid} onClick={() => handleRowClick(invoice)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedRowKeys.includes(invoice?.uuid ?? '')}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectRow(invoice?.uuid ?? '');
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                      />
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-mono text-[var(--text-secondary)]">{invoice?.invoice_number ?? invoice?.invoiceNumber ?? ''}</span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm text-[var(--text-secondary)]">{invoice?.order?.order_number ?? '—'}</span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{invoice?.customer?.name ?? invoice?.customer_name ?? '—'}</span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm text-[var(--text-secondary)]">{invoice?.invoice_date ?? invoice?.date ?? invoice?.created_at ?? '—'}</span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">{invoice?.total != null ? formatMoney(invoice.total) : '—'}</span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(invoice?.status ?? '')}`}>{invoice?.status ?? '—'}</span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteWithConfirmation(invoice?.uuid ?? '');
+                          }}
+                        >
+                          <Trash2 size={14} strokeWidth={2.5} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -177,13 +368,60 @@ export function InvoiceList() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setExportModalOpen(false)} />
           <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]"><h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Invoices</h2><button onClick={() => setExportModalOpen(false)} className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"><X className="w-5 h-5 text-[var(--text-muted)]" /></button></div>
-            <div className="px-6 py-4 space-y-6">
-              <div className="space-y-3">{(['all', 'specific'] as const).map(t => (<label key={t} className="flex items-center gap-3 cursor-pointer"><input type="radio" name="exportType" checked={exportType === t} onChange={() => setExportType(t)} className="w-5 h-5 text-primary-600" /><span className="text-[var(--text-primary)] font-medium capitalize">{t} Invoices</span></label>))}</div>
-              {exportType === 'specific' && (<div className="grid grid-cols-2 gap-4">{[['From', exportFromDate, setExportFromDate], ['To', exportToDate, setExportToDate]].map(([label, val, set]) => (<div key={label as string}><label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{label as string}</label><input type="date" value={val as string} onChange={e => (set as any)(e.target.value)} className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500" /></div>))}</div>)}
-              <div className="space-y-3"><label className="block text-sm font-medium text-[var(--text-secondary)]">Export As:</label>{(['csv', 'xls'] as const).map(f => (<label key={f} className="flex items-center gap-3 cursor-pointer"><input type="radio" name="exportFormat" checked={exportFormat === f} onChange={() => setExportFormat(f)} className="w-5 h-5 text-primary-600" /><span className="text-[var(--text-primary)] uppercase">{f}</span></label>))}</div>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Invoices</h2>
+              <button onClick={() => setExportModalOpen(false)} className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors">
+                <X className="w-5 h-5 text-[var(--text-muted)]" />
+              </button>
             </div>
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]"><button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">Export</button><button onClick={() => setExportModalOpen(false)} className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors">Cancel</button></div>
+            <div className="px-6 py-4 space-y-6">
+              <div className="space-y-3">
+                {(['all', 'specific'] as const).map((t) => (
+                  <label key={t} className="flex items-center gap-3 cursor-pointer">
+                    <input type="radio" name="exportType" checked={exportType === t} onChange={() => setExportType(t)} className="w-5 h-5 text-primary-600" />
+                    <span className="text-[var(--text-primary)] font-medium capitalize">{t} Invoices</span>
+                  </label>
+                ))}
+              </div>
+              {exportType === 'specific' && (
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    ['From', exportFromDate, setExportFromDate],
+                    ['To', exportToDate, setExportToDate],
+                  ].map(([label, val, set]) => (
+                    <div key={label as string}>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{label as string}</label>
+                      <input
+                        type="date"
+                        value={val as string}
+                        onChange={(e) => (set as any)(e.target.value)}
+                        className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As:</label>
+                {(['csv', 'xls'] as const).map((f) => (
+                  <label key={f} className="flex items-center gap-3 cursor-pointer">
+                    <input type="radio" name="exportFormat" checked={exportFormat === f} onChange={() => setExportFormat(f)} className="w-5 h-5 text-primary-600" />
+                    <span className="text-[var(--text-primary)] uppercase">{f}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">
+                Export
+              </button>
+              <button
+                onClick={() => setExportModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

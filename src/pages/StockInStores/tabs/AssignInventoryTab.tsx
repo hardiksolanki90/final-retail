@@ -24,12 +24,8 @@ export function AssignInventoryTab() {
                   <Search className="w-3 h-3 ml-1" />
                 </div>
               </th>
-              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">
-                Item Uom
-              </th>
-              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">
-                Capacity
-              </th>
+              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">Item Uom</th>
+              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">Capacity</th>
             </tr>
           </thead>
           <tbody className="bg-[var(--bg-card)] divide-y divide-[var(--border-color)]">

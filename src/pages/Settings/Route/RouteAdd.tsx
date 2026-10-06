@@ -6,32 +6,23 @@ import type { RouteFormData } from '../../../types/Route';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
 import { AreaSelect, DepotSelect } from '../../../components/ui';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: Code, Name, Area, Depot.
+const ROUTE_FORM_SKELETON: FormSkeletonField[] = ['code', 'input', 'input', 'input'];
 
 interface RouteAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: RouteFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: RouteFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: RouteFormData = {
-  code: '',
-  name: '',
-  areaId: '',
-  depotId: '',
-  status: true,
-};
+const initialFormData: RouteFormData = { code: '', name: '', areaId: '', depotId: '', status: true };
 
-export function RouteAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: RouteAddProps) {
+export function RouteAdd({ isOpen, onClose, data, onEvent }: RouteAddProps) {
   const initialData = data?.initialData;
+  const isLoading = data?.isLoading || false;
 
   const {
     register,
@@ -42,20 +33,14 @@ export function RouteAdd({
     setError,
     watch,
     setValue,
-  } = useForm<RouteFormData>({
-    defaultValues: initialFormData,
-  });
+  } = useForm<RouteFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
 
   useEffect(() => {
     if (initialData) {
-      reset({
-        ...initialData,
-        areaId: (initialData as any).areaId ?? (initialData as any).area?.id ?? '',
-        depotId: (initialData as any).depotId ?? (initialData as any).depot?.id ?? '',
-      });
+      reset({ ...initialData, areaId: (initialData as any).areaId ?? (initialData as any).area?.id ?? '', depotId: (initialData as any).depotId ?? (initialData as any).depot?.id ?? '' });
     } else {
       reset(initialFormData);
     }
@@ -70,14 +55,9 @@ export function RouteAdd({
         setCodeLocked(true);
       }
 
-      await onEvent?.({
-        eventType: initialData ? 'RouteUpdated' : 'RouteCreated',
-        route: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'RouteUpdated' : 'RouteCreated', route: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving route',
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving route' });
     }
   };
 
@@ -92,11 +72,7 @@ export function RouteAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
@@ -112,6 +88,8 @@ export function RouteAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={ROUTE_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Route' : 'Add Route'}
@@ -128,13 +106,15 @@ export function RouteAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
               {...register('code')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="route" onLockChange={setCodeLocked} />
@@ -143,12 +123,11 @@ export function RouteAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('name', {
-              required: 'Name is required',
-              validate: (value) => value.trim() !== '' || 'Name cannot be empty',
-            })}
+            {...register('name', { required: 'Name is required', validate: (value) => value.trim() !== '' || 'Name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter route name"
           />
@@ -160,14 +139,7 @@ export function RouteAdd({
             name="areaId"
             control={control}
             rules={{ required: 'Area is required' }}
-            render={({ field }) => (
-              <AreaSelect
-                label="Area"
-                error={errors.areaId?.message}
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
+            render={({ field }) => <AreaSelect label="Area" error={errors.areaId?.message} value={field.value} onChange={field.onChange} />}
           />
         </div>
 
@@ -176,14 +148,7 @@ export function RouteAdd({
             name="depotId"
             control={control}
             rules={{ required: 'Depot is required' }}
-            render={({ field }) => (
-              <DepotSelect
-                label="Depot"
-                error={errors.depotId?.message}
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
+            render={({ field }) => <DepotSelect label="Depot" error={errors.depotId?.message} value={field.value} onChange={field.onChange} />}
           />
         </div>
       </form>

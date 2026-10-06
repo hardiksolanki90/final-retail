@@ -4,17 +4,29 @@ import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { CreditLimitFormData, CreditLimit } from '../../../types/CreditLimit';
 import type { SalesmanSelectOption } from '../../../types/Salesman';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: User, Credit Limit Type.
+const CREDIT_LIMIT_FORM_SKELETON: FormSkeletonField[] = ['select', 'select'];
 
 interface CreditLimitAddProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CreditLimitFormData) => void | Promise<void>;
   editData?: CreditLimit | null;
+  /** The record's details are still loading — a loader covers the form. */
+  isLoading?: boolean;
   salesmanOptions: SalesmanSelectOption[];
 }
 
-export function CreditLimitAdd({ isOpen, onClose, onSubmit, editData, salesmanOptions }: CreditLimitAddProps) {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setError } = useForm<CreditLimitFormData>();
+export function CreditLimitAdd({ isOpen, onClose, onSubmit, editData, salesmanOptions, isLoading = false }: CreditLimitAddProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    setError,
+  } = useForm<CreditLimitFormData>();
 
   useEffect(() => {
     if (editData) {
@@ -34,7 +46,9 @@ export function CreditLimitAdd({ isOpen, onClose, onSubmit, editData, salesmanOp
 
   const footerContent = (
     <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+      <CancelButton onClick={onClose} disabled={isSubmitting}>
+        Cancel
+      </CancelButton>
       <SaveButton type="submit" form="credit-limit-form" disabled={isSubmitting}>
         {isSubmitting ? 'Saving...' : editData ? 'Update' : 'Save'}
       </SaveButton>
@@ -42,7 +56,15 @@ export function CreditLimitAdd({ isOpen, onClose, onSubmit, editData, salesmanOp
   );
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title={editData ? 'Edit Credit Limit' : 'Add Credit Limit'} width="w-[500px]" footer={footerContent}>
+    <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={CREDIT_LIMIT_FORM_SKELETON} />}
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editData ? 'Edit Credit Limit' : 'Add Credit Limit'}
+      width="w-[500px]"
+      footer={footerContent}
+    >
       <form id="credit-limit-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
@@ -51,20 +73,27 @@ export function CreditLimitAdd({ isOpen, onClose, onSubmit, editData, salesmanOp
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">User <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            User <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <select
             {...register('userId', { required: 'User is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select a user</option>
-            {salesmanOptions.map(opt => (
-              <option key={opt.uuid} value={opt.userId}>{opt.name}{opt.salesmanCode ? ` (${opt.salesmanCode})` : ''}</option>
+            {salesmanOptions.map((opt) => (
+              <option key={opt.uuid} value={opt.userId}>
+                {opt.name}
+                {opt.salesmanCode ? ` (${opt.salesmanCode})` : ''}
+              </option>
             ))}
           </select>
           {errors.userId && <p className="text-red-600 text-xs mt-1">{errors.userId.message}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit Type <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Credit Limit Type <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <select
             {...register('creditLimitType', { required: 'Credit limit type is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

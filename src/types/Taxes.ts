@@ -4,6 +4,9 @@ export interface Tax {
   name: string;
   rate: number;
   type?: string;
+  /** State / province code (India, Canada); empty = every region. */
+  region?: string | null;
+  isDefault?: boolean;
   description?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -13,6 +16,8 @@ export interface TaxFormData {
   name: string;
   rate: number | '';
   type?: string;
+  region?: string | null;
+  isDefault?: boolean;
   description?: string;
 }
 

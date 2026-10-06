@@ -32,16 +32,7 @@ const defaultValues: PlanogramFormData = {
   status: 'active',
 };
 
-export function PlanogramAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  customers = [],
-  merchandisers = [],
-  categories = [],
-}: PlanogramAddProps) {
+export function PlanogramAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false, customers = [], merchandisers = [], categories = [] }: PlanogramAddProps) {
   const {
     register,
     handleSubmit,
@@ -50,11 +41,8 @@ export function PlanogramAdd({
     watch,
     setValue,
     setError,
-    clearErrors
-  } = useForm<PlanogramFormData>({
-    defaultValues,
-    mode: 'onBlur'
-  });
+    clearErrors,
+  } = useForm<PlanogramFormData>({ defaultValues, mode: 'onBlur' });
 
   const watchedImage = watch('image');
   const imageName = watchedImage?.name || '';
@@ -80,7 +68,6 @@ export function PlanogramAdd({
     }
   };
 
-
   const onFormSubmit = async (data: PlanogramFormData) => {
     try {
       await onSubmit(data);
@@ -89,22 +76,22 @@ export function PlanogramAdd({
       console.error('Error saving planogram:', error);
       if (error.response?.data?.errors) {
         Object.entries(error.response.data.errors).forEach(([field, message]) => {
-          setError(field as keyof PlanogramFormData, {
-            type: 'server',
-            message: Array.isArray(message) ? message[0] : message
-          });
+          setError(field as keyof PlanogramFormData, { type: 'server', message: Array.isArray(message) ? message[0] : message });
         });
       }
     }
   };
 
-  const defaultCategories: SelectOption[] = categories.length > 0 ? categories : [
-    { value: 'beverages', label: 'Beverages' },
-    { value: 'snacks', label: 'Snacks' },
-    { value: 'dairy', label: 'Dairy' },
-    { value: 'personal_care', label: 'Personal Care' },
-    { value: 'household', label: 'Household' },
-  ];
+  const defaultCategories: SelectOption[] =
+    categories.length > 0
+      ? categories
+      : [
+          { value: 'beverages', label: 'Beverages' },
+          { value: 'snacks', label: 'Snacks' },
+          { value: 'dairy', label: 'Dairy' },
+          { value: 'personal_care', label: 'Personal Care' },
+          { value: 'household', label: 'Household' },
+        ];
 
   const statusOptions: SelectOption[] = [
     { value: 'active', label: 'Active' },
@@ -112,12 +99,7 @@ export function PlanogramAdd({
   ];
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Planogram' : 'Add Planogram'}
-      width="w-[600px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Planogram' : 'Add Planogram'} width="w-[600px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -126,12 +108,9 @@ export function PlanogramAdd({
             </div>
             <div className="flex items-center gap-2 relative">
               <Input
-                {...register('planogramCode', {
-                  required: 'Planogram Code is required',
-                  validate: (value) => value?.trim() || 'Planogram Code is required'
-                })}
+                {...register('planogramCode', { required: 'Planogram Code is required', validate: (value) => value?.trim() || 'Planogram Code is required' })}
                 error={errors.planogramCode?.message}
-                placeholder="Enter planogram code"
+                placeholder="Configure the system to auto-generate the code."
                 required
               />
               <OrderCodeSettingsIcon label="Planogram Code" value={watch('planogramCode') || ''} onChange={(v) => setValue('planogramCode', v)} />
@@ -139,10 +118,7 @@ export function PlanogramAdd({
           </div>
           <Input
             label="Name"
-            {...register('name', {
-              required: 'Name is required',
-              validate: (value) => value?.trim() || 'Name is required'
-            })}
+            {...register('name', { required: 'Name is required', validate: (value) => value?.trim() || 'Name is required' })}
             error={errors.name?.message}
             placeholder="Enter name"
             required
@@ -152,9 +128,7 @@ export function PlanogramAdd({
         <div className="grid grid-cols-2 gap-4">
           <Select
             label="Customer"
-            {...register('customerId', {
-              required: 'Customer is required'
-            })}
+            {...register('customerId', { required: 'Customer is required' })}
             onChange={handleSelectChange('customerId')}
             options={customers}
             placeholder="Select customer"
@@ -163,9 +137,7 @@ export function PlanogramAdd({
           />
           <Select
             label="Merchandiser"
-            {...register('salesmanId', {
-              required: 'Merchandiser is required'
-            })}
+            {...register('salesmanId', { required: 'Merchandiser is required' })}
             onChange={handleSelectChange('salesmanId')}
             options={merchandisers}
             placeholder="Select merchandiser"
@@ -176,9 +148,7 @@ export function PlanogramAdd({
 
         <Select
           label="Category"
-          {...register('category', {
-            required: 'Category is required'
-          })}
+          {...register('category', { required: 'Category is required' })}
           onChange={handleSelectChange('category')}
           options={defaultCategories}
           placeholder="Select category"
@@ -186,24 +156,13 @@ export function PlanogramAdd({
           required
         />
 
-        <Input
-          label="Date"
-          type="date"
-          {...register('date', {
-            required: 'Date is required'
-          })}
-          error={errors.date?.message}
-          required
-        />
+        <Input label="Date" type="date" {...register('date', { required: 'Date is required' })} error={errors.date?.message} required />
 
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="Shelf Count"
             type="number"
-            {...register('shelfCount', {
-              valueAsNumber: true,
-              min: { value: 0, message: 'Shelf count must be 0 or greater' }
-            })}
+            {...register('shelfCount', { valueAsNumber: true, min: { value: 0, message: 'Shelf count must be 0 or greater' } })}
             placeholder="Enter shelf count"
             min="0"
             error={errors.shelfCount?.message}
@@ -211,10 +170,7 @@ export function PlanogramAdd({
           <Input
             label="Products Per Shelf"
             type="number"
-            {...register('productsPerShelf', {
-              valueAsNumber: true,
-              min: { value: 0, message: 'Products per shelf must be 0 or greater' }
-            })}
+            {...register('productsPerShelf', { valueAsNumber: true, min: { value: 0, message: 'Products per shelf must be 0 or greater' } })}
             placeholder="Enter products per shelf"
             min="0"
             error={errors.productsPerShelf?.message}
@@ -242,14 +198,7 @@ export function PlanogramAdd({
           {imageName && <p className="mt-1 text-sm text-gray-500">{imageName}</p>}
         </div>
 
-        <Select
-          label="Status"
-          {...register('status')}
-          onChange={handleSelectChange('status')}
-          options={statusOptions}
-          placeholder="Select status"
-          error={errors.status?.message}
-        />
+        <Select label="Status" {...register('status')} onChange={handleSelectChange('status')} options={statusOptions} placeholder="Select status" error={errors.status?.message} />
 
         {errors.root && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -258,7 +207,9 @@ export function PlanogramAdd({
         )}
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+          <CancelButton onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </CancelButton>
           <SaveButton type="submit" disabled={isSubmitting || isLoading}>
             {isSubmitting || isLoading ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>

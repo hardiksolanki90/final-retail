@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreatableSelect } from './CreatableSelect';
 import { getVanCategoryOptions, createVanCategory, type VanCategoryOption } from '../../api/VanApi';
 import type { SelectOption } from './Select';
@@ -13,35 +13,19 @@ export interface VanCategorySelectProps {
   disabled?: boolean;
 }
 
-export function VanCategorySelect({
-  value,
-  onChange,
-  placeholder = 'Select van category',
-  label,
-  error,
-  className,
-  disabled = false,
-}: VanCategorySelectProps) {
-  const [options, setOptions] = useState<SelectOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    setIsLoading(true);
-    getVanCategoryOptions()
-      .then((opts: VanCategoryOption[]) => setOptions(opts.map((o) => ({ value: String(o.value), label: o.label }))))
-      .catch(() => setOptions([]))
-      .finally(() => setIsLoading(false));
-  }, []);
+export function VanCategorySelect({ value, onChange, placeholder = 'Select van category', label, error, className, disabled = false }: VanCategorySelectProps) {
+  const queryClient = useQueryClient();
+  const { data: options = [], isLoading } = useQuery({
+    queryKey: ['van-category-options'],
+    queryFn: async (): Promise<SelectOption[]> => (await getVanCategoryOptions()).map((o: VanCategoryOption) => ({ value: String(o.value), label: o.label })),
+  });
 
   const handleCreate = async (values: Record<string, any>): Promise<SelectOption> => {
-    const res = await createVanCategory({
-      name: values.name,
-      parentId: values.parentId ? Number(values.parentId) : undefined,
-      status: values.status ?? true,
-    });
+    const res = await createVanCategory({ name: values.name, parentId: values.parentId ? Number(values.parentId) : undefined, status: values.status ?? true });
     const created = res.data ?? res;
     const newOption: SelectOption = { value: String(created.id ?? ''), label: created.name };
-    setOptions((prev) => [newOption, ...prev]);
+    // Show the new option at once (and keep it for the next mount) without waiting for a refetch.
+    queryClient.setQueryData<SelectOption[]>(['van-category-options'], (prev) => [newOption, ...(prev ?? [])]);
     return newOption;
   };
 

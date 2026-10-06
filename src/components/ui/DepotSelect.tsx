@@ -12,37 +12,14 @@ export interface DepotSelectProps {
   disabled?: boolean;
 }
 
-export function DepotSelect({
-  value,
-  onChange,
-  placeholder = 'Select depot',
-  label,
-  error,
-  className,
-  disabled = false,
-}: DepotSelectProps) {
-  const {
-    options,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    onLoadMore,
-    onSearchChange,
-  } = useInfiniteSelect({
+export function DepotSelect({ value, onChange, placeholder = 'Select depot', label, error, className, disabled = false }: DepotSelectProps) {
+  const { options, isLoading, isLoadingMore, hasMore, onLoadMore, onSearchChange } = useInfiniteSelect({
     selectedValue: value,
     fetchPage: async (page, search) => {
       const res = await getDepotList(page, 15, search || undefined);
-      return {
-        items: res?.data || [],
-        hasMore: Boolean(res?.meta?.has_more_pages),
-      };
+      return { items: res?.data || [], hasMore: Boolean(res?.meta?.has_more_pages) };
     },
-    mapItemToOption: (d: any) => ({
-      value: d.id,
-      label: (d.depotCode ?? d.code)
-        ? `${d.depotCode ?? d.code} - ${d.depotName ?? d.name}`
-        : (d.depotName ?? d.name ?? String(d.id)),
-    }),
+    mapItemToOption: (d: any) => ({ value: d.id, label: (d.depotCode ?? d.code) ? `${d.depotCode ?? d.code} - ${d.depotName ?? d.name}` : (d.depotName ?? d.name ?? String(d.id)) }),
   });
 
   return (

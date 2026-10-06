@@ -4,13 +4,7 @@ import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedRe
 
 export type RouteListResponse = NormalizedListResponse<any>;
 
-export const getRouteList = async (
-  page = 1,
-  perPage = 15,
-  searchTerm?: string,
-  areaId?: number | string,
-  depotId?: number | string
-): Promise<RouteListResponse> => {
+export const getRouteList = async (page = 1, perPage = 15, searchTerm?: string, areaId?: number | string, depotId?: number | string): Promise<RouteListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -43,10 +37,7 @@ export const deleteRoute = async (uuid: string) => {
   showToast.success('Route deleted successfully');
 };
 
-export const getRouteOptions = async (
-  areaId?: number | string,
-  depotId?: number | string
-): Promise<{ value: number; label: string }[]> => {
+export const getRouteOptions = async (areaId?: number | string, depotId?: number | string): Promise<{ value: number; label: string }[]> => {
   const params = new URLSearchParams();
   params.append('per_page', '50');
   if (areaId) params.append('area_id', areaId.toString());

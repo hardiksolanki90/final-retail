@@ -2,9 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { PatternFormat } from 'react-number-format';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { Controller, type RegisterOptions } from 'react-hook-form';
-import { useOrganisation } from '../../hooks/Organisation/useOrganisation';
 import { useAuth } from '../../context/AuthContext';
-import { getStoredOrgCountry } from '../../utils/organisationStorage';
 
 export interface CountryFormatInfo {
   code: string;
@@ -16,30 +14,30 @@ export interface CountryFormatInfo {
 }
 
 export const COUNTRY_PHONE_FORMATS: CountryFormatInfo[] = [
-  { code: 'IN', name: 'India', dialCode: '+91', format: "##### #####", placeholder: "12345 67890", flag: '🇮🇳' },
-  { code: 'AE', name: 'United Arab Emirates', dialCode: '+971', format: "### ### ####", placeholder: "123 456 7890", flag: '🇦🇪' },
-  { code: 'SA', name: 'Saudi Arabia', dialCode: '+966', format: "### ### ####", placeholder: "123 456 7890", flag: '🇸🇦' },
-  { code: 'US', name: 'United States', dialCode: '+1', format: '(###) ###-####', placeholder: "1234567890", flag: '🇺🇸' },
-  { code: 'GB', name: 'United Kingdom', dialCode: '+44', format: "#### ### ###", placeholder: "1234 567 890", flag: '🇬🇧' },
-  { code: 'QA', name: 'Qatar', dialCode: '+974', format: "### ### ####", placeholder: "123 456 7890", flag: '🇶🇦' },
-  { code: 'OM', name: 'Oman', dialCode: '+968', format: "### ### ####", placeholder: "123 456 7890", flag: '🇴🇲' },
-  { code: 'KW', name: 'Kuwait', dialCode: '+965', format: "### ### ####", placeholder: "123 456 7890", flag: '🇰🇼' },
-  { code: 'BH', name: 'Bahrain', dialCode: '+973', format: "### ### ####", placeholder: "123 456 7890", flag: '🇧🇭' },
-  { code: 'SG', name: 'Singapore', dialCode: '+65', format: "#### ######", placeholder: "1234 567890", flag: '🇸🇬' },
-  { code: 'MY', name: 'Malaysia', dialCode: '+60', format: "### ### ####", placeholder: "123 456 7890", flag: '🇲🇾' },
-  { code: 'AU', name: 'Australia', dialCode: '+61', format: "### ### ####", placeholder: "123 456 7890", flag: '🇦🇺' },
-  { code: 'DE', name: 'Germany', dialCode: '+49', format: "### ### ####", placeholder: "123 456 7890", flag: '🇩🇪' },
-  { code: 'FR', name: 'France', dialCode: '+33', format: "## ## ## ## ##", placeholder: "12 34 56 78 90", flag: '🇫🇷' },
-  { code: 'CA', name: 'Canada', dialCode: '+1', format: '(###) ###-####', placeholder: "1234567890", flag: '🇨🇦' },
-  { code: 'PH', name: 'Philippines', dialCode: '+63', format: "### ### ####", placeholder: "123 456 7890", flag: '🇵🇭' },
-  { code: 'ID', name: 'Indonesia', dialCode: '+62', format: "### ### ####", placeholder: "123 456 7890", flag: '🇮🇩' },
-  { code: 'PK', name: 'Pakistan', dialCode: '+92', format: "### #######", placeholder: "123 4567890", flag: '🇵🇰' },
-  { code: 'BD', name: 'Bangladesh', dialCode: '+880', format: "#### ######", placeholder: "1234 567890", flag: '🇧🇩' },
-  { code: 'NP', name: 'Nepal', dialCode: '+977', format: "### ### ####", placeholder: "123 456 7890", flag: '🇳🇵' },
-  { code: 'LK', name: 'Sri Lanka', dialCode: '+94', format: "### ### ####", placeholder: "123 456 7890", flag: '🇱🇰' },
-  { code: 'ZA', name: 'South Africa', dialCode: '+27', format: "### ### ####", placeholder: "123 456 7890", flag: '🇿🇦' },
-  { code: 'EG', name: 'Egypt', dialCode: '+20', format: "### ### ####", placeholder: "123 456 7890", flag: '🇪🇬' },
-  { code: 'TR', name: 'Turkey', dialCode: '+90', format: "### ### ####", placeholder: "123 456 7890", flag: '🇹🇷' },
+  { code: 'IN', name: 'India', dialCode: '+91', format: '##### #####', placeholder: '12345 67890', flag: '🇮🇳' },
+  { code: 'AE', name: 'United Arab Emirates', dialCode: '+971', format: '### ### ####', placeholder: '123 456 7890', flag: '🇦🇪' },
+  { code: 'SA', name: 'Saudi Arabia', dialCode: '+966', format: '### ### ####', placeholder: '123 456 7890', flag: '🇸🇦' },
+  { code: 'US', name: 'United States', dialCode: '+1', format: '(###) ###-####', placeholder: '1234567890', flag: '🇺🇸' },
+  { code: 'GB', name: 'United Kingdom', dialCode: '+44', format: '#### ### ###', placeholder: '1234 567 890', flag: '🇬🇧' },
+  { code: 'QA', name: 'Qatar', dialCode: '+974', format: '### ### ####', placeholder: '123 456 7890', flag: '🇶🇦' },
+  { code: 'OM', name: 'Oman', dialCode: '+968', format: '### ### ####', placeholder: '123 456 7890', flag: '🇴🇲' },
+  { code: 'KW', name: 'Kuwait', dialCode: '+965', format: '### ### ####', placeholder: '123 456 7890', flag: '🇰🇼' },
+  { code: 'BH', name: 'Bahrain', dialCode: '+973', format: '### ### ####', placeholder: '123 456 7890', flag: '🇧🇭' },
+  { code: 'SG', name: 'Singapore', dialCode: '+65', format: '#### ######', placeholder: '1234 567890', flag: '🇸🇬' },
+  { code: 'MY', name: 'Malaysia', dialCode: '+60', format: '### ### ####', placeholder: '123 456 7890', flag: '🇲🇾' },
+  { code: 'AU', name: 'Australia', dialCode: '+61', format: '### ### ####', placeholder: '123 456 7890', flag: '🇦🇺' },
+  { code: 'DE', name: 'Germany', dialCode: '+49', format: '### ### ####', placeholder: '123 456 7890', flag: '🇩🇪' },
+  { code: 'FR', name: 'France', dialCode: '+33', format: '## ## ## ## ##', placeholder: '12 34 56 78 90', flag: '🇫🇷' },
+  { code: 'CA', name: 'Canada', dialCode: '+1', format: '(###) ###-####', placeholder: '1234567890', flag: '🇨🇦' },
+  { code: 'PH', name: 'Philippines', dialCode: '+63', format: '### ### ####', placeholder: '123 456 7890', flag: '🇵🇭' },
+  { code: 'ID', name: 'Indonesia', dialCode: '+62', format: '### ### ####', placeholder: '123 456 7890', flag: '🇮🇩' },
+  { code: 'PK', name: 'Pakistan', dialCode: '+92', format: '### #######', placeholder: '123 4567890', flag: '🇵🇰' },
+  { code: 'BD', name: 'Bangladesh', dialCode: '+880', format: '#### ######', placeholder: '1234 567890', flag: '🇧🇩' },
+  { code: 'NP', name: 'Nepal', dialCode: '+977', format: '### ### ####', placeholder: '123 456 7890', flag: '🇳🇵' },
+  { code: 'LK', name: 'Sri Lanka', dialCode: '+94', format: '### ### ####', placeholder: '123 456 7890', flag: '🇱🇰' },
+  { code: 'ZA', name: 'South Africa', dialCode: '+27', format: '### ### ####', placeholder: '123 456 7890', flag: '🇿🇦' },
+  { code: 'EG', name: 'Egypt', dialCode: '+20', format: '### ### ####', placeholder: '123 456 7890', flag: '🇪🇬' },
+  { code: 'TR', name: 'Turkey', dialCode: '+90', format: '### ### ####', placeholder: '123 456 7890', flag: '🇹🇷' },
 ];
 
 /**
@@ -134,26 +132,13 @@ function BaseCountryPhoneInput({
   countryCode,
   onCountryChange,
 }: CountryPhoneInputProps) {
-  const { user } = useAuth();
-  const { organisation } = useOrganisation();
+  const { organisation } = useAuth();
 
   // 1. Resolve country selected for the organization
   const orgCountry = useMemo(() => {
-    const fromStorage = getStoredOrgCountry();
-    if (fromStorage?.code || fromStorage?.name || fromStorage?.dialCode) {
-      return fromStorage;
-    }
-    const org = organisation || user?.organisation;
-    const c = org?.country;
-    if (c) {
-      return {
-        code: c.countryCode,
-        name: c.name,
-        dialCode: c.dialCode ?? undefined,
-      };
-    }
-    return null;
-  }, [organisation, user?.organisation]);
+    const c = organisation?.country;
+    return c ? { code: c.countryCode, name: c.name, dialCode: c.dialCode ?? undefined } : null;
+  }, [organisation]);
 
   // 2. Find or dynamically build format info for org's country
   const orgCountryFormat = useMemo<CountryFormatInfo | null>(() => {
@@ -175,7 +160,7 @@ function BaseCountryPhoneInput({
         code: orgCountry.code.toUpperCase(),
         name: orgCountry.name,
         dialCode: orgCountry.dialCode || '+1',
-        format: "##########",
+        format: '##########',
         placeholder: '123 456 7890',
         flag: getFlagEmoji(orgCountry.code),
       };
@@ -208,9 +193,7 @@ function BaseCountryPhoneInput({
       return orgCountryFormat;
     }
     if (value) {
-      const matched = COUNTRY_PHONE_FORMATS.find((c) =>
-        value.trim().startsWith(c.dialCode)
-      );
+      const matched = COUNTRY_PHONE_FORMATS.find((c) => value.trim().startsWith(c.dialCode));
       if (matched) return matched;
     }
     return COUNTRY_PHONE_FORMATS[0];
@@ -244,9 +227,7 @@ function BaseCountryPhoneInput({
   // Auto-detect country from value if value starts with a known dial code and neither countryCode nor manual select was set
   useEffect(() => {
     if (!countryCode && !hasManuallySelected && value) {
-      const matched = allCountries.find((c) =>
-        value.trim().startsWith(c.dialCode)
-      );
+      const matched = allCountries.find((c) => value.trim().startsWith(c.dialCode));
       if (matched && matched.code !== selectedCountry.code) {
         setSelectedCountry(matched);
       }
@@ -296,12 +277,7 @@ function BaseCountryPhoneInput({
   const filteredCountries = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return allCountries;
-    return allCountries.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.code.toLowerCase().includes(q) ||
-        c.dialCode.includes(q)
-    );
+    return allCountries.filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || c.dialCode.includes(q));
   }, [searchQuery, allCountries]);
 
   return (
@@ -330,9 +306,7 @@ function BaseCountryPhoneInput({
             `}
           >
             <span className="text-base leading-none">{selectedCountry.flag}</span>
-            <span className="text-xs text-gray-600 dark:text-gray-300 font-mono">
-              {selectedCountry.dialCode}
-            </span>
+            <span className="text-xs text-gray-600 dark:text-gray-300 font-mono">{selectedCountry.dialCode}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isPickerOpen ? 'rotate-180' : ''}`} />
           </button>
 
@@ -353,11 +327,7 @@ function BaseCountryPhoneInput({
                     onClick={(e) => e.stopPropagation()}
                   />
                   {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                    >
+                    <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                       <X className="w-3 h-3" />
                     </button>
                   )}
@@ -367,9 +337,7 @@ function BaseCountryPhoneInput({
               {/* Country List */}
               <div className="max-h-56 overflow-y-auto py-1">
                 {filteredCountries.length === 0 ? (
-                  <div className="py-3 px-3 text-center text-xs text-gray-400">
-                    No country found
-                  </div>
+                  <div className="py-3 px-3 text-center text-xs text-gray-400">No country found</div>
                 ) : (
                   filteredCountries.map((c) => {
                     const isSelected = c.code === selectedCountry.code;
@@ -380,9 +348,10 @@ function BaseCountryPhoneInput({
                         onClick={() => handleSelectCountry(c)}
                         className={`
                           w-full px-3 py-1.5 flex items-center justify-between text-left text-xs sm:text-sm transition-colors
-                          ${isSelected
-                            ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
-                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60'
+                          ${
+                            isSelected
+                              ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                              : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60'
                           }
                         `}
                       >
@@ -390,9 +359,7 @@ function BaseCountryPhoneInput({
                           <span className="text-base">{c.flag}</span>
                           <span className="truncate">{c.name}</span>
                         </div>
-                        <span className="text-xs font-mono text-gray-400 ml-2 shrink-0">
-                          {c.dialCode}
-                        </span>
+                        <span className="text-xs font-mono text-gray-400 ml-2 shrink-0">{c.dialCode}</span>
                       </button>
                     );
                   })
@@ -421,10 +388,7 @@ function BaseCountryPhoneInput({
             min-h-[42px] w-full px-3 py-2 rounded-r-lg border transition-colors
             bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm
             focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-            ${error
-              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 dark:border-gray-600'
-            }
+            ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 dark:border-gray-600'}
             ${disabled ? 'bg-gray-50 dark:bg-gray-900 text-gray-400 cursor-not-allowed' : ''}
           `}
         />
@@ -468,15 +432,7 @@ export function CountryPhoneInput(props: CountryPhoneInputProps) {
         name={name}
         control={control}
         rules={combinedRules}
-        render={({ field, fieldState }) => (
-          <BaseCountryPhoneInput
-            {...rest}
-            required={required}
-            value={field.value || ''}
-            onChange={field.onChange}
-            error={error || fieldState.error?.message}
-          />
-        )}
+        render={({ field, fieldState }) => <BaseCountryPhoneInput {...rest} required={required} value={field.value || ''} onChange={field.onChange} error={error || fieldState.error?.message} />}
       />
     );
   }

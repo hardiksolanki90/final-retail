@@ -34,16 +34,7 @@ const defaultValues: SensorySurveyFormData = {
   status: 'draft',
 };
 
-export function SensorySurveyAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  customers = [],
-  merchandisers = [],
-  products = [],
-}: SensorySurveyAddProps) {
+export function SensorySurveyAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false, customers = [], merchandisers = [], products = [] }: SensorySurveyAddProps) {
   const {
     register,
     handleSubmit,
@@ -62,15 +53,11 @@ export function SensorySurveyAdd({
     onClose();
   };
 
-  const selectClass = 'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
+  const selectClass =
+    'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Sensory Survey' : 'Add Sensory Survey'}
-      width="w-[600px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Sensory Survey' : 'Add Sensory Survey'} width="w-[600px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -78,22 +65,11 @@ export function SensorySurveyAdd({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Survey Code</label>
             </div>
             <div className="flex items-center gap-2 relative">
-              <Input
-                {...register('surveyCode', { required: 'Survey Code is required' })}
-                error={errors.surveyCode?.message}
-                placeholder="Enter survey code"
-                required
-              />
+              <Input {...register('surveyCode', { required: 'Survey Code is required' })} error={errors.surveyCode?.message} placeholder="Configure the system to auto-generate the code." required />
               <OrderCodeSettingsIcon label="Survey Code" value={watch('surveyCode') || ''} onChange={(v) => setValue('surveyCode', v)} />
             </div>
           </div>
-          <Input
-            label="Survey Name"
-            {...register('surveyName', { required: 'Survey Name is required' })}
-            error={errors.surveyName?.message}
-            placeholder="Enter survey name"
-            required
-          />
+          <Input label="Survey Name" {...register('surveyName', { required: 'Survey Name is required' })} error={errors.surveyName?.message} placeholder="Enter survey name" required />
         </div>
 
         <div>
@@ -102,7 +78,11 @@ export function SensorySurveyAdd({
           </label>
           <select {...register('productId', { required: 'Product is required' })} className={selectClass}>
             <option value="">Select product</option>
-            {products.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {products.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
           {errors.productId && <p className="text-sm text-red-500 mt-1">{errors.productId.message}</p>}
         </div>
@@ -114,7 +94,11 @@ export function SensorySurveyAdd({
             </label>
             <select {...register('customerId', { required: 'Customer is required' })} className={selectClass}>
               <option value="">Select customer</option>
-              {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {customers.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
           </div>
@@ -124,62 +108,30 @@ export function SensorySurveyAdd({
             </label>
             <select {...register('salesmanId', { required: 'Merchandiser is required' })} className={selectClass}>
               <option value="">Select merchandiser</option>
-              {merchandisers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {merchandisers.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
           </div>
         </div>
 
-        <Input
-          label="Date"
-          type="date"
-          {...register('date', { required: 'Date is required' })}
-          error={errors.date?.message}
-          required
-        />
+        <Input label="Date" type="date" {...register('date', { required: 'Date is required' })} error={errors.date?.message} required />
 
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <h3 className="font-bold text-lg mb-4 text-gray-900 dark:text-gray-100">Sensory Evaluation</h3>
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Appearance (1-10)"
-              type="number"
-              {...register('appearance', { valueAsNumber: true, min: 1, max: 10 })}
-              placeholder="Rate 1-10"
-              min="1" max="10"
-            />
-            <Input
-              label="Aroma (1-10)"
-              type="number"
-              {...register('aroma', { valueAsNumber: true, min: 1, max: 10 })}
-              placeholder="Rate 1-10"
-              min="1" max="10"
-            />
+            <Input label="Appearance (1-10)" type="number" {...register('appearance', { valueAsNumber: true, min: 1, max: 10 })} placeholder="Rate 1-10" min="1" max="10" />
+            <Input label="Aroma (1-10)" type="number" {...register('aroma', { valueAsNumber: true, min: 1, max: 10 })} placeholder="Rate 1-10" min="1" max="10" />
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
-            <Input
-              label="Taste (1-10)"
-              type="number"
-              {...register('taste', { valueAsNumber: true, min: 1, max: 10 })}
-              placeholder="Rate 1-10"
-              min="1" max="10"
-            />
-            <Input
-              label="Texture (1-10)"
-              type="number"
-              {...register('texture', { valueAsNumber: true, min: 1, max: 10 })}
-              placeholder="Rate 1-10"
-              min="1" max="10"
-            />
+            <Input label="Taste (1-10)" type="number" {...register('taste', { valueAsNumber: true, min: 1, max: 10 })} placeholder="Rate 1-10" min="1" max="10" />
+            <Input label="Texture (1-10)" type="number" {...register('texture', { valueAsNumber: true, min: 1, max: 10 })} placeholder="Rate 1-10" min="1" max="10" />
           </div>
           <div className="mt-4">
-            <Input
-              label="Overall Rating (1-10)"
-              type="number"
-              {...register('overallRating', { valueAsNumber: true, min: 1, max: 10 })}
-              placeholder="Rate 1-10"
-              min="1" max="10"
-            />
+            <Input label="Overall Rating (1-10)" type="number" {...register('overallRating', { valueAsNumber: true, min: 1, max: 10 })} placeholder="Rate 1-10" min="1" max="10" />
           </div>
         </div>
 
@@ -202,7 +154,9 @@ export function SensorySurveyAdd({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+            Cancel
+          </CancelButton>
           <SaveButton type="submit" disabled={isLoading || isSubmitting}>
             {isLoading || isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>

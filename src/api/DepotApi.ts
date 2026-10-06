@@ -4,13 +4,7 @@ import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedRe
 
 export type DepotListResponse = NormalizedListResponse<any>;
 
-export const getDepotList = async (
-  page = 1,
-  perPage = 15,
-  searchTerm?: string,
-  regionId?: number | string,
-  areaId?: number | string
-): Promise<DepotListResponse> => {
+export const getDepotList = async (page = 1, perPage = 15, searchTerm?: string, regionId?: number | string, areaId?: number | string): Promise<DepotListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -38,16 +32,10 @@ export const deleteDepot = async (uuid: string) => {
   showToast.success('Depot deleted successfully');
 };
 
-export const getDepotOptions = async (
-  regionId?: number | string,
-  areaId?: number | string
-): Promise<{ value: number; label: string }[]> => {
+export const getDepotOptions = async (regionId?: number | string, areaId?: number | string): Promise<{ value: number; label: string }[]> => {
   const params = new URLSearchParams();
   if (regionId) params.append('region_id', regionId.toString());
   if (areaId) params.append('area_id', areaId.toString());
   const response = await axiosInstance.get(`/depot/all?${params.toString()}`);
-  return (response.data?.data ?? []).map((d: { id: number; depotCode: string; depotName: string }) => ({
-    value: d.id,
-    label: `${d.depotCode} - ${d.depotName}`,
-  }));
+  return (response.data?.data ?? []).map((d: { id: number; depotCode: string; depotName: string }) => ({ value: d.id, label: `${d.depotCode} - ${d.depotName}` }));
 };

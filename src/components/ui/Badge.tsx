@@ -17,19 +17,9 @@ const variantStyles: Record<string, string> = {
   info: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
 };
 
-const sizeStyles: Record<string, string> = {
-  sm: 'px-2 py-0.5 text-xs',
-  md: 'px-2.5 py-1 text-xs',
-  lg: 'px-3 py-1.5 text-sm',
-};
+const sizeStyles: Record<string, string> = { sm: 'px-2 py-0.5 text-xs', md: 'px-2.5 py-1 text-xs', lg: 'px-3 py-1.5 text-sm' };
 
-export function Badge({
-  children,
-  variant = 'default',
-  size = 'md',
-  rounded = false,
-  className = '',
-}: BadgeProps) {
+export function Badge({ children, variant = 'default', size = 'md', rounded = false, className = '' }: BadgeProps) {
   return (
     <span
       className={`
@@ -67,9 +57,7 @@ export function StatusBadge({ status, label, size = 'md' }: StatusBadgeProps) {
   return (
     <span className="inline-flex items-center gap-2">
       <span className={`${dotSize} rounded-full ${config.color}`} />
-      <span className={`text-gray-700 dark:text-gray-300 ${size === 'sm' ? 'text-xs' : 'text-sm'}`}>
-        {label || config.label}
-      </span>
+      <span className={`text-gray-700 dark:text-gray-300 ${size === 'sm' ? 'text-xs' : 'text-sm'}`}>{label || config.label}</span>
     </span>
   );
 }

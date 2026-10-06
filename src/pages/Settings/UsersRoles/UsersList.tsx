@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { TableLoadingRow } from '../../../components/ui/TableLoadingRow';
+import { TableSkeletonRows } from '../../../components/ui/skeleton';
 import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { Pagination } from '../../../components/ui/Pagination';
 import { useInviteUsers } from '../../../hooks/UsersRoles/useInviteUsers';
@@ -25,9 +25,7 @@ export function UsersList({ onEdit }: UsersListProps) {
 
   const getStatusBadge = (status: boolean) => {
     const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
-    return status
-      ? `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400`
-      : `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
+    return status ? `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400` : `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`;
   };
 
   return (
@@ -47,47 +45,49 @@ export function UsersList({ onEdit }: UsersListProps) {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableLoadingRow colSpan={6} label="Loading users…" />
+                <TableSkeletonRows rows={rowsPerPage} label="Loading users" columns={['text', 'text', 'text', 'text', 'badge', 'actions']} dense />
               ) : users.length === 0 ? (
                 <TableEmptyRow colSpan={6} label="No users yet." />
-              ) : users.map((user) => (
-                <tr key={user.uuid} className="hover:bg-[var(--bg-secondary)] transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
-                    {user.firstname} {user.lastname ?? ''}
-                    {user.usertype !== 4 && (
-                      <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
-                        Owner
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[var(--text-secondary)] whitespace-nowrap">{user.email}</td>
-                  <td className="px-4 py-3 text-sm text-[var(--text-secondary)] whitespace-nowrap">{user.mobile ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-[var(--text-secondary)] whitespace-nowrap">{user.role?.name ?? '—'}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={getStatusBadge(user.status)}>{user.status ? 'Active' : 'Inactive'}</span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => onEdit(user)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                      >
-                        <Pencil size={14} strokeWidth={2.5} />
-                        <span>Edit</span>
-                      </button>
-                      {user.usertype === 4 && (
-                        <button
-                          onClick={() => handleDelete(user)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
-                        >
-                          <Trash2 size={14} strokeWidth={2.5} />
-                          <span>Delete</span>
-                        </button>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.uuid} className="hover:bg-[var(--bg-secondary)] transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
+                      {user.firstname} {user.lastname ?? ''}
+                      {user.usertype !== 4 && (
+                        <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
+                          Owner
+                        </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)] whitespace-nowrap">{user.email}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)] whitespace-nowrap">{user.mobile ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)] whitespace-nowrap">{user.role?.name ?? '—'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={getStatusBadge(user.status)}>{user.status ? 'Active' : 'Inactive'}</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => onEdit(user)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                        >
+                          <Pencil size={14} strokeWidth={2.5} />
+                          <span>Edit</span>
+                        </button>
+                        {user.usertype === 4 && (
+                          <button
+                            onClick={() => handleDelete(user)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                          >
+                            <Trash2 size={14} strokeWidth={2.5} />
+                            <span>Delete</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

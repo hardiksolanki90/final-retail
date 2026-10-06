@@ -3,34 +3,73 @@ import { Plus, CreditCard, Columns3, ChevronDown, Check, Menu, Download, Upload,
 import { CreditLimitAdd } from './CreditLimitAdd';
 import { Pagination } from '../../../components/ui/Pagination';
 import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
-import { TableLoadingRow } from '../../../components/ui/TableLoadingRow';
+import { TableSkeletonRows } from '../../../components/ui/skeleton';
 import { useCreditLimit } from '../../../providers/CreditLimitProvider';
 import { createCreditLimit, updateCreditLimit, getCreditLimitDetails } from '../../../api/CreditLimitApi';
 import type { CreditLimitFormData, CreditLimit } from '../../../types/CreditLimit';
+import { useEditDetail } from '../../../hooks/useEntityDetail';
 
-interface Column { key: string; label: string; visible: boolean; }
+interface Column {
+  key: string;
+  label: string;
+  visible: boolean;
+}
 
 const CREDIT_LIMIT_TYPE_LABELS: Record<1 | 2, string> = { 1: 'Customer Base', 2: 'LOB' };
 
 export default function CreditLimitList() {
-  const { data: creditLimits, meta, isLoading, error, currentPage, setCurrentPage, perPage, setPerPage, selectedRowKeys, setSelectedRowKeys, handleDeleteWithConfirmation, refetch, addDrawerOpen, setAddDrawerOpen, editingItem, setEditingItem, salesmanOptions } = useCreditLimit();
-  const totalPages = meta?.last_page ?? 1; const total = meta?.total ?? 0;
-  const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false); const [moreActionsOpen, setMoreActionsOpen] = useState(false);
-  const [columns, setColumns] = useState<Column[]>([{ key: 'user', label: 'User', visible: true }, { key: 'creditLimitType', label: 'Credit Limit Type', visible: true }]);
-  const columnsRef = useRef<HTMLDivElement>(null); const moreActionsRef = useRef<HTMLDivElement>(null);
+  const {
+    data: creditLimits,
+    meta,
+    isLoading,
+    error,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    handleDeleteWithConfirmation,
+    refetch,
+    addDrawerOpen,
+    setAddDrawerOpen,
+    editingItem,
+    setEditingItem,
+    salesmanOptions,
+  } = useCreditLimit();
+  const { initialData: editInitialData, isLoading: editLoading } = useEditDetail('credit-limit', getCreditLimitDetails, editingItem);
+  const totalPages = meta?.last_page ?? 1;
+  const total = meta?.total ?? 0;
+  const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
+  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const [columns, setColumns] = useState<Column[]>([
+    { key: 'user', label: 'User', visible: true },
+    { key: 'creditLimitType', label: 'Credit Limit Type', visible: true },
+  ]);
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const moreActionsRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { function h(e: MouseEvent) { if (columnsRef.current && !columnsRef.current.contains(e.target as Node)) setColumnsDropdownOpen(false); if (moreActionsRef.current && !moreActionsRef.current.contains(e.target as Node)) setMoreActionsOpen(false); } document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, []);
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (columnsRef.current && !columnsRef.current.contains(e.target as Node)) setColumnsDropdownOpen(false);
+      if (moreActionsRef.current && !moreActionsRef.current.contains(e.target as Node)) setMoreActionsOpen(false);
+    }
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
 
-  const toggleColumn = (key: string) => setColumns(prev => prev.map(col => col.key === key ? { ...col, visible: !col.visible } : col));
+  const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   const allSelected = creditLimits.length > 0 && selectedRowKeys.length === creditLimits.length;
   const handleSelectAll = () => setSelectedRowKeys(allSelected ? [] : creditLimits.map((c: CreditLimit) => c.uuid));
-  const handleSelectRow = (id: string) => setSelectedRowKeys(selectedRowKeys.includes(id) ? selectedRowKeys.filter(k => k !== id) : [...selectedRowKeys, id]);
-  const handleEditClick = async (item: CreditLimit) => {
-    const uuid = item.uuid ?? item.id;
-    setEditingItem(uuid ? await getCreditLimitDetails(String(uuid)).catch(() => item) : item);
+  const handleSelectRow = (id: string) => setSelectedRowKeys(selectedRowKeys.includes(id) ? selectedRowKeys.filter((k) => k !== id) : [...selectedRowKeys, id]);
+  const handleEditClick = (item: any) => {
+    setEditingItem(item);
     setAddDrawerOpen(true);
   };
-  const handleDrawerClose = () => { setAddDrawerOpen(false); setEditingItem(null); };
+  const handleDrawerClose = () => {
+    setAddDrawerOpen(false);
+    setEditingItem(null);
+  };
 
   const handleSave = async (data: CreditLimitFormData) => {
     if (editingItem) {
@@ -45,19 +84,151 @@ export default function CreditLimitList() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 pb-0 pt-6">
-        <div className="flex items-center gap-3"><CreditCard className="w-6 h-6 text-[var(--text-primary)]" /><div><h1 className="text-2xl font-bold text-[var(--text-primary)]">Credit Limits</h1><p className="text-[var(--text-secondary)] mt-1">Manage user credit limits</p></div></div>
+        <div className="flex items-center gap-3">
+          <CreditCard className="w-6 h-6 text-[var(--text-primary)]" />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Credit Limits</h1>
+            <p className="text-[var(--text-secondary)] mt-1">Manage user credit limits</p>
+          </div>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative" ref={columnsRef}><button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"><Columns3 className="w-4 h-4" />Columns<ChevronDown className="w-4 h-4" /></button>{columnsDropdownOpen && (<div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20"><div className="py-1">{columns.map(col => (<button key={col.key} onClick={() => toggleColumn(col.key)} className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><span>{col.label}</span>{col.visible && <Check className="w-4 h-4 text-primary-600" />}</button>))}</div></div>)}</div>
-          <button onClick={() => { setEditingItem(null); setAddDrawerOpen(true); }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"><Plus className="w-4 h-4" />Create</button>
-          <div className="relative" ref={moreActionsRef}><button onClick={() => setMoreActionsOpen(!moreActionsOpen)} className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"><Menu className="w-5 h-5" /><ChevronDown className="w-4 h-4" /></button>{moreActionsOpen && (<div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20"><div className="py-1"><button onClick={() => setMoreActionsOpen(false)} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Download className="w-4 h-4" />Export</button><button onClick={() => setMoreActionsOpen(false)} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Upload className="w-4 h-4" />Import</button></div></div>)}</div>
+          <div className="relative" ref={columnsRef}>
+            <button
+              onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+            >
+              <Columns3 className="w-4 h-4" />
+              Columns
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {columnsDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
+                <div className="py-1">
+                  {columns.map((col) => (
+                    <button
+                      key={col.key}
+                      onClick={() => toggleColumn(col.key)}
+                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
+                      <span>{col.label}</span>
+                      {col.visible && <Check className="w-4 h-4 text-primary-600" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setEditingItem(null);
+              setAddDrawerOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Create
+          </button>
+          <div className="relative" ref={moreActionsRef}>
+            <button
+              onClick={() => setMoreActionsOpen(!moreActionsOpen)}
+              className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {moreActionsOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
+                <div className="py-1">
+                  <button
+                    onClick={() => setMoreActionsOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+                  <button
+                    onClick={() => setMoreActionsOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6 relative min-h-[200px] mx-6">
-        {error && (<div className="absolute inset-0 z-10 flex items-center justify-center"><div className="text-red-500 font-medium">Error: {error.message}</div></div>)}
-        <div className="overflow-x-auto"><table className="w-full"><thead><tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]"><th className="w-12 px-4 py-3"><input type="checkbox" checked={allSelected} onChange={handleSelectAll} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></th><th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">User</th><th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Credit Limit Type</th><th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Actions</th></tr></thead><tbody className="divide-y divide-[var(--border-color)]">{isLoading ? (<TableLoadingRow colSpan={4} label="Loading credit limits…" />) : creditLimits.length === 0 ? (<TableEmptyRow colSpan={4} label="No credit limits found." />) : creditLimits.map((item: CreditLimit) => { const id = item.uuid; return (<tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"><td className="px-4 py-4 whitespace-nowrap"><input type="checkbox" checked={selectedRowKeys.includes(id)} onChange={() => handleSelectRow(id)} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></td><td className="px-4 py-4 whitespace-nowrap"><span className="text-sm font-medium text-[var(--text-primary)]">{item.user?.name ?? `User ID: ${item.userId}`}</span></td><td className="px-4 py-4 whitespace-nowrap"><span className="text-sm text-[var(--text-secondary)]">{CREDIT_LIMIT_TYPE_LABELS[item.creditLimitType]}</span></td><td className="px-4 py-4 whitespace-nowrap"><div className="flex items-center justify-end gap-2"><button className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md" onClick={() => handleEditClick(item)}><Pencil size={14} strokeWidth={2.5} /><span>Edit</span></button><button className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md" onClick={() => handleDeleteWithConfirmation(id)}><Trash2 size={14} strokeWidth={2.5} /><span>Delete</span></button></div></td></tr>); })}</tbody></table></div>
+        {error && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
+            <div className="text-red-500 font-medium">Error: {error.message}</div>
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
+                <th className="w-12 px-4 py-3">
+                  <input type="checkbox" checked={allSelected} onChange={handleSelectAll} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">User</th>
+                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Credit Limit Type</th>
+                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-color)]">
+              {isLoading ? (
+                <TableSkeletonRows rows={perPage} label="Loading credit limits" columns={['check', 'text', 'text', 'actions']} />
+              ) : creditLimits.length === 0 ? (
+                <TableEmptyRow colSpan={4} label="No credit limits found." />
+              ) : (
+                creditLimits.map((item: CreditLimit) => {
+                  const id = item.uuid;
+                  return (
+                    <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedRowKeys.includes(id)}
+                          onChange={() => handleSelectRow(id)}
+                          className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="text-sm font-medium text-[var(--text-primary)]">{item.user?.name ?? `User ID: ${item.userId}`}</span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="text-sm text-[var(--text-secondary)]">{CREDIT_LIMIT_TYPE_LABELS[item.creditLimitType]}</span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
+                            onClick={() => handleEditClick(item)}
+                          >
+                            <Pencil size={14} strokeWidth={2.5} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                            onClick={() => handleDeleteWithConfirmation(id)}
+                          >
+                            <Trash2 size={14} strokeWidth={2.5} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
-      <CreditLimitAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} onSubmit={handleSave} editData={editingItem} salesmanOptions={salesmanOptions} />
+      <CreditLimitAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} onSubmit={handleSave} editData={editInitialData} isLoading={editLoading} salesmanOptions={salesmanOptions} />
     </div>
   );
 }

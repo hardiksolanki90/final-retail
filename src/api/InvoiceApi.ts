@@ -5,12 +5,7 @@ export const getInvoiceList = async (
   page: number = 1,
   searchTerm?: string,
   perPage: number = 15,
-  filters?: {
-    status?: string;
-    customerId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }
+  filters?: { status?: string; customerId?: string; dateFrom?: string; dateTo?: string }
 ): Promise<InvoiceListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
@@ -69,23 +64,12 @@ export const deleteInvoice = async (uuid: string): Promise<void> => {
   await axiosInstance.post('/invoice/delete', { id: uuid });
 };
 
-export const updateInvoiceStatus = async (
-  uuid: string,
-  status: Invoice['status']
-): Promise<Invoice> => {
+export const updateInvoiceStatus = async (uuid: string, status: Invoice['status']): Promise<Invoice> => {
   const response = await axiosInstance.patch(`/invoices/${uuid}/status`, { status });
   return response.data.data || response.data;
 };
 
-export const markInvoiceAsPaid = async (
-  uuid: string,
-  paymentData: {
-    paymentMethod: string;
-    paymentDate: string;
-    amountPaid: number;
-    notes?: string;
-  }
-): Promise<Invoice> => {
+export const markInvoiceAsPaid = async (uuid: string, paymentData: { paymentMethod: string; paymentDate: string; amountPaid: number; notes?: string }): Promise<Invoice> => {
   const response = await axiosInstance.post(`/invoices/${uuid}/payment`, paymentData);
   return response.data.data || response.data;
 };
@@ -95,22 +79,11 @@ export const getInvoiceSummary = async (uuid: string): Promise<unknown> => {
   return response.data.data || response.data;
 };
 
-export const bulkUpdateInvoiceStatus = async (
-  uuids: string[],
-  status: Invoice['status']
-): Promise<void> => {
+export const bulkUpdateInvoiceStatus = async (uuids: string[], status: Invoice['status']): Promise<void> => {
   await axiosInstance.post('/invoices/bulk-status', { uuids, status });
 };
 
-export const exportInvoices = async (
-  format: 'csv' | 'xlsx',
-  filters?: {
-    dateFrom?: string;
-    dateTo?: string;
-    status?: string;
-    customerId?: string;
-  }
-): Promise<Blob> => {
+export const exportInvoices = async (format: 'csv' | 'xlsx', filters?: { dateFrom?: string; dateTo?: string; status?: string; customerId?: string }): Promise<Blob> => {
   const params = new URLSearchParams();
   params.append('format', format);
 
@@ -119,26 +92,15 @@ export const exportInvoices = async (
   if (filters?.status) params.append('status', filters.status);
   if (filters?.customerId) params.append('customer_id', filters.customerId);
 
-  const response = await axiosInstance.get(`/invoices/export?${params.toString()}`, {
-    responseType: 'blob',
-  });
+  const response = await axiosInstance.get(`/invoices/export?${params.toString()}`, { responseType: 'blob' });
   return response.data;
 };
 
 export const generateInvoicePDF = async (uuid: string): Promise<Blob> => {
-  const response = await axiosInstance.get(`/invoices/${uuid}/pdf`, {
-    responseType: 'blob',
-  });
+  const response = await axiosInstance.get(`/invoices/${uuid}/pdf`, { responseType: 'blob' });
   return response.data;
 };
 
-export const sendInvoiceEmail = async (
-  uuid: string,
-  emailData: {
-    to: string;
-    subject?: string;
-    message?: string;
-  }
-): Promise<void> => {
+export const sendInvoiceEmail = async (uuid: string, emailData: { to: string; subject?: string; message?: string }): Promise<void> => {
   await axiosInstance.post(`/invoices/${uuid}/email`, emailData);
 };

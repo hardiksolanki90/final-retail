@@ -7,19 +7,9 @@ export interface CardProps {
   hover?: boolean;
 }
 
-const paddingStyles: Record<string, string> = {
-  none: '',
-  sm: 'p-3',
-  md: 'p-4',
-  lg: 'p-6',
-};
+const paddingStyles: Record<string, string> = { none: '', sm: 'p-3', md: 'p-4', lg: 'p-6' };
 
-export function Card({
-  children,
-  className = '',
-  padding = 'md',
-  hover = false,
-}: CardProps) {
+export function Card({ children, className = '', padding = 'md', hover = false }: CardProps) {
   return (
     <div
       className={`
@@ -47,9 +37,7 @@ export function CardHeader({ title, subtitle, action, className = '' }: CardHead
     <div className={`flex items-start justify-between ${className}`}>
       <div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
-        {subtitle && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
-        )}
+        {subtitle && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>}
       </div>
       {action && <div>{action}</div>}
     </div>
@@ -73,13 +61,7 @@ export interface CardFooterProps {
 }
 
 export function CardFooter({ children, className = '' }: CardFooterProps) {
-  return (
-    <div
-      className={`flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800 ${className}`}
-    >
-      {children}
-    </div>
-  );
+  return <div className={`flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800 ${className}`}>{children}</div>;
 }
 
 // Stat Card for dashboard
@@ -88,10 +70,7 @@ export interface StatCardProps {
   value: string | number;
   icon?: ReactNode;
   description?: string;
-  trend?: {
-    value: number;
-    isPositive: boolean;
-  };
+  trend?: { value: number; isPositive: boolean };
   className?: string;
 }
 
@@ -102,25 +81,15 @@ export function StatCard({ title, value, icon, description, trend, className = '
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
           <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
-          {description && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>
-          )}
+          {description && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>}
           {trend && (
-            <p
-              className={`mt-2 text-sm font-medium ${
-                trend.isPositive ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
-              {trend.isPositive ? '+' : ''}{trend.value}%
-              <span className="text-gray-500 dark:text-gray-400 ml-1">from last month</span>
+            <p className={`mt-2 text-sm font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {trend.isPositive ? '+' : ''}
+              {trend.value}%<span className="text-gray-500 dark:text-gray-400 ml-1">from last month</span>
             </p>
           )}
         </div>
-        {icon && (
-          <div className="p-3 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
-            {icon}
-          </div>
-        )}
+        {icon && <div className="p-3 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">{icon}</div>}
       </div>
     </Card>
   );

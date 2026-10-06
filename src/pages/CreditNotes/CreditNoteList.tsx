@@ -1,22 +1,26 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import {
-  Filter,
-  Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu
-} from 'lucide-react';
+import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCreditNotes } from '../../hooks/CreditNotes/useCreditNotes';
-import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
 import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
+import { useMoney } from '../../hooks/Currency/useMoney';
 
-interface Column { key: string; label: string; visible: boolean; }
+interface Column {
+  key: string;
+  label: string;
+  visible: boolean;
+}
 
 export function CreditNoteList() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
-  const { creditNotes, total, isLoading, bulkAction } = useCreditNotes(currentPage);
+  // Note # is filtered on the server, so it spans every page; the other columns filter the loaded page.
+  const [search, setSearch] = useState('');
+  const { creditNotes, total, isLoading, bulkAction } = useCreditNotes(currentPage, search);
 
   const creditNotesData = useMemo(
     () =>
@@ -30,7 +34,7 @@ export function CreditNoteList() {
         reason: cn.reason,
         status: cn.status ? 'Approved' : 'Pending',
       })),
-    [creditNotes],
+    [creditNotes]
   );
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
@@ -74,40 +78,96 @@ export function CreditNoteList() {
   // only within the current page's rows (full server-side filtering is a
   // separate, larger change than wiring this page to the real endpoint).
   const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
-  const currentData = creditNotesData.filter(c =>
-    (!appliedFilter.noteNo || String(c.noteNo ?? '').toLowerCase().includes(appliedFilter.noteNo.toLowerCase())) &&
-    (!appliedFilter.invoiceNo || String(c.invoiceNo ?? '').toLowerCase().includes(appliedFilter.invoiceNo.toLowerCase())) &&
-    (!appliedFilter.customer || String(c.customer ?? '').toLowerCase().includes(appliedFilter.customer.toLowerCase())) &&
-    (!appliedFilter.date || String(c.date ?? '').toLowerCase().includes(appliedFilter.date.toLowerCase())) &&
-    (!appliedFilter.amount || String(c.amount ?? '').toLowerCase().includes(appliedFilter.amount.toLowerCase())) &&
-    (!appliedFilter.reason || String(c.reason ?? '').toLowerCase().includes(appliedFilter.reason.toLowerCase()))
+  const currentData = creditNotesData.filter(
+    (c) =>
+      (!appliedFilter.noteNo ||
+        String(c.noteNo ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.noteNo.toLowerCase())) &&
+      (!appliedFilter.invoiceNo ||
+        String(c.invoiceNo ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.invoiceNo.toLowerCase())) &&
+      (!appliedFilter.customer ||
+        String(c.customer ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.customer.toLowerCase())) &&
+      (!appliedFilter.date ||
+        String(c.date ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.date.toLowerCase())) &&
+      (!appliedFilter.amount ||
+        String(c.amount ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.amount.toLowerCase())) &&
+      (!appliedFilter.reason ||
+        String(c.reason ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.reason.toLowerCase()))
   );
 
   const handleSelectAll = () => setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
-  const handleSelectRow = (id: string) => setSelectedRows((prev) => prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]);
+  const handleSelectRow = (id: string) => setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   const visibleColumns = columns.filter((col) => col.visible);
 
-  const handleExportSubmit = () => { setExportModalOpen(false); setExportType('specific'); setExportFromDate(''); setExportToDate(''); setExportFormat(''); };
-  const handleExportCancel = () => { setExportModalOpen(false); setExportType('specific'); setExportFromDate(''); setExportToDate(''); setExportFormat(''); };
+  const handleExportSubmit = () => {
+    setExportModalOpen(false);
+    setExportType('specific');
+    setExportFromDate('');
+    setExportToDate('');
+    setExportFormat('');
+  };
+  const handleExportCancel = () => {
+    setExportModalOpen(false);
+    setExportType('specific');
+    setExportFromDate('');
+    setExportToDate('');
+    setExportFormat('');
+  };
 
   const bulkActions = [
-    { label: 'Activate Selected', icon: Tag, action: () => { bulkAction({ uuids: selectedRows, action: 'activate' }); setSelectedRows([]); } },
-    { label: 'Deactivate Selected', icon: Archive, action: () => { bulkAction({ uuids: selectedRows, action: 'deactivate' }); setSelectedRows([]); } },
-    { label: 'Delete Selected', icon: Trash2, action: () => { bulkAction({ uuids: selectedRows, action: 'delete' }); setSelectedRows([]); } },
+    {
+      label: 'Activate Selected',
+      icon: Tag,
+      action: () => {
+        bulkAction({ uuids: selectedRows, action: 'activate' });
+        setSelectedRows([]);
+      },
+    },
+    {
+      label: 'Deactivate Selected',
+      icon: Archive,
+      action: () => {
+        bulkAction({ uuids: selectedRows, action: 'deactivate' });
+        setSelectedRows([]);
+      },
+    },
+    {
+      label: 'Delete Selected',
+      icon: Trash2,
+      action: () => {
+        bulkAction({ uuids: selectedRows, action: 'delete' });
+        setSelectedRows([]);
+      },
+    },
   ];
 
   const getStatusBadge = (status: string) => {
     const baseClasses = 'px-2 py-1 text-xs font-medium ';
     switch (status) {
-      case 'Approved': return `${baseClasses} `;
-      case 'Pending': return `${baseClasses} `;
-      case 'Rejected': return `${baseClasses} `;
-      default: return `${baseClasses} `;
+      case 'Approved':
+        return `${baseClasses} `;
+      case 'Pending':
+        return `${baseClasses} `;
+      case 'Rejected':
+        return `${baseClasses} `;
+      default:
+        return `${baseClasses} `;
     }
   };
 
-  const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
+  const { format: formatCurrency } = useMoney();
 
   return (
     <div className="space-y-6">
@@ -119,32 +179,75 @@ export function CreditNoteList() {
         <div className="flex flex-wrap items-center gap-2">
           {selectedRows.length > 0 && (
             <div className="relative" ref={bulkActionRef}>
-              <button onClick={() => setBulkActionOpen(!bulkActionOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
-                Bulk Action<span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRows.length}</span><ChevronDown className="w-4 h-4" />
+              <button
+                onClick={() => setBulkActionOpen(!bulkActionOpen)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+              >
+                Bulk Action<span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRows.length}</span>
+                <ChevronDown className="w-4 h-4" />
               </button>
-              {bulkActionOpen && (<div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10"><div className="py-1">{bulkActions.map((action) => (<button key={action.label} onClick={() => { action.action(); setBulkActionOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><action.icon className="w-4 h-4" />{action.label}</button>))}</div></div>)}
+              {bulkActionOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+                  <div className="py-1">
+                    {bulkActions.map((action) => (
+                      <button
+                        key={action.label}
+                        onClick={() => {
+                          action.action();
+                          setBulkActionOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      >
+                        <action.icon className="w-4 h-4" />
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {/* Filter Button */}
           <button
-            onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
-              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-              }`}
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
+              filterOpen || Object.values(appliedFilter).some(Boolean)
+                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            }`}
           >
             <Filter className="w-4 h-4" />
             Filter
             {Object.values(appliedFilter).some(Boolean) && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">
-                {Object.values(appliedFilter).filter(Boolean).length}
-              </span>
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">{Object.values(appliedFilter).filter(Boolean).length}</span>
             )}
           </button>
 
           <div className="relative" ref={columnsRef}>
-            <button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"><Columns3 className="w-4 h-4" />Columns<ChevronDown className="w-4 h-4" /></button>
-            {columnsDropdownOpen && (<div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10"><div className="py-1">{columns.map((column) => (<button key={column.key} onClick={() => toggleColumn(column.key)} className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><span>{column.label}</span>{column.visible && <Check className="w-4 h-4 text-primary-600" />}</button>))}</div></div>)}
+            <button
+              onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+            >
+              <Columns3 className="w-4 h-4" />
+              Columns
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {columnsDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+                <div className="py-1">
+                  {columns.map((column) => (
+                    <button
+                      key={column.key}
+                      onClick={() => toggleColumn(column.key)}
+                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
+                      <span>{column.label}</span>
+                      {column.visible && <Check className="w-4 h-4 text-primary-600" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <Link
             to="/credit-note/add"
@@ -154,8 +257,36 @@ export function CreditNoteList() {
             Create
           </Link>
           <div className="relative" ref={moreActionsRef}>
-            <button onClick={() => setMoreActionsOpen(!moreActionsOpen)} className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"><Menu className="w-5 h-5" /><ChevronDown className="w-4 h-4" /></button>
-            {moreActionsOpen && (<div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10"><div className="py-1"><button onClick={() => { setExportModalOpen(true); setMoreActionsOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Download className="w-4 h-4" />Export</button><button onClick={() => setMoreActionsOpen(false)} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Upload className="w-4 h-4" />Import</button></div></div>)}
+            <button
+              onClick={() => setMoreActionsOpen(!moreActionsOpen)}
+              className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {moreActionsOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setExportModalOpen(true);
+                      setMoreActionsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+                  <button
+                    onClick={() => setMoreActionsOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -164,20 +295,22 @@ export function CreditNoteList() {
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
-            {([
-              { key: 'noteNo', label: 'Note No' },
-              { key: 'invoiceNo', label: 'Invoice No' },
-              { key: 'customer', label: 'Customer' },
-              { key: 'date', label: 'Date' },
-              { key: 'amount', label: 'Amount' },
-              { key: 'reason', label: 'Reason' },
-            ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
+            {(
+              [
+                { key: 'noteNo', label: 'Note No' },
+                { key: 'invoiceNo', label: 'Invoice No' },
+                { key: 'customer', label: 'Customer' },
+                { key: 'date', label: 'Date' },
+                { key: 'amount', label: 'Amount' },
+                { key: 'reason', label: 'Reason' },
+              ] as { key: keyof typeof filterDraft; label: string }[]
+            ).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
                 <input
                   type="text"
                   value={filterDraft[key]}
-                  onChange={e => setFilterDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                  onChange={(e) => setFilterDraft((prev) => ({ ...prev, [key]: e.target.value }))}
                   placeholder={`Filter by ${label.toLowerCase()}...`}
                   className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
@@ -185,7 +318,11 @@ export function CreditNoteList() {
             ))}
             <div className="flex items-end gap-2 pb-0.5">
               <button
-                onClick={() => { setAppliedFilter({ ...filterDraft }); }}
+                onClick={() => {
+                  setAppliedFilter({ ...filterDraft });
+                  setSearch(filterDraft.noteNo);
+                  setCurrentPage(1);
+                }}
                 className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
               >
                 Apply
@@ -195,6 +332,8 @@ export function CreditNoteList() {
                   const empty = { noteNo: '', invoiceNo: '', customer: '', date: '', amount: '', reason: '' };
                   setFilterDraft(empty);
                   setAppliedFilter(empty);
+                  setSearch('');
+                  setCurrentPage(1);
                   setFilterOpen(false);
                 }}
                 className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors whitespace-nowrap"
@@ -209,18 +348,53 @@ export function CreditNoteList() {
       <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead><tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]"><th className="w-12 px-4 py-3"><input type="checkbox" checked={selectedRows.length === currentData.length && currentData.length > 0} onChange={handleSelectAll} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></th>{visibleColumns.map((column) => (<th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">{column.label}</th>))}</tr></thead>
+            <thead>
+              <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
+                <th className="w-12 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.length === currentData.length && currentData.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                  />
+                </th>
+                {visibleColumns.map((column) => (
+                  <th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableLoadingRow colSpan={visibleColumns.length + 1} label="Loading credit notes…" />
+                <TableSkeletonRows rows={rowsPerPage} label="Loading credit notes" columns={['check', ...colsByKey(visibleColumns, { date: 'date', status: 'badge' })]} dense />
               ) : currentData.length === 0 ? (
                 <TableEmptyRow colSpan={visibleColumns.length + 1} label="No credit notes yet." />
-              ) : currentData.map((item) => (
-                <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                  <td className="px-4 py-3"><input type="checkbox" checked={selectedRows.includes(item.id)} onChange={() => handleSelectRow(item.id)} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" /></td>
-                  {visibleColumns.map((column) => (<td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">{column.key === 'status' ? <span className={getStatusBadge(item.status)}>{item.status}</span> : column.key === 'amount' ? formatCurrency(item.amount) : item[column.key as keyof typeof item]}</td>))}
-                </tr>
-              ))}
+              ) : (
+                currentData.map((item) => (
+                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(item.id)}
+                        onChange={() => handleSelectRow(item.id)}
+                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                      />
+                    </td>
+                    {visibleColumns.map((column) => (
+                      <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
+                        {column.key === 'status' ? (
+                          <span className={getStatusBadge(item.status)}>{item.status}</span>
+                        ) : column.key === 'amount' ? (
+                          formatCurrency(item.amount)
+                        ) : (
+                          item[column.key as keyof typeof item]
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -228,7 +402,98 @@ export function CreditNoteList() {
       </div>
 
       {exportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center"><div className="absolute inset-0 bg-black/50" onClick={handleExportCancel} /><div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4"><div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]"><h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Credit Notes</h2><button onClick={handleExportCancel} className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors"><X className="w-5 h-5 text-[var(--text-muted)]" /></button></div><div className="px-6 py-4 space-y-6"><p className="text-[var(--text-secondary)]">Export credit note data in CSV or XLS format.</p><div className="space-y-3"><label className="flex items-center gap-3 cursor-pointer"><input type="radio" name="exportType" checked={exportType === 'all'} onChange={() => setExportType('all')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" /><span className="text-[var(--text-primary)] font-medium">All Credit Notes</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="radio" name="exportType" checked={exportType === 'specific'} onChange={() => setExportType('specific')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" /><span className="text-[var(--text-primary)] font-medium">Specific Date Range</span></label></div>{exportType === 'specific' && (<div className="space-y-4"><div><label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">From</label><input type="date" value={exportFromDate} onChange={(e) => setExportFromDate(e.target.value)} className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500" /></div><div><label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">To</label><input type="date" value={exportToDate} onChange={(e) => setExportToDate(e.target.value)} className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500" /></div></div>)}<div className="space-y-3"><label className="block text-sm font-medium text-[var(--text-secondary)]">Export As :</label><label className="flex items-center gap-3 cursor-pointer"><input type="radio" name="exportFormat" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" /><span className="text-[var(--text-primary)]">CSV</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="radio" name="exportFormat" checked={exportFormat === 'xls'} onChange={() => setExportFormat('xls')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" /><span className="text-[var(--text-primary)]">XLS</span></label></div></div><div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]"><button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">Export</button><button onClick={handleExportCancel} className="px-4 cursor-pointer py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors">Cancel</button></div></div></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={handleExportCancel} />
+          <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Credit Notes</h2>
+              <button onClick={handleExportCancel} className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors">
+                <X className="w-5 h-5 text-[var(--text-muted)]" />
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-6">
+              <p className="text-[var(--text-secondary)]">Export credit note data in CSV or XLS format.</p>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="exportType"
+                    checked={exportType === 'all'}
+                    onChange={() => setExportType('all')}
+                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
+                  />
+                  <span className="text-[var(--text-primary)] font-medium">All Credit Notes</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="exportType"
+                    checked={exportType === 'specific'}
+                    onChange={() => setExportType('specific')}
+                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
+                  />
+                  <span className="text-[var(--text-primary)] font-medium">Specific Date Range</span>
+                </label>
+              </div>
+              {exportType === 'specific' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">From</label>
+                    <input
+                      type="date"
+                      value={exportFromDate}
+                      onChange={(e) => setExportFromDate(e.target.value)}
+                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">To</label>
+                    <input
+                      type="date"
+                      value={exportToDate}
+                      onChange={(e) => setExportToDate(e.target.value)}
+                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As :</label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="exportFormat"
+                    checked={exportFormat === 'csv'}
+                    onChange={() => setExportFormat('csv')}
+                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
+                  />
+                  <span className="text-[var(--text-primary)]">CSV</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="exportFormat"
+                    checked={exportFormat === 'xls'}
+                    onChange={() => setExportFormat('xls')}
+                    className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
+                  />
+                  <span className="text-[var(--text-primary)]">XLS</span>
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">
+                Export
+              </button>
+              <button
+                onClick={handleExportCancel}
+                className="px-4 cursor-pointer py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -17,72 +17,37 @@ interface PalletAddProps {
   warehouses?: SelectOption[];
 }
 
-export function PalletAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  isLoading = false,
-  salesman = [],
-  items = [],
-  divisions = [],
-  warehouses = [],
-}: PalletAddProps) {
+export function PalletAdd({ isOpen, onClose, onSubmit, isLoading = false, salesman = [], items = [], divisions = [], warehouses = [] }: PalletAddProps) {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setError
-  } = useForm<AddPalletFormData>({
-    defaultValues: {
-      date: '',
-      salesmanId: '',
-      itemId: '',
-      divisionId: '',
-      warehouseId: '',
-      qty: '',
-      palletType: 'allocated'
-    }
-  });
+    setError,
+  } = useForm<AddPalletFormData>({ defaultValues: { date: '', salesmanId: '', itemId: '', divisionId: '', warehouseId: '', qty: '', palletType: 'allocated' } });
 
   useEffect(() => {
     if (isOpen) {
-      reset({
-        date: '',
-        salesmanId: '',
-        itemId: '',
-        divisionId: '',
-        warehouseId: '',
-        qty: '',
-        palletType: 'allocated'
-      });
+      reset({ date: '', salesmanId: '', itemId: '', divisionId: '', warehouseId: '', qty: '', palletType: 'allocated' });
     }
   }, [isOpen, reset]);
 
   const onFormSubmit = async (data: AddPalletFormData) => {
     try {
       // Convert qty to number before submission
-      const processedData: AddPalletFormData = {
-        ...data,
-        qty: Number(data.qty)
-      };
+      const processedData: AddPalletFormData = { ...data, qty: Number(data.qty) };
 
       await onSubmit(processedData);
       onClose();
     } catch (error: any) {
       console.error('Error saving pallet:', error);
-      setError('root', {
-        type: 'manual',
-        message: error?.message || 'Failed to save pallet. Please try again.'
-      });
+      setError('root', { type: 'manual', message: error?.message || 'Failed to save pallet. Please try again.' });
     }
   };
 
   const footerContent = (
     <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        {/* Status placeholder if needed, matching CustomerAdd style */}
-      </div>
+      <div className="flex items-center gap-3">{/* Status placeholder if needed, matching CustomerAdd style */}</div>
       <div className="flex gap-3">
         <CancelButton onClick={onClose} disabled={isSubmitting || isLoading}>
           Cancel
@@ -95,13 +60,7 @@ export function PalletAdd({
   );
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Add Pallet"
-      width="w-[700px]"
-      footer={footerContent}
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title="Add Pallet" width="w-[700px]" footer={footerContent}>
       <form id="add-pallet-form" onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -115,7 +74,7 @@ export function PalletAdd({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Date <span className="text-red-500 font-bold ml-0.5">*</span>
             </label>
-            <OrderCodeSettingsIcon label="Salesman" value="" onChange={() => { }} />
+            <OrderCodeSettingsIcon label="Salesman" value="" onChange={() => {}} />
             <input
               type="date"
               {...register('date', { required: 'Date is required' })}
@@ -125,9 +84,7 @@ export function PalletAdd({
                 border-gray-300 dark:border-gray-600
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
-            {errors.date && (
-              <p className="text-red-600 text-xs mt-1">{errors.date.message}</p>
-            )}
+            {errors.date && <p className="text-red-600 text-xs mt-1">{errors.date.message}</p>}
           </div>
 
           {/* Salesman */}
@@ -143,7 +100,9 @@ export function PalletAdd({
             >
               <option value="">Select salesman</option>
               {salesman.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
@@ -163,7 +122,9 @@ export function PalletAdd({
             >
               <option value="">Select item</option>
               {items.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
@@ -181,7 +142,9 @@ export function PalletAdd({
             >
               <option value="">Select division</option>
               {divisions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
@@ -201,7 +164,9 @@ export function PalletAdd({
             >
               <option value="">Select warehouse</option>
               {warehouses.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
@@ -216,13 +181,13 @@ export function PalletAdd({
               min="1"
               {...register('qty', {
                 required: 'Quantity is required',
-                validate: value => {
+                validate: (value) => {
                   const numValue = Number(value);
                   if (isNaN(numValue) || numValue <= 0) {
                     return 'Quantity must be greater than zero';
                   }
                   return true;
-                }
+                },
               })}
               className="block w-full px-3 py-2 rounded-lg border transition-colors
                 bg-white dark:bg-gray-800
@@ -231,34 +196,20 @@ export function PalletAdd({
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Enter quantity"
             />
-            {errors.qty && (
-              <p className="text-red-600 text-xs mt-1">{errors.qty.message}</p>
-            )}
+            {errors.qty && <p className="text-red-600 text-xs mt-1">{errors.qty.message}</p>}
           </div>
         </div>
 
         {/* Pallet Type */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Pallet Type
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Pallet Type</label>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                value="allocated"
-                {...register('palletType')}
-                className="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500"
-              />
+              <input type="radio" value="allocated" {...register('palletType')} className="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500" />
               <span className="text-sm text-gray-900 dark:text-gray-100">Allocated</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                value="return"
-                {...register('palletType')}
-                className="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500"
-              />
+              <input type="radio" value="return" {...register('palletType')} className="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500" />
               <span className="text-sm text-gray-900 dark:text-gray-100">Return</span>
             </label>
           </div>

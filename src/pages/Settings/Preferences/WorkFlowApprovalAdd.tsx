@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { ChevronLeft, Plus, Trash2, SlidersHorizontal } from 'lucide-react';
 import { CancelButton, SaveButton } from '../../../components/ui/Button';
-import { useWorkFlowFormOptions, useWorkFlowRuleMutations } from '../../../hooks/Preferences/useWorkFlowRules';
-import { getWorkFlowRuleDetails } from '../../../api/WorkFlowApi';
+import { useWorkFlowFormOptions, useWorkFlowRuleDetail, useWorkFlowRuleMutations } from '../../../hooks/Preferences/useWorkFlowRules';
+import { PageLoadError } from '../../../components/ui/PageLoader';
+import { FormSkeleton, Skeleton, SkeletonRegion } from '../../../components/ui/skeleton';
+import { isDetailLoading } from '../../../hooks/useEntityDetail';
 import { WORK_FLOW_MODULES, type WorkFlowRuleFormData, type WorkFlowEventTrigger } from '../../../types/WorkFlowRule';
 
 const MODULE_OPTIONS = WORK_FLOW_MODULES.map((m) => ({ value: m, label: m }));
@@ -16,14 +18,60 @@ const EVENT_TRIGGER_OPTIONS: { value: WorkFlowEventTrigger; label: string }[] = 
   { value: 'deleted', label: 'Deleted' },
 ];
 
-const DEFAULT_VALUES: WorkFlowRuleFormData = {
-  name: '',
-  module: '',
-  description: '',
-  eventTrigger: 'created_or_edited',
-  status: true,
-  approvers: [{ roleId: '', userId: '' }],
-};
+const DEFAULT_VALUES: WorkFlowRuleFormData = { name: '', module: '', description: '', eventTrigger: 'created_or_edited', status: true, approvers: [{ roleId: '', userId: '' }] };
+
+/** Shown while an edited rule loads: real page and section headings, placeholder fields and approver rows. */
+function WorkFlowApprovalSkeleton() {
+  return (
+    <SkeletonRegion label="Loading workflow rule" className="min-h-screen bg-[var(--bg-primary)]">
+      <div className="flex items-center gap-3 border-b border-[var(--border-color)] bg-[var(--bg-card)] px-6 py-4">
+        <Skeleton className="h-8 w-8 rounded-lg" />
+        <Skeleton className="h-8 w-8 rounded-lg" />
+        <h1 className="text-lg font-semibold text-[var(--text-primary)]">Edit Workflow Rule</h1>
+      </div>
+      <div className="px-6 py-6">
+        <div className="overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm">
+          <div className="max-w-3xl space-y-10 px-6 py-8 sm:px-10">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">1. Name your workflow</h2>
+                <p className="text-sm text-[var(--text-secondary)]">Give a Name and Description for your workflow</p>
+              </div>
+              <FormSkeleton bare fields={['input', 'input', 'textarea']} />
+            </div>
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">2. Choose when to Trigger</h2>
+                <p className="text-sm text-[var(--text-secondary)]">Specify when to execute the workflow.</p>
+              </div>
+              <FormSkeleton bare fields={['input']} />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">3. Configure multi-level approval with specific approvers</h2>
+              <div className="space-y-3">
+                {[0].map((i) => (
+                  <div key={i} className="flex gap-3">
+                    <Skeleton className="h-[42px] flex-1 rounded-lg" />
+                    <Skeleton className="h-[42px] flex-1 rounded-lg" />
+                    <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex h-6 items-center">
+                <Skeleton className="h-5 w-20" />
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-[var(--border-color)]" />
+          <div className="flex gap-3 px-6 py-4">
+            <Skeleton className="h-[38px] w-20 rounded-lg" />
+            <Skeleton className="h-[38px] w-20 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </SkeletonRegion>
+  );
+}
 
 export function WorkFlowApprovalAdd() {
   const navigate = useNavigate();
@@ -42,27 +90,25 @@ export function WorkFlowApprovalAdd() {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'approvers' });
 
+  // Edit: fill the form from the cached details. Any fetch shows the loader (below), so a refresh never overwrites typing.
+  const ruleQuery = useWorkFlowRuleDetail(uuid);
+  const rule = ruleQuery.data;
+  const ruleLoading = isDetailLoading(ruleQuery, uuid);
+  const ruleFailed = ruleQuery.isError;
   useEffect(() => {
-    if (!uuid) return;
-    getWorkFlowRuleDetails(uuid).then((rule) => {
-      reset({
-        name: rule.name,
-        module: rule.module,
-        description: rule.description ?? '',
-        eventTrigger: rule.eventTrigger,
-        status: rule.status,
-        approvers: rule.approvers.length
-          ? rule.approvers.map((a) => ({ roleId: String(a.roleId), userId: String(a.userId) }))
-          : DEFAULT_VALUES.approvers,
-      });
+    if (!rule) return;
+    reset({
+      name: rule.name,
+      module: rule.module,
+      description: rule.description ?? '',
+      eventTrigger: rule.eventTrigger,
+      status: rule.status,
+      approvers: rule.approvers.length ? rule.approvers.map((a) => ({ roleId: String(a.roleId), userId: String(a.userId) })) : DEFAULT_VALUES.approvers,
     });
-  }, [uuid, reset]);
+  }, [rule, reset]);
 
   const onSubmit = async (data: WorkFlowRuleFormData) => {
-    const payload: WorkFlowRuleFormData = {
-      ...data,
-      approvers: data.approvers.map((a) => ({ roleId: Number(a.roleId), userId: Number(a.userId) })),
-    };
+    const payload: WorkFlowRuleFormData = { ...data, approvers: data.approvers.map((a) => ({ roleId: Number(a.roleId), userId: Number(a.userId) })) };
 
     try {
       if (isEditing && uuid) {
@@ -75,6 +121,9 @@ export function WorkFlowApprovalAdd() {
       // toast already shown by the mutation's onError handler
     }
   };
+
+  if (isEditing && ruleLoading) return <WorkFlowApprovalSkeleton />;
+  if (isEditing && !rule && ruleFailed) return <PageLoadError label="Failed to load the workflow rule." onBack={() => navigate('/settings/work-flow-approval')} />;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
@@ -89,9 +138,7 @@ export function WorkFlowApprovalAdd() {
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
           <SlidersHorizontal className="w-4 h-4" />
         </div>
-        <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-          {isEditing ? 'Edit Workflow Rule' : 'New Workflow Rule'}
-        </h1>
+        <h1 className="text-lg font-semibold text-[var(--text-primary)]">{isEditing ? 'Edit Workflow Rule' : 'New Workflow Rule'}</h1>
       </div>
 
       <div className="px-6 py-6">
@@ -106,7 +153,9 @@ export function WorkFlowApprovalAdd() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workflow Rule Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Workflow Rule Name <span className="text-red-500 font-bold ml-0.5">*</span>
+                  </label>
                   <input
                     type="text"
                     {...register('name', { required: 'Workflow Rule Name is required' })}
@@ -116,14 +165,20 @@ export function WorkFlowApprovalAdd() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Module <span className="text-red-500 font-bold ml-0.5">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Module <span className="text-red-500 font-bold ml-0.5">*</span>
+                  </label>
                   <select
                     {...register('module', { required: 'Module is required' })}
                     className={`block w-full px-3 py-2 rounded-lg border ${errors.module ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none`}
                   >
-                    <option value="" disabled hidden>Select module</option>
+                    <option value="" disabled hidden>
+                      Select module
+                    </option>
                     {MODULE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                   {errors.module && <p className="mt-1 text-sm text-red-600">{errors.module.message}</p>}
@@ -147,15 +202,15 @@ export function WorkFlowApprovalAdd() {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    When should this rule fire?
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">When should this rule fire?</label>
                   <select
                     {...register('eventTrigger')}
                     className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
                   >
                     {EVENT_TRIGGER_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -175,9 +230,13 @@ export function WorkFlowApprovalAdd() {
                           {...register(`approvers.${index}.roleId`, { required: true })}
                           className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
                         >
-                          <option value="" disabled hidden>{optionsLoading ? 'Loading roles...' : 'Select role'}</option>
+                          <option value="" disabled hidden>
+                            {optionsLoading ? 'Loading roles...' : 'Select role'}
+                          </option>
                           {roleOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -186,9 +245,13 @@ export function WorkFlowApprovalAdd() {
                           {...register(`approvers.${index}.userId`, { required: true })}
                           className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
                         >
-                          <option value="" disabled hidden>{optionsLoading ? 'Loading users...' : 'Select user'}</option>
+                          <option value="" disabled hidden>
+                            {optionsLoading ? 'Loading users...' : 'Select user'}
+                          </option>
                           {approverOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -204,11 +267,7 @@ export function WorkFlowApprovalAdd() {
                   ))}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => append({ roleId: '', userId: '' })}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700"
-                >
+                <button type="button" onClick={() => append({ roleId: '', userId: '' })} className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700">
                   <Plus className="w-3.5 h-3.5" />
                   Add New
                 </button>

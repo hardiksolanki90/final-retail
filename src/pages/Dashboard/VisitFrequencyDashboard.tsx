@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  Repeat,
-  Users,
-  TrendingUp,
-  CheckCircle2,
-  AlertTriangle,
-} from 'lucide-react';
+import { Repeat, Users, TrendingUp, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 
@@ -103,13 +97,9 @@ function KpiCard({ title, value, description, icon, color }: KpiCardProps) {
       <div className="flex items-start gap-4">
         <div className={`p-3 rounded-xl shrink-0 ${iconBgMap[color]}`}>{icon}</div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            {title}
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{title}</p>
           <p className={`text-2xl font-bold mt-1 ${valueColorMap[color]}`}>{value}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-            {description}
-          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{description}</p>
         </div>
       </div>
     </div>
@@ -162,41 +152,19 @@ export function VisitFrequencyDashboard() {
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
         <div className="flex flex-col md:flex-row items-end gap-3">
           <div className="w-full md:w-auto md:flex-1">
-            <Input
-              label="From Date"
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
+            <Input label="From Date" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
           </div>
           <div className="w-full md:w-auto md:flex-1">
-            <Input
-              label="To Date"
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
+            <Input label="To Date" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
           <div className="w-full md:w-auto md:flex-1">
-            <Select
-              label="Merchandiser"
-              options={merchandiserOptions}
-              value={merchandiser}
-              onChange={(e) => setMerchandiser(e.target.value)}
-            />
+            <Select label="Merchandiser" options={merchandiserOptions} value={merchandiser} onChange={(e) => setMerchandiser(e.target.value)} />
           </div>
           <div className="w-full md:w-auto md:flex-1">
-            <Select
-              label="Select Options"
-              options={selectOptions}
-              value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-            />
+            <Select label="Select Options" options={selectOptions} value={selectedOption} onChange={(e) => setSelectedOption(e.target.value)} />
           </div>
           <div className="hidden md:block">
-            <span className="text-xs text-gray-400 whitespace-nowrap">
-              Last Reload Date: 12/12/2020
-            </span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">Last Reload Date: 12/12/2020</span>
           </div>
         </div>
       </div>
@@ -206,9 +174,7 @@ export function VisitFrequencyDashboard() {
 
       {/* Page Header */}
       <div className="pt-5 pb-1">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Merchandising &ndash; Reach-visitFrequency
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Merchandising &ndash; Reach-visitFrequency</h2>
       </div>
 
       {/* Summary KPIs */}
@@ -248,9 +214,7 @@ export function VisitFrequencyDashboard() {
         {/* Weekly Visit Trend */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500">
-              Weekly Visit Trend
-            </h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500">Weekly Visit Trend</h3>
             <div className="flex items-center gap-3 text-[10px]">
               <span className="flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
@@ -265,15 +229,9 @@ export function VisitFrequencyDashboard() {
           <div className="flex items-end gap-2 h-48">
             {weeklyTrend.map((week) => (
               <div key={week.week} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[9px] font-medium text-amber-600">
-                  {week.avgFreq}
-                </span>
+                <span className="text-[9px] font-medium text-amber-600">{week.avgFreq}</span>
                 <div className="w-full flex items-end gap-0.5 h-36">
-                  <div
-                    className="flex-1 bg-blue-500 rounded-t-sm transition-all hover:opacity-80"
-                    style={{ height: `${(week.visits / maxWeeklyVisits) * 100}%` }}
-                    title={`${week.visits} visits`}
-                  />
+                  <div className="flex-1 bg-blue-500 rounded-t-sm transition-all hover:opacity-80" style={{ height: `${(week.visits / maxWeeklyVisits) * 100}%` }} title={`${week.visits} visits`} />
                 </div>
                 <span className="text-[10px] text-gray-500 dark:text-gray-400">{week.week}</span>
               </div>
@@ -283,18 +241,11 @@ export function VisitFrequencyDashboard() {
 
         {/* Frequency Distribution */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-4">
-            Outlet Frequency Distribution
-          </h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-4">Outlet Frequency Distribution</h3>
           {/* Stacked bar */}
           <div className="flex rounded-full h-3.5 overflow-hidden mb-5">
             {frequencyDistribution.map((d) => (
-              <div
-                key={d.bucket}
-                className={`${d.color} transition-all`}
-                style={{ width: `${(d.outlets / totalOutlets) * 100}%` }}
-                title={`${d.bucket}: ${d.outlets} outlets`}
-              />
+              <div key={d.bucket} className={`${d.color} transition-all`} style={{ width: `${(d.outlets / totalOutlets) * 100}%` }} title={`${d.bucket}: ${d.outlets} outlets`} />
             ))}
           </div>
           {/* Horizontal bars */}
@@ -307,19 +258,12 @@ export function VisitFrequencyDashboard() {
                     <span className="text-sm text-gray-700 dark:text-gray-300">{d.bucket}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {d.outlets}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      ({Math.round((d.outlets / totalOutlets) * 100)}%)
-                    </span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{d.outlets}</span>
+                    <span className="text-xs text-gray-400">({Math.round((d.outlets / totalOutlets) * 100)}%)</span>
                   </div>
                 </div>
                 <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
-                  <div
-                    className={`${d.color} h-1.5 rounded-full transition-all`}
-                    style={{ width: `${(d.outlets / maxDistribution) * 100}%` }}
-                  />
+                  <div className={`${d.color} h-1.5 rounded-full transition-all`} style={{ width: `${(d.outlets / maxDistribution) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -332,9 +276,7 @@ export function VisitFrequencyDashboard() {
         {/* Merchandiser Detail Table */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm lg:col-span-2">
           <div className="p-5 pb-0">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500">
-              Frequency by Merchandiser
-            </h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500">Frequency by Merchandiser</h3>
             <p className="text-xs text-gray-400 mt-1">Planned vs actual visits and average frequency per outlet</p>
           </div>
           <div className="overflow-x-auto mt-4">
@@ -354,43 +296,25 @@ export function VisitFrequencyDashboard() {
                 {sorted.map((row) => {
                   const rate = Math.round((row.actual / row.planned) * 100);
                   return (
-                    <tr
-                      key={row.name}
-                      className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                    >
+                    <tr key={row.name} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-5 py-3">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">{row.name}</span>
                       </td>
-                      <td className="text-center px-3 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {row.outlets}
-                      </td>
-                      <td className="text-right px-3 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {row.planned}
-                      </td>
-                      <td className="text-right px-3 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        {row.actual}
-                      </td>
+                      <td className="text-center px-3 py-3 text-sm text-gray-600 dark:text-gray-400">{row.outlets}</td>
+                      <td className="text-right px-3 py-3 text-sm text-gray-600 dark:text-gray-400">{row.planned}</td>
+                      <td className="text-right px-3 py-3 text-sm font-medium text-gray-900 dark:text-white">{row.actual}</td>
                       <td className="text-center px-3 py-3">
                         <div className="flex items-center justify-center gap-1.5">
                           <div className="w-14 bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full ${getComplianceBg(row.planned, row.actual)}`}
-                              style={{ width: `${Math.min(rate, 100)}%` }}
-                            />
+                            <div className={`h-1.5 rounded-full ${getComplianceBg(row.planned, row.actual)}`} style={{ width: `${Math.min(rate, 100)}%` }} />
                           </div>
-                          <span className={`text-xs font-semibold ${getComplianceColor(row.planned, row.actual)}`}>
-                            {rate}%
-                          </span>
+                          <span className={`text-xs font-semibold ${getComplianceColor(row.planned, row.actual)}`}>{rate}%</span>
                         </div>
                       </td>
                       <td className="text-center px-3 py-3">
-                        <span className={`text-sm font-bold ${getFrequencyColor(row.frequency)}`}>
-                          {row.frequency.toFixed(1)}
-                        </span>
+                        <span className={`text-sm font-bold ${getFrequencyColor(row.frequency)}`}>{row.frequency.toFixed(1)}</span>
                       </td>
-                      <td className="text-center px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {row.avgTimeSpent}
-                      </td>
+                      <td className="text-center px-3 py-3 text-sm text-gray-500 dark:text-gray-400">{row.avgTimeSpent}</td>
                     </tr>
                   );
                 })}
@@ -401,9 +325,7 @@ export function VisitFrequencyDashboard() {
 
         {/* Frequency Ranking */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-4">
-            Frequency Ranking
-          </h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-4">Frequency Ranking</h3>
           <div className="space-y-3">
             {sorted.map((m, index) => {
               const isTop = index === 0;
@@ -416,28 +338,27 @@ export function VisitFrequencyDashboard() {
                     ${isTop ? 'bg-green-50 dark:bg-green-900/10' : isBottom ? 'bg-red-50 dark:bg-red-900/10' : ''}
                   `}
                 >
-                  <span className={`
+                  <span
+                    className={`
                     w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0
-                    ${isTop ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : isBottom ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}
-                  `}>
+                    ${
+                      isTop
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : isBottom
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                    }
+                  `}
+                  >
                     {index + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                      {m.name}
-                    </p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{m.name}</p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
-                        <div
-                          className={`h-1.5 rounded-full ${getFrequencyBarColor(m.frequency)}`}
-                          style={{ width: `${(m.frequency / 4.0) * 100}%` }}
-                        />
+                        <div className={`h-1.5 rounded-full ${getFrequencyBarColor(m.frequency)}`} style={{ width: `${(m.frequency / 4.0) * 100}%` }} />
                       </div>
-                      <span className={`text-xs font-bold shrink-0 ${getFrequencyColor(m.frequency)}`}>
-                        {m.frequency.toFixed(1)}
-                      </span>
+                      <span className={`text-xs font-bold shrink-0 ${getFrequencyColor(m.frequency)}`}>{m.frequency.toFixed(1)}</span>
                     </div>
                   </div>
                   {isTop && <TrendingUp className="w-3.5 h-3.5 text-green-500 shrink-0" />}

@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import { getAllCountries } from './CountryApi';
 import { showToast } from '../lib/toast';
 import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
 import type {
@@ -15,12 +16,7 @@ import type {
 } from '../types/Salesman';
 
 // Salesman CRUD Operations
-export const getSalesmanList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-  filters?: SalesmanFilters
-): Promise<SalesmanListResponse> => {
+export const getSalesmanList = async (page: number = 1, searchTerm?: string, perPage: number = 15, filters?: SalesmanFilters): Promise<SalesmanListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -74,11 +70,7 @@ export const getAllSalesmen = async (filters?: SalesmanFilters): Promise<Salesma
 };
 
 /** Paginated + searchable salesman options, for searchable Select dropdowns. */
-export const getSalesmanOptions = async (
-  page: number = 1,
-  search?: string,
-  perPage: number = 25
-): Promise<NormalizedListResponse<SalesmanSelectOption>> => {
+export const getSalesmanOptions = async (page: number = 1, search?: string, perPage: number = 25): Promise<NormalizedListResponse<SalesmanSelectOption>> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -91,12 +83,7 @@ export const getSalesmanOptions = async (
   return unwrapPaginated(response.data, 'salesman', perPage);
 };
 
-export const searchSalesmen = async (
-  searchTerm: string,
-  page: number = 1,
-  perPage: number = 15,
-  filters?: SalesmanFilters
-): Promise<SalesmanListResponse> => {
+export const searchSalesmen = async (searchTerm: string, page: number = 1, perPage: number = 15, filters?: SalesmanFilters): Promise<SalesmanListResponse> => {
   const params = new URLSearchParams();
   params.append('search', searchTerm);
   params.append('page', page.toString());
@@ -151,17 +138,13 @@ export const deleteSalesman = async (uuid: string): Promise<void> => {
   }
 };
 
-export const getSalesmanSales = async (
-  uuid: string,
-  startDate?: string,
-  endDate?: string
-): Promise<SalesmanSalesData> => {
+export const getSalesmanSales = async (uuid: string, startDate?: string, endDate?: string): Promise<SalesmanSalesData> => {
   const params = new URLSearchParams();
-  
+
   if (startDate) {
     params.append('start_date', startDate);
   }
-  
+
   if (endDate) {
     params.append('end_date', endDate);
   }
@@ -170,10 +153,7 @@ export const getSalesmanSales = async (
   return response.data.data || response.data;
 };
 
-export const getSalesmanLoginHistory = async (
-  userId: number,
-  limit: number = 20
-): Promise<SalesmanLoginHistory[]> => {
+export const getSalesmanLoginHistory = async (userId: number, limit: number = 20): Promise<SalesmanLoginHistory[]> => {
   const response = await axiosInstance.get(`/salesman/${userId}/login-history?limit=${limit}`);
   return response.data.data || response.data;
 };
@@ -189,10 +169,7 @@ export const bulkActionSalesmen = async (bulkAction: SalesmanBulkAction): Promis
 };
 
 // Countries API
-export const getCountries = async (): Promise<Country[]> => {
-  const response = await axiosInstance.get('/country/all?per_page=50');
-  return response.data?.countries ?? [];
-};
+export const getCountries = async (): Promise<Country[]> => (await getAllCountries()) as unknown as Country[];
 
 // Supervisor Options (users holding the "Supervisor" RBAC role)
 export const getSupervisorOptions = async (): Promise<SupervisorOption[]> => {
@@ -203,8 +180,6 @@ export const getSupervisorOptions = async (): Promise<SupervisorOption[]> => {
 
 // Utility Functions
 export const exportSalesmen = async (format: 'csv' | 'xlsx'): Promise<Blob> => {
-  const response = await axiosInstance.get(`/salesman/export?format=${format}`, {
-    responseType: 'blob',
-  });
+  const response = await axiosInstance.get(`/salesman/export?format=${format}`, { responseType: 'blob' });
   return response.data;
 };

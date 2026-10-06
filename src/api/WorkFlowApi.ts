@@ -2,11 +2,7 @@ import axiosInstance from '../lib/axios';
 import { showToast } from '../lib/toast';
 import type { WorkFlowRule, WorkFlowRuleFormData, WorkFlowRuleListResponse } from '../types/WorkFlowRule';
 
-export const getWorkFlowRuleList = async (
-  page: number = 1,
-  perPage: number = 15,
-  searchTerm?: string
-): Promise<WorkFlowRuleListResponse> => {
+export const getWorkFlowRuleList = async (page: number = 1, perPage: number = 15, searchTerm?: string): Promise<WorkFlowRuleListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -15,13 +11,7 @@ export const getWorkFlowRuleList = async (
   const response = await axiosInstance.get(`/work-flow/list?${params.toString()}`);
   const payload = response.data;
 
-  return {
-    data: payload.workFlowRules ?? [],
-    total: payload.total ?? 0,
-    currentPage: payload.currentPage ?? page,
-    perPage,
-    lastPage: payload.lastPage ?? 1,
-  };
+  return { data: payload.workFlowRules ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
 };
 
 export const getWorkFlowRuleDetails = async (uuid: string): Promise<WorkFlowRule> => {
@@ -46,7 +36,10 @@ export const deleteWorkFlowRule = async (uuid: string): Promise<void> => {
   showToast.success('Work flow rule deleted successfully');
 };
 
-export interface ApproverOption { value: number; label: string; }
+export interface ApproverOption {
+  value: number;
+  label: string;
+}
 
 export const getApproverOptions = async (): Promise<ApproverOption[]> => {
   const response = await axiosInstance.get('/work-flow/approver-options');

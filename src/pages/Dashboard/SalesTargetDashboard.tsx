@@ -1,11 +1,7 @@
-import {
-  Target,
-  TrendingUp,
-  Medal,
-  Banknote,
-} from 'lucide-react';
+import { Target, TrendingUp, Medal, Banknote } from 'lucide-react';
 import { Card, CardHeader, CardContent, StatCard } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { useMoney } from '../../hooks/Currency/useMoney';
 
 const salesmanTargets = [
   { name: 'Ahmed Al-Hassan', route: 'Route-N1', target: 120000, actual: 134400, collection: 118200, outlets: 48, visitRate: 94 },
@@ -55,12 +51,6 @@ const overallAchievement = Math.round((totalActual / totalTarget) * 100);
 const totalCollection = salesmanTargets.reduce((sum, s) => sum + s.collection, 0);
 const maxMonthlyTarget = Math.max(...monthlyAchievement.map((m) => m.target));
 
-function formatCurrency(value: number): string {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-  return `$${value.toFixed(0)}`;
-}
-
 function getAchievementColor(value: number): string {
   if (value >= 95) return 'bg-green-500';
   if (value >= 85) return 'bg-amber-500';
@@ -80,34 +70,16 @@ function getAchievementBadge(value: number): 'success' | 'warning' | 'danger' {
 }
 
 export function SalesTargetDashboard() {
+  const { formatCompact } = useMoney();
+  const formatCurrency = (value: number) => formatCompact(value, 2);
   return (
     <div className="space-y-6">
       {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Monthly Target"
-          value={formatCurrency(totalTarget)}
-          icon={<Target className="w-6 h-6" />}
-          trend={{ value: 4.7, isPositive: true }}
-        />
-        <StatCard
-          title="Actual Sales"
-          value={formatCurrency(totalActual)}
-          icon={<TrendingUp className="w-6 h-6" />}
-          trend={{ value: 8.2, isPositive: true }}
-        />
-        <StatCard
-          title="Achievement"
-          value={`${overallAchievement}%`}
-          icon={<Medal className="w-6 h-6" />}
-          trend={{ value: 3.4, isPositive: true }}
-        />
-        <StatCard
-          title="Collection"
-          value={formatCurrency(totalCollection)}
-          icon={<Banknote className="w-6 h-6" />}
-          trend={{ value: 5.1, isPositive: true }}
-        />
+        <StatCard title="Monthly Target" value={formatCurrency(totalTarget)} icon={<Target className="w-6 h-6" />} trend={{ value: 4.7, isPositive: true }} />
+        <StatCard title="Actual Sales" value={formatCurrency(totalActual)} icon={<TrendingUp className="w-6 h-6" />} trend={{ value: 8.2, isPositive: true }} />
+        <StatCard title="Achievement" value={`${overallAchievement}%`} icon={<Medal className="w-6 h-6" />} trend={{ value: 3.4, isPositive: true }} />
+        <StatCard title="Collection" value={formatCurrency(totalCollection)} icon={<Banknote className="w-6 h-6" />} trend={{ value: 5.1, isPositive: true }} />
       </div>
 
       {/* Monthly Achievement Trend + Region Targets */}
@@ -134,9 +106,7 @@ export function SalesTargetDashboard() {
             <div className="flex items-end gap-1.5 h-52">
               {monthlyAchievement.map((item) => (
                 <div key={item.month} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400">
-                    {item.achievement}%
-                  </span>
+                  <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400">{item.achievement}%</span>
                   <div className="w-full flex items-end gap-0.5 h-44">
                     <div
                       className={`flex-1 rounded-t-sm transition-all hover:opacity-80 ${getAchievementColor(item.achievement)}`}
@@ -164,15 +134,10 @@ export function SalesTargetDashboard() {
               <div key={item.region}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-gray-700 dark:text-gray-300">{item.region}</span>
-                  <span className={`text-sm font-semibold ${getAchievementTextColor(item.achievement)}`}>
-                    {item.achievement}%
-                  </span>
+                  <span className={`text-sm font-semibold ${getAchievementTextColor(item.achievement)}`}>{item.achievement}%</span>
                 </div>
                 <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                  <div
-                    className={`${getAchievementColor(item.achievement)} h-2 rounded-full transition-all`}
-                    style={{ width: `${item.achievement}%` }}
-                  />
+                  <div className={`${getAchievementColor(item.achievement)} h-2 rounded-full transition-all`} style={{ width: `${item.achievement}%` }} />
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-xs text-gray-400">{formatCurrency(item.actual)}</span>
@@ -206,36 +171,31 @@ export function SalesTargetDashboard() {
                 </thead>
                 <tbody>
                   {salesmanTargets
-                    .sort((a, b) => (b.actual / b.target) - (a.actual / a.target))
+                    .sort((a, b) => b.actual / b.target - a.actual / a.target)
                     .map((person, index) => {
                       const achievement = Math.round((person.actual / person.target) * 100);
                       const collectionRate = Math.round((person.collection / person.actual) * 100);
                       return (
-                        <tr
-                          key={person.name}
-                          className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                        >
+                        <tr key={person.name} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                           <td className="px-6 py-3">
                             <div className="flex items-center gap-3">
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                                index < 3
-                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                              }`}>
+                              <div
+                                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  index < 3 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                                }`}
+                              >
                                 {index + 1}
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white">{person.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{person.route} | {person.outlets} outlets</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {person.route} | {person.outlets} outlets
+                                </p>
                               </div>
                             </div>
                           </td>
-                          <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
-                            {formatCurrency(person.target)}
-                          </td>
-                          <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                            {formatCurrency(person.actual)}
-                          </td>
+                          <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{formatCurrency(person.target)}</td>
+                          <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(person.actual)}</td>
                           <td className="text-center px-6 py-3">
                             <Badge variant={getAchievementBadge(achievement)} size="sm">
                               {achievement}%
@@ -243,9 +203,7 @@ export function SalesTargetDashboard() {
                           </td>
                           <td className="text-right px-6 py-3">
                             <div>
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                {formatCurrency(person.collection)}
-                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(person.collection)}</span>
                               <span className="text-xs text-gray-400 ml-1">({collectionRate}%)</span>
                             </div>
                           </td>
@@ -253,15 +211,11 @@ export function SalesTargetDashboard() {
                             <div className="flex items-center justify-center gap-1.5">
                               <div className="w-12 bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
                                 <div
-                                  className={`h-1.5 rounded-full ${
-                                    person.visitRate >= 90 ? 'bg-green-500' : person.visitRate >= 80 ? 'bg-amber-500' : 'bg-red-500'
-                                  }`}
+                                  className={`h-1.5 rounded-full ${person.visitRate >= 90 ? 'bg-green-500' : person.visitRate >= 80 ? 'bg-amber-500' : 'bg-red-500'}`}
                                   style={{ width: `${person.visitRate}%` }}
                                 />
                               </div>
-                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {person.visitRate}%
-                              </span>
+                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{person.visitRate}%</span>
                             </div>
                           </td>
                         </tr>
@@ -280,12 +234,7 @@ export function SalesTargetDashboard() {
             {/* Stacked bar */}
             <div className="flex rounded-full h-4 overflow-hidden mb-5">
               {collectionAging.map((item) => (
-                <div
-                  key={item.bucket}
-                  className={`${item.color} transition-all`}
-                  style={{ width: `${item.percentage}%` }}
-                  title={`${item.bucket}: ${formatCurrency(item.amount)}`}
-                />
+                <div key={item.bucket} className={`${item.color} transition-all`} style={{ width: `${item.percentage}%` }} title={`${item.bucket}: ${formatCurrency(item.amount)}`} />
               ))}
             </div>
 
@@ -297,15 +246,10 @@ export function SalesTargetDashboard() {
                       <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
                       <span className="text-sm text-gray-600 dark:text-gray-400">{item.bucket}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {formatCurrency(item.amount)}
-                    </span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(item.amount)}</span>
                   </div>
                   <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
-                    <div
-                      className={`${item.color} h-1.5 rounded-full transition-all`}
-                      style={{ width: `${item.percentage}%` }}
-                    />
+                    <div className={`${item.color} h-1.5 rounded-full transition-all`} style={{ width: `${item.percentage}%` }} />
                   </div>
                 </div>
               ))}
@@ -315,9 +259,7 @@ export function SalesTargetDashboard() {
             <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Outstanding</span>
-                <span className="text-lg font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(collectionAging.reduce((s, c) => s + c.amount, 0))}
-                </span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(collectionAging.reduce((s, c) => s + c.amount, 0))}</span>
               </div>
             </div>
           </CardContent>

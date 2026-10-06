@@ -1,22 +1,5 @@
 import { forwardRef, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import {
-  format,
-  isValid,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  addDays,
-  addMonths,
-  subMonths,
-  isSameMonth,
-  isSameDay,
-  isToday,
-  setMonth,
-  setYear,
-  getYear,
-  getMonth,
-} from 'date-fns';
+import { format, isValid, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday, setMonth, setYear, getYear, getMonth } from 'date-fns';
 import { Calendar, Clock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 // ─── Types ─────────────────────────────────────────────────────────────
@@ -41,10 +24,7 @@ export interface DatePickerProps {
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -130,11 +110,7 @@ function Dropdown({ value, options, onSelect }: DropdownProps) {
                   setOpen(false);
                 }}
                 className={`w-full text-left px-3 py-1.5 text-sm transition-colors cursor-pointer
-                  ${
-                    isActive
-                      ? 'bg-primary-500 text-white font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  ${isActive ? 'bg-primary-500 text-white font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
               >
                 {opt.label}
               </button>
@@ -194,16 +170,8 @@ function CalendarGrid({ viewDate, selected, onSelect, onViewChange, minDate, max
         </button>
 
         <div className="flex items-center gap-1">
-          <Dropdown
-            value={MONTHS[getMonth(viewDate)]}
-            options={monthOptions}
-            onSelect={(v) => onViewChange(setMonth(viewDate, Number(v)))}
-          />
-          <Dropdown
-            value={String(getYear(viewDate))}
-            options={yearOptions}
-            onSelect={(v) => onViewChange(setYear(viewDate, Number(v)))}
-          />
+          <Dropdown value={MONTHS[getMonth(viewDate)]} options={monthOptions} onSelect={(v) => onViewChange(setMonth(viewDate, Number(v)))} />
+          <Dropdown value={String(getYear(viewDate))} options={yearOptions} onSelect={(v) => onViewChange(setYear(viewDate, Number(v)))} />
         </div>
 
         <button
@@ -253,17 +221,15 @@ function CalendarGrid({ viewDate, selected, onSelect, onViewChange, minDate, max
                   sel
                     ? 'bg-primary-500 text-white font-semibold shadow-md shadow-primary-500/30'
                     : today
-                    ? 'font-semibold text-primary-600 dark:text-primary-400'
-                    : inMonth
-                    ? 'text-gray-800 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/30'
-                    : 'text-gray-300 dark:text-gray-600'
+                      ? 'font-semibold text-primary-600 dark:text-primary-400'
+                      : inMonth
+                        ? 'text-gray-800 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/30'
+                        : 'text-gray-300 dark:text-gray-600'
                 }
               `}
             >
               {format(day, 'd')}
-              {today && !sel && (
-                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary-500" />
-              )}
+              {today && !sel && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary-500" />}
             </button>
           );
         })}
@@ -310,11 +276,7 @@ function TimeList({ slots, selected, onSelect, caption }: TimeListProps) {
 
   return (
     <div className="flex flex-col w-full">
-      {caption && (
-        <div className="px-3 pt-3 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-          {caption}
-        </div>
-      )}
+      {caption && <div className="px-3 pt-3 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{caption}</div>}
       <div ref={listRef} className="overflow-y-auto max-h-64 px-2 pb-2 scrollbar-thin">
         {slots.map((slot) => {
           const isActive = slot === selected;
@@ -325,11 +287,7 @@ function TimeList({ slots, selected, onSelect, caption }: TimeListProps) {
               data-active={isActive}
               onClick={() => onSelect(slot)}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-150 mb-0.5 cursor-pointer
-                ${
-                  isActive
-                    ? 'bg-primary-500 text-white font-medium shadow-sm shadow-primary-500/20'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                }`}
+                ${isActive ? 'bg-primary-500 text-white font-medium shadow-sm shadow-primary-500/20' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
             >
               {slot}
             </button>
@@ -444,21 +402,14 @@ export const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(
 
     const inputId = useMemo(() => `dp-${Math.random().toString(36).substr(2, 9)}`, []);
 
-    const icon = showTimeSelectOnly ? (
-      <Clock className="w-4 h-4" />
-    ) : (
-      <Calendar className="w-4 h-4" />
-    );
+    const icon = showTimeSelectOnly ? <Clock className="w-4 h-4" /> : <Calendar className="w-4 h-4" />;
 
     return (
       <div ref={containerRef} className={`relative ${fullWidth ? 'w-full' : ''} ${className}`}>
         <div ref={ref}>
           {/* Label */}
           {label && (
-            <label
-              htmlFor={inputId}
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
+            <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {label}
               {required && <span className="text-red-500 font-bold ml-0.5">*</span>}
             </label>
@@ -482,22 +433,18 @@ export const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(
                 error
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : open
-                  ? 'border-primary-500 ring-2 ring-primary-500/20'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                    ? 'border-primary-500 ring-2 ring-primary-500/20'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }
             `}
           >
-            <span className={`flex-1 truncate ${selected ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
-              {displayValue || placeholderText}
-            </span>
+            <span className={`flex-1 truncate ${selected ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>{displayValue || placeholderText}</span>
             <span className="text-gray-400 dark:text-gray-500 ml-2 shrink-0">{icon}</span>
           </button>
 
           {/* Error / helper */}
           {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
-          {helperText && !error && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
-          )}
+          {helperText && !error && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>}
         </div>
 
         {/* Popover */}
@@ -517,30 +464,12 @@ export const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(
           >
             <div className="flex">
               {/* Calendar panel */}
-              {!showTimeSelectOnly && (
-                <CalendarGrid
-                  viewDate={viewDate}
-                  selected={selected}
-                  onSelect={handleDateSelect}
-                  onViewChange={setViewDate}
-                  minDate={minDate}
-                  maxDate={maxDate}
-                />
-              )}
+              {!showTimeSelectOnly && <CalendarGrid viewDate={viewDate} selected={selected} onSelect={handleDateSelect} onViewChange={setViewDate} minDate={minDate} maxDate={maxDate} />}
 
               {/* Time panel */}
               {(showTimeSelect || showTimeSelectOnly) && (
-                <div
-                  className={`${
-                    !showTimeSelectOnly ? 'border-l border-gray-100 dark:border-gray-700 w-36' : 'w-full'
-                  }`}
-                >
-                  <TimeList
-                    slots={timeSlots}
-                    selected={selectedTimeStr}
-                    onSelect={handleTimeSelect}
-                    caption={timeCaption}
-                  />
+                <div className={`${!showTimeSelectOnly ? 'border-l border-gray-100 dark:border-gray-700 w-36' : 'w-full'}`}>
+                  <TimeList slots={timeSlots} selected={selectedTimeStr} onSelect={handleTimeSelect} caption={timeCaption} />
                 </div>
               )}
             </div>

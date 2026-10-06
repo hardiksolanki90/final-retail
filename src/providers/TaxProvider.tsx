@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateEntity } from '../hooks/useEntityDetail';
 import { getTaxList, createTax, updateTax, deleteTax } from '../api/TaxApi';
 import { showToast } from '../lib/toast';
+import { useAuth } from '../context/AuthContext';
 
 interface TaxContextType {
   data: any[];
@@ -31,6 +33,13 @@ export const TaxContext = createContext<TaxContextType | undefined>(undefined);
 
 export default function TaxProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  // The default rate feeds the global config and document tax previews — refresh them after any change.
+  const { refreshConfig } = useAuth();
+  const onTaxChanged = () => {
+    invalidateEntity(queryClient, 'tax-list', 'tax');
+    queryClient.invalidateQueries({ queryKey: ['tax-resolve'] });
+    void refreshConfig();
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
@@ -38,17 +47,16 @@ export default function TaxProvider({ children }: { children: ReactNode }) {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['tax-list', currentPage, perPage, searchTerm],
-    queryFn: () => getTaxList(currentPage, perPage, searchTerm),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['tax-list', currentPage, perPage, searchTerm], queryFn: () => getTaxList(currentPage, perPage, searchTerm), staleTime: 5 * 60 * 1000 });
 
   const deleteMutation = useMutation({
     mutationFn: deleteTax,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tax-list'] });
-    },
+    onSuccess: onTaxChanged,
     onError: (err: Error) => {
       showToast.error(err.message || 'Failed to delete');
     },
@@ -62,14 +70,18 @@ export default function TaxProvider({ children }: { children: ReactNode }) {
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, any>) => createTax(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tax-list'] }); },
-    onError: (err: any) => { showToast.error(err?.response?.data?.message || 'Failed to create tax'); },
+    onSuccess: onTaxChanged,
+    onError: (err: any) => {
+      showToast.error(err?.response?.data?.message || 'Failed to create tax');
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, any> }) => updateTax(uuid, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tax-list'] }); },
-    onError: (err: any) => { showToast.error(err?.response?.data?.message || 'Failed to update tax'); },
+    onSuccess: onTaxChanged,
+    onError: (err: any) => {
+      showToast.error(err?.response?.data?.message || 'Failed to update tax');
+    },
   });
 
   const createTaxData = (data: Record<string, any>) => createMutation.mutateAsync(data);
@@ -79,11 +91,27 @@ export default function TaxProvider({ children }: { children: ReactNode }) {
   const meta = responseData?.meta ?? null;
 
   const value: TaxContextType = {
-    data: items, meta, isLoading, error: error as Error | null,
-    searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
-    selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
-    editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
-    createTaxData, updateTaxData, isSaving: createMutation.isPending || updateMutation.isPending,
+    data: items,
+    meta,
+    isLoading,
+    error: error as Error | null,
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    addDrawerOpen,
+    setAddDrawerOpen,
+    editingItem,
+    setEditingItem,
+    handleDeleteWithConfirmation,
+    refetch: () => refetch(),
+    createTaxData,
+    updateTaxData,
+    isSaving: createMutation.isPending || updateMutation.isPending,
   };
 
   return <TaxContext.Provider value={value}>{children}</TaxContext.Provider>;

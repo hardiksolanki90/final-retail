@@ -1,23 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Filter,
-  Plus,
-  Columns3,
-  Download,
-  Upload,
-  ChevronDown,
-  Check,
-  Trash2,
-  Archive,
-  Tag,
-  X,
-  Menu,
-  Pencil,
-} from 'lucide-react';
+import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu, Pencil } from 'lucide-react';
 import SalesmanAdd from './SalesmanAdd';
 import { Pagination } from '../../components/ui/Pagination';
-import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableSkeletonRows } from '../../components/ui/skeleton';
 import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { useSalesman } from '../../providers/SalesmanProvider';
 import type { Salesman } from '../../types/Salesman';
@@ -85,12 +71,9 @@ export function SalesmanList() {
   // ── Close dropdowns on outside click ────────────────────────────────────
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (bulkActionRef.current && !bulkActionRef.current.contains(event.target as Node))
-        setBulkActionOpen(false);
-      if (columnsRef.current && !columnsRef.current.contains(event.target as Node))
-        setColumnsDropdownOpen(false);
-      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target as Node))
-        setMoreActionsOpen(false);
+      if (bulkActionRef.current && !bulkActionRef.current.contains(event.target as Node)) setBulkActionOpen(false);
+      if (columnsRef.current && !columnsRef.current.contains(event.target as Node)) setColumnsDropdownOpen(false);
+      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target as Node)) setMoreActionsOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -98,38 +81,71 @@ export function SalesmanList() {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  const toggleColumn = (key: string) =>
-    setColumns(prev => prev.map(col => col.key === key ? { ...col, visible: !col.visible } : col));
-
-
-
+  const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
 
   const allSelected = salesman.length > 0 && selectedRowKeys.length === salesman.length;
 
-  const handleSelectAll = () =>
-    setSelectedRowKeys(allSelected ? [] : salesman.map(s => s.uuid!));
+  const handleSelectAll = () => setSelectedRowKeys(allSelected ? [] : salesman.map((s) => s.uuid!));
 
-  const handleSelectRow = (uuid: string) =>
-    setSelectedRowKeys(
-      selectedRowKeys.includes(uuid) ? selectedRowKeys.filter(k => k !== uuid) : [...selectedRowKeys, uuid]
-    );
+  const handleSelectRow = (uuid: string) => setSelectedRowKeys(selectedRowKeys.includes(uuid) ? selectedRowKeys.filter((k) => k !== uuid) : [...selectedRowKeys, uuid]);
 
-  const applySearch = () => { setSearchTerm(searchDraft); setCurrentPage(1); };
-  const clearSearch = () => { setSearchDraft(''); setSearchTerm(''); setCurrentPage(1); setFilterOpen(false); };
+  const applySearch = () => {
+    setSearchTerm(searchDraft);
+    setCurrentPage(1);
+  };
+  const clearSearch = () => {
+    setSearchDraft('');
+    setSearchTerm('');
+    setCurrentPage(1);
+    setFilterOpen(false);
+  };
 
-  const handleEditClick = (salesman: Salesman) => { setSelectedSalesman(salesman); setIsAddOpen(true); };
-  const handleDrawerClose = () => { setIsAddOpen(false); setSelectedSalesman(null); };
-  const handleSaved = () => { handleDrawerClose(); };
+  const handleEditClick = (salesman: Salesman) => {
+    setSelectedSalesman(salesman);
+    setIsAddOpen(true);
+  };
+  const handleDrawerClose = () => {
+    setIsAddOpen(false);
+    setSelectedSalesman(null);
+  };
+  const handleSaved = () => {
+    handleDrawerClose();
+  };
 
   const handleExportSubmit = () => {
     console.log('Exporting…', { exportType, exportFromDate, exportToDate, exportFormat });
-    setExportModalOpen(false); setExportType('specific'); setExportFromDate(''); setExportToDate(''); setExportFormat('');
+    setExportModalOpen(false);
+    setExportType('specific');
+    setExportFromDate('');
+    setExportToDate('');
+    setExportFormat('');
   };
 
   const bulkActionItems = [
-    { label: 'Delete Selected', icon: Trash2, action: () => { handleBulkAction('delete'); setBulkActionOpen(false); } },
-    { label: 'Activate Selected', icon: Archive, action: () => { handleBulkAction('activate'); setBulkActionOpen(false); } },
-    { label: 'Deactivate Selected', icon: Tag, action: () => { handleBulkAction('deactivate'); setBulkActionOpen(false); } },
+    {
+      label: 'Delete Selected',
+      icon: Trash2,
+      action: () => {
+        handleBulkAction('delete');
+        setBulkActionOpen(false);
+      },
+    },
+    {
+      label: 'Activate Selected',
+      icon: Archive,
+      action: () => {
+        handleBulkAction('activate');
+        setBulkActionOpen(false);
+      },
+    },
+    {
+      label: 'Deactivate Selected',
+      icon: Tag,
+      action: () => {
+        handleBulkAction('deactivate');
+        setBulkActionOpen(false);
+      },
+    },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -145,7 +161,10 @@ export function SalesmanList() {
         <div className="flex flex-wrap items-center gap-2">
           {selectedRowKeys.length > 0 && (
             <div className="relative" ref={bulkActionRef}>
-              <button onClick={() => setBulkActionOpen(!bulkActionOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
+              <button
+                onClick={() => setBulkActionOpen(!bulkActionOpen)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+              >
                 Bulk Action
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRowKeys.length}</span>
                 <ChevronDown className="w-4 h-4" />
@@ -153,9 +172,14 @@ export function SalesmanList() {
               {bulkActionOpen && (
                 <div className="absolute right-0 mt-2 w-52 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
                   <div className="py-1">
-                    {bulkActionItems.map(item => (
-                      <button key={item.label} onClick={item.action} className="w-full cursor-pointer flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors">
-                        <item.icon className="w-4 h-4" />{item.label}
+                    {bulkActionItems.map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={item.action}
+                        className="w-full cursor-pointer flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
                       </button>
                     ))}
                   </div>
@@ -164,20 +188,33 @@ export function SalesmanList() {
             </div>
           )}
 
-          <button onClick={() => setFilterOpen(prev => !prev)} className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}>
-            <Filter className="w-4 h-4" />Filter
+          <button
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
+          >
+            <Filter className="w-4 h-4" />
+            Filter
             {searchTerm && <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">1</span>}
           </button>
 
           <div className="relative" ref={columnsRef}>
-            <button onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer">
-              <Columns3 className="w-4 h-4" />Columns<ChevronDown className="w-4 h-4" />
+            <button
+              onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+            >
+              <Columns3 className="w-4 h-4" />
+              Columns
+              <ChevronDown className="w-4 h-4" />
             </button>
             {columnsDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
                 <div className="py-1">
-                  {columns.map(column => (
-                    <button key={column.key} onClick={() => toggleColumn(column.key)} className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors">
+                  {columns.map((column) => (
+                    <button
+                      key={column.key}
+                      onClick={() => toggleColumn(column.key)}
+                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
                       <span>{column.label}</span>
                       {column.visible && <Check className="w-4 h-4 text-primary-600" />}
                     </button>
@@ -187,19 +224,48 @@ export function SalesmanList() {
             )}
           </div>
 
-          <button onClick={() => { setSelectedSalesman(null); setIsAddOpen(true); }} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer">
-            <Plus className="w-4 h-4" />Create
+          <button
+            onClick={() => {
+              setSelectedSalesman(null);
+              setIsAddOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Create
           </button>
 
           <div className="relative" ref={moreActionsRef}>
-            <button onClick={() => setMoreActionsOpen(!moreActionsOpen)} className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
-              <Menu className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
+            <button
+              onClick={() => setMoreActionsOpen(!moreActionsOpen)}
+              className="inline-flex items-center justify-center p-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
             </button>
             {moreActionsOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
                 <div className="py-1">
-                  <button onClick={() => { setExportModalOpen(true); setMoreActionsOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Download className="w-4 h-4" />Export</button>
-                  <button onClick={() => { console.log('Import'); setMoreActionsOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"><Upload className="w-4 h-4" />Import</button>
+                  <button
+                    onClick={() => {
+                      setExportModalOpen(true);
+                      setMoreActionsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('Import');
+                      setMoreActionsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import
+                  </button>
                 </div>
               </div>
             )}
@@ -213,11 +279,25 @@ export function SalesmanList() {
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
               <label className="text-xs font-medium text-[var(--text-secondary)]">Search</label>
-              <input type="text" value={searchDraft} onChange={e => setSearchDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && applySearch()} placeholder="Search by name, code, phone…" className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+              <input
+                type="text"
+                value={searchDraft}
+                onChange={(e) => setSearchDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && applySearch()}
+                placeholder="Search by name, code, phone…"
+                className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
             </div>
             <div className="flex items-end gap-2 pb-0.5">
-              <button onClick={applySearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">Apply</button>
-              <button onClick={clearSearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors">Clear</button>
+              <button onClick={applySearch} className="px-4 cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                Apply
+              </button>
+              <button
+                onClick={clearSearch}
+                className="px-4 cursor-pointer py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors"
+              >
+                Clear
+              </button>
             </div>
           </div>
         </div>
@@ -248,59 +328,78 @@ export function SalesmanList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableLoadingRow colSpan={7} label="Loading salesman…" />
+                <TableSkeletonRows rows={perPage} label="Loading salesman" columns={['check', 'text', 'text', 'text', 'text', 'text', 'actions']} />
               ) : salesman.length === 0 ? (
                 <TableEmptyRow colSpan={7} label="No salesman found." />
-              ) : salesman.map((salesman: any) => (
-                <tr
-                  key={salesman?.uuid}
-                  onClick={() => navigate(`/salesman/view/${salesman?.uuid}`)}
-                  className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
-                >
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <input type="checkbox" checked={selectedRowKeys.includes(salesman?.uuid ?? "")} onChange={(e) => { e.stopPropagation(); handleSelectRow(salesman?.uuid ?? ""); }} onClick={(e) => e.stopPropagation()} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" />
-                  </td>
+              ) : (
+                salesman.map((salesman: any) => (
+                  <tr
+                    key={salesman?.uuid}
+                    onClick={() => navigate(`/salesman/view/${salesman?.uuid}`)}
+                    className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
+                  >
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedRowKeys.includes(salesman?.uuid ?? '')}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectRow(salesman?.uuid ?? '');
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                      />
+                    </td>
 
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-[var(--text-secondary)]">{salesman?.salesmanCode ?? salesman?.code}</span>
-                  </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-mono text-[var(--text-secondary)]">{salesman?.salesmanCode ?? salesman?.code}</span>
+                    </td>
 
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{salesman?.user?.firstname} {salesman?.user?.lastname ?? ''}</span>
-                  </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
+                        {salesman?.user?.firstname} {salesman?.user?.lastname ?? ''}
+                      </span>
+                    </td>
 
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm text-[var(--text-secondary)]">{salesman?.user?.email ?? '—'}</span>
-                  </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm text-[var(--text-secondary)]">{salesman?.user?.email ?? '—'}</span>
+                    </td>
 
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-[var(--text-secondary)]">{salesman?.user?.mobile ?? '—'}</span>
-                  </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-mono text-[var(--text-secondary)]">{salesman?.user?.mobile ?? '—'}</span>
+                    </td>
 
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm text-[var(--text-secondary)]">{salesman?.route?.name ?? '—'}</span>
-                  </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm text-[var(--text-secondary)]">{salesman?.route?.name ?? '—'}</span>
+                    </td>
 
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
-                        onClick={(e) => { e.stopPropagation(); handleEditClick(salesman); }}
-                      >
-                        <Pencil size={14} strokeWidth={2.5} />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteWithConfirmation(salesman?.uuid ?? ""); }}
-                      >
-                        <Trash2 size={14} strokeWidth={2.5} />
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(salesman);
+                          }}
+                        >
+                          <Pencil size={14} strokeWidth={2.5} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteWithConfirmation(salesman?.uuid ?? '');
+                          }}
+                        >
+                          <Trash2 size={14} strokeWidth={2.5} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -313,7 +412,9 @@ export function SalesmanList() {
         isOpen={isAddOpen}
         onClose={handleDrawerClose}
         data={selectedSalesman}
-        onEvent={(event) => { if (event.eventType === 'SalesmanSaved') handleSaved(); }}
+        onEvent={(event) => {
+          if (event.eventType === 'SalesmanSaved') handleSaved();
+        }}
       />
 
       {/* Export Modal */}
@@ -323,11 +424,13 @@ export function SalesmanList() {
           <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Salesman</h2>
-              <button onClick={() => setExportModalOpen(false)} className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"><X className="w-5 h-5 text-[var(--text-muted)]" /></button>
+              <button onClick={() => setExportModalOpen(false)} className="p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors">
+                <X className="w-5 h-5 text-[var(--text-muted)]" />
+              </button>
             </div>
             <div className="px-6 py-4 space-y-6">
               <div className="space-y-3">
-                {(['all', 'specific'] as const).map(t => (
+                {(['all', 'specific'] as const).map((t) => (
                   <label key={t} className="flex items-center gap-3 cursor-pointer">
                     <input type="radio" name="exportType" checked={exportType === t} onChange={() => setExportType(t)} className="w-5 h-5 text-primary-600" />
                     <span className="text-[var(--text-primary)] font-medium capitalize">{t} Salesman</span>
@@ -336,17 +439,25 @@ export function SalesmanList() {
               </div>
               {exportType === 'specific' && (
                 <div className="grid grid-cols-2 gap-4">
-                  {[['From', exportFromDate, setExportFromDate], ['To', exportToDate, setExportToDate]].map(([label, val, set]) => (
+                  {[
+                    ['From', exportFromDate, setExportFromDate],
+                    ['To', exportToDate, setExportToDate],
+                  ].map(([label, val, set]) => (
                     <div key={label as string}>
                       <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{label as string}</label>
-                      <input type="date" value={val as string} onChange={e => (set as any)(e.target.value)} className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                      <input
+                        type="date"
+                        value={val as string}
+                        onChange={(e) => (set as any)(e.target.value)}
+                        className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
                     </div>
                   ))}
                 </div>
               )}
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As:</label>
-                {(['csv', 'xls'] as const).map(f => (
+                {(['csv', 'xls'] as const).map((f) => (
                   <label key={f} className="flex items-center gap-3 cursor-pointer">
                     <input type="radio" name="exportFormat" checked={exportFormat === f} onChange={() => setExportFormat(f)} className="w-5 h-5 text-primary-600" />
                     <span className="text-[var(--text-primary)] uppercase">{f}</span>
@@ -355,8 +466,15 @@ export function SalesmanList() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
-              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">Export</button>
-              <button onClick={() => setExportModalOpen(false)} className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors">Cancel</button>
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">
+                Export
+              </button>
+              <button
+                onClick={() => setExportModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

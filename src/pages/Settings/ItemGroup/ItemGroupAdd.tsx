@@ -5,29 +5,21 @@ import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { ItemGroupFormData } from '../../../types/ItemGroup';
 import { OrderCodeSettingsIcon } from '../../../components/ui/OrderCodeSettingsIcon';
 import { reserveCodeIfAuto } from '../../../api/CodeSettingApi';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: Code, Name.
+const ITEM_GROUP_FORM_SKELETON: FormSkeletonField[] = ['code', 'input'];
 
 interface ItemGroupAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: ItemGroupFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: ItemGroupFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: ItemGroupFormData = {
-  code: '',
-  name: '',
-  status: true,
-};
+const initialFormData: ItemGroupFormData = { code: '', name: '', status: true };
 
-export function ItemGroupAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: ItemGroupAddProps) {
+export function ItemGroupAdd({ isOpen, onClose, data, onEvent }: ItemGroupAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
 
@@ -38,10 +30,8 @@ export function ItemGroupAdd({
     reset,
     setError,
     watch,
-    setValue
-  } = useForm<ItemGroupFormData>({
-    defaultValues: initialFormData
-  });
+    setValue,
+  } = useForm<ItemGroupFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
@@ -63,14 +53,9 @@ export function ItemGroupAdd({
         setCodeLocked(true);
       }
 
-      await onEvent?.({
-        eventType: initialData ? 'ItemGroupUpdated' : 'ItemGroupCreated',
-        itemGroup: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'ItemGroupUpdated' : 'ItemGroupCreated', itemGroup: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving item group'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving item group' });
     }
   };
 
@@ -85,15 +70,13 @@ export function ItemGroupAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="item-group-form" disabled={isLoading || isSubmitting}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -103,6 +86,8 @@ export function ItemGroupAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={ITEM_GROUP_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Item Group' : 'Add Item Group'}
@@ -119,37 +104,33 @@ export function ItemGroupAdd({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700">
+              Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
               {...register('code')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="item_group" onLockChange={setCodeLocked} />
-            {errors.code && (
-              <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
-            )}
+            {errors.code && <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('name', {
-              required: 'Name is required',
-              validate: value => value.trim() !== '' || 'Name cannot be empty'
-            })}
+            {...register('name', { required: 'Name is required', validate: (value) => value.trim() !== '' || 'Name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter item group name"
           />
-          {errors.name && (
-            <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
         </div>
-
       </form>
     </Drawer>
   );

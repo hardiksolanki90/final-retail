@@ -21,19 +21,8 @@ export interface Invoice {
   terms?: string;
   createdAt?: string;
   updatedAt?: string;
-  order?: {
-    id?: number;
-    uuid?: string;
-    orderNumber: string;
-  };
-  customer?: {
-    id?: number;
-    uuid?: string;
-    firstName: string;
-    lastName: string;
-    shopName?: string;
-    customerCode: string;
-  };
+  order?: { id?: number; uuid?: string; orderNumber: string };
+  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string; customerCode: string };
   invoiceItems?: InvoiceItem[];
 }
 
@@ -49,12 +38,7 @@ export interface InvoiceItem {
   taxPercent?: number;
   taxAmount?: number;
   totalAmount: number;
-  item?: {
-    id?: number;
-    uuid?: string;
-    name: string;
-    itemCode: string;
-  };
+  item?: { id?: number; uuid?: string; name: string; itemCode: string };
 }
 
 export interface InvoiceFormData {
@@ -66,13 +50,7 @@ export interface InvoiceFormData {
   notes?: string;
   terms?: string;
   paymentMethod?: string;
-  invoiceItems: Array<{
-    itemId: string;
-    quantity: number;
-    unitPrice: number;
-    discountPercent?: number;
-    taxPercent?: number;
-  }>;
+  invoiceItems: Array<{ itemId: string; quantity: number; unitPrice: number; discountPercent?: number; taxPercent?: number }>;
 }
 
 export interface InvoiceListResponse {

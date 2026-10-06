@@ -1,9 +1,6 @@
 export type WorkFlowEventTrigger = 'created' | 'edited' | 'created_or_edited' | 'deleted';
 
-export const WORK_FLOW_MODULES = [
-  'Order', 'Delivery', 'Invoice', 'CreditNote', 'DebitNote',
-  'GRN', 'JourneyPlan', 'Customer', 'Item', 'Salesman',
-] as const;
+export const WORK_FLOW_MODULES = ['Order', 'Delivery', 'Invoice', 'CreditNote', 'DebitNote', 'GRN', 'JourneyPlan', 'Customer', 'Item', 'Salesman'] as const;
 
 export type WorkFlowModule = (typeof WORK_FLOW_MODULES)[number];
 

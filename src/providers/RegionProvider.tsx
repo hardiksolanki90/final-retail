@@ -4,14 +4,24 @@ import { getRegionList, createRegion, updateRegion, deleteRegion } from '../api/
 import { showToast } from '../lib/toast';
 
 interface RegionContextType {
-  data: any[]; meta: any; isLoading: boolean; error: Error | null;
-  searchTerm: string; setSearchTerm: (term: string) => void;
-  currentPage: number; setCurrentPage: (page: number) => void;
-  perPage: number; setPerPage: (perPage: number) => void;
-  selectedRowKeys: string[]; setSelectedRowKeys: (keys: string[]) => void;
-  addDrawerOpen: boolean; setAddDrawerOpen: (open: boolean) => void;
-  editingItem: any; setEditingItem: (item: any) => void;
-  handleDeleteWithConfirmation: (uuid: string) => void; refetch: () => void;
+  data: any[];
+  meta: any;
+  isLoading: boolean;
+  error: Error | null;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  perPage: number;
+  setPerPage: (perPage: number) => void;
+  selectedRowKeys: string[];
+  setSelectedRowKeys: (keys: string[]) => void;
+  addDrawerOpen: boolean;
+  setAddDrawerOpen: (open: boolean) => void;
+  editingItem: any;
+  setEditingItem: (item: any) => void;
+  handleDeleteWithConfirmation: (uuid: string) => void;
+  refetch: () => void;
   createRegionData: (data: Record<string, any>) => Promise<any>;
   updateRegionData: (uuid: string, data: Record<string, any>) => Promise<any>;
   isSaving: boolean;
@@ -28,26 +38,28 @@ export default function RegionProvider({ children }: { children: ReactNode }) {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['region-list', currentPage, perPage, searchTerm],
-    queryFn: () => getRegionList(currentPage, perPage, searchTerm),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['region-list', currentPage, perPage, searchTerm], queryFn: () => getRegionList(currentPage, perPage, searchTerm), staleTime: 5 * 60 * 1000 });
 
   const deleteMutation = useMutation({
     mutationFn: deleteRegion,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['region-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['region-list'] });
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to delete');
+    },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
     if (window.confirm('Are you sure you want to delete this region?')) deleteMutation.mutate(uuid);
   };
 
-  const createMutation = useMutation({
-    mutationFn: (data: Record<string, any>) => createRegion(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['region-list'] }),
-  });
+  const createMutation = useMutation({ mutationFn: (data: Record<string, any>) => createRegion(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['region-list'] }) });
 
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, any> }) => updateRegion(uuid, data),
@@ -61,11 +73,27 @@ export default function RegionProvider({ children }: { children: ReactNode }) {
   const meta = responseData?.meta ?? null;
 
   const value: RegionContextType = {
-    data: items, meta, isLoading, error: error as Error | null,
-    searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
-    selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
-    editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
-    createRegionData, updateRegionData, isSaving: createMutation.isPending || updateMutation.isPending,
+    data: items,
+    meta,
+    isLoading,
+    error: error as Error | null,
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    addDrawerOpen,
+    setAddDrawerOpen,
+    editingItem,
+    setEditingItem,
+    handleDeleteWithConfirmation,
+    refetch: () => refetch(),
+    createRegionData,
+    updateRegionData,
+    isSaving: createMutation.isPending || updateMutation.isPending,
   };
 
   return <RegionContext.Provider value={value}>{children}</RegionContext.Provider>;

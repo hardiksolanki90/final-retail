@@ -52,16 +52,7 @@ const defaultValues: ShareOfShelfFormFields = {
   status: 'pending',
 };
 
-export function ShareOfShelfAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  customers = [],
-  merchandisers = [],
-  categories = [],
-}: ShareOfShelfAddProps) {
+export function ShareOfShelfAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false, customers = [], merchandisers = [], categories = [] }: ShareOfShelfAddProps) {
   const {
     register,
     handleSubmit,
@@ -94,23 +85,22 @@ export function ShareOfShelfAdd({
     onClose();
   };
 
-  const selectClass = 'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
+  const selectClass =
+    'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
 
-  const defaultCategoryOptions: SelectOption[] = categories.length > 0 ? categories : [
-    { value: 'beverages', label: 'Beverages' },
-    { value: 'snacks', label: 'Snacks' },
-    { value: 'dairy', label: 'Dairy' },
-    { value: 'personal_care', label: 'Personal Care' },
-    { value: 'household', label: 'Household' },
-  ];
+  const defaultCategoryOptions: SelectOption[] =
+    categories.length > 0
+      ? categories
+      : [
+          { value: 'beverages', label: 'Beverages' },
+          { value: 'snacks', label: 'Snacks' },
+          { value: 'dairy', label: 'Dairy' },
+          { value: 'personal_care', label: 'Personal Care' },
+          { value: 'household', label: 'Household' },
+        ];
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Share of Shelf' : 'Add Share of Shelf'}
-      width="w-[600px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Share of Shelf' : 'Add Share of Shelf'} width="w-[600px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -118,22 +108,11 @@ export function ShareOfShelfAdd({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code</label>
             </div>
             <div className="flex items-center gap-2 relative">
-              <Input
-                {...register('code', { required: 'Code is required' })}
-                error={errors.code?.message}
-                placeholder="Enter code"
-                required
-              />
+              <Input {...register('code', { required: 'Code is required' })} error={errors.code?.message} placeholder="Configure the system to auto-generate the code." required />
               <OrderCodeSettingsIcon label="Code" value={watchedCode || ''} onChange={(v) => setValue('code', v)} />
             </div>
           </div>
-          <Input
-            label="Date"
-            type="date"
-            {...register('date', { required: 'Date is required' })}
-            error={errors.date?.message}
-            required
-          />
+          <Input label="Date" type="date" {...register('date', { required: 'Date is required' })} error={errors.date?.message} required />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -143,7 +122,11 @@ export function ShareOfShelfAdd({
             </label>
             <select {...register('customerId', { required: 'Customer is required' })} className={selectClass}>
               <option value="">Select customer</option>
-              {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {customers.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
           </div>
@@ -153,7 +136,11 @@ export function ShareOfShelfAdd({
             </label>
             <select {...register('salesmanId', { required: 'Merchandiser is required' })} className={selectClass}>
               <option value="">Select merchandiser</option>
-              {merchandisers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {merchandisers.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
           </div>
@@ -166,17 +153,15 @@ export function ShareOfShelfAdd({
             </label>
             <select {...register('category', { required: 'Category is required' })} className={selectClass}>
               <option value="">Select category</option>
-              {defaultCategoryOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {defaultCategoryOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.category && <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>}
           </div>
-          <Input
-            label="Brand Name"
-            {...register('brandName', { required: 'Brand Name is required' })}
-            error={errors.brandName?.message}
-            placeholder="Enter brand name"
-            required
-          />
+          <Input label="Brand Name" {...register('brandName', { required: 'Brand Name is required' })} error={errors.brandName?.message} placeholder="Enter brand name" required />
         </div>
 
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -188,34 +173,15 @@ export function ShareOfShelfAdd({
               {...register('totalShelfSpace', { valueAsNumber: true, min: { value: 0.01, message: 'Must be greater than 0' } })}
               error={errors.totalShelfSpace?.message}
               placeholder="Enter total shelf space"
-              min="0" step="0.01"
+              min="0"
+              step="0.01"
               required
             />
-            <Input
-              label="Own Shelf Space"
-              type="number"
-              {...register('ownShelfSpace', { valueAsNumber: true })}
-              placeholder="Enter own shelf space"
-              min="0" step="0.01"
-            />
+            <Input label="Own Shelf Space" type="number" {...register('ownShelfSpace', { valueAsNumber: true })} placeholder="Enter own shelf space" min="0" step="0.01" />
           </div>
           <div className="grid grid-cols-2 gap-4 mt-4">
-            <Input
-              label="Share Percentage"
-              type="number"
-              {...register('sharePercentage', { valueAsNumber: true })}
-              placeholder="Auto-calculated"
-              disabled
-              step="0.01"
-            />
-            <Input
-              label="Competitor Shelf Space"
-              type="number"
-              {...register('competitorShelfSpace', { valueAsNumber: true })}
-              placeholder="Auto-calculated"
-              disabled
-              step="0.01"
-            />
+            <Input label="Share Percentage" type="number" {...register('sharePercentage', { valueAsNumber: true })} placeholder="Auto-calculated" disabled step="0.01" />
+            <Input label="Competitor Shelf Space" type="number" {...register('competitorShelfSpace', { valueAsNumber: true })} placeholder="Auto-calculated" disabled step="0.01" />
           </div>
         </div>
 
@@ -238,7 +204,9 @@ export function ShareOfShelfAdd({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+            Cancel
+          </CancelButton>
           <SaveButton type="submit" disabled={isLoading || isSubmitting}>
             {isLoading || isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>

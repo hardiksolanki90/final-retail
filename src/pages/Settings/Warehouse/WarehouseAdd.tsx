@@ -17,17 +17,7 @@ interface WarehouseAddProps {
   isLoading?: boolean;
 }
 
-const defaultValues: WarehouseFormData = {
-  code: '',
-  name: '',
-  address: '',
-  manager: '',
-  managerPhone: '',
-  isMain: false,
-  depotId: undefined,
-  routeId: undefined,
-  status: true,
-};
+const defaultValues: WarehouseFormData = { code: '', name: '', address: '', manager: '', managerPhone: '', isMain: false, depotId: undefined, routeId: undefined, status: true };
 
 export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false }: WarehouseAddProps) {
   const {
@@ -88,15 +78,13 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="warehouse-form" disabled={isLoading || isSubmitting}>
           {isLoading || isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -115,13 +103,15 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Code <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700">
+              Code <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
           </div>
           <div className="flex items-center gap-2 relative">
             <input
               {...register('code')}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="warehouse" onLockChange={setCodeLocked} />
@@ -130,7 +120,9 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
             {...register('name', { required: 'Name is required', validate: (v) => v.trim() !== '' || 'Name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -140,30 +132,14 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
         </div>
 
         <div>
-          <Controller
-            name="depotId"
-            control={control}
-            render={({ field }) => (
-              <DepotSelect
-                label="Depot"
-                value={field.value}
-                onChange={(val) => field.onChange(val || undefined)}
-              />
-            )}
-          />
+          <Controller name="depotId" control={control} render={({ field }) => <DepotSelect label="Depot" value={field.value} onChange={(val) => field.onChange(val || undefined)} />} />
         </div>
 
         <div>
           <Controller
             name="routeId"
             control={control}
-            render={({ field }) => (
-              <RouteSelect
-                label="Route"
-                value={field.value?.toString() ?? ''}
-                onChange={(val) => field.onChange(val ? Number(val) : undefined)}
-              />
-            )}
+            render={({ field }) => <RouteSelect label="Route" value={field.value?.toString() ?? ''} onChange={(val) => field.onChange(val ? Number(val) : undefined)} />}
           />
         </div>
 
@@ -189,28 +165,14 @@ export function WarehouseAdd({ isOpen, onClose, onSubmit, initialData, isLoading
           <Controller
             name="managerPhone"
             control={control}
-            render={({ field }) => (
-              <CountryPhoneInput
-                label="Manager Phone"
-                value={field.value || ''}
-                onChange={field.onChange}
-                error={errors.managerPhone?.message}
-              />
-            )}
+            render={({ field }) => <CountryPhoneInput label="Manager Phone" value={field.value || ''} onChange={field.onChange} error={errors.managerPhone?.message} />}
           />
         </div>
 
         <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-            Main Warehouse
-          </label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">Main Warehouse</label>
           <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="sr-only peer"
-              checked={watch('isMain')}
-              onChange={(e) => setValue('isMain', e.target.checked)}
-            />
+            <input type="checkbox" className="sr-only peer" checked={watch('isMain')} onChange={(e) => setValue('isMain', e.target.checked)} />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
           </label>
         </div>

@@ -3,29 +3,21 @@ import { useForm } from 'react-hook-form';
 import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { ItemCategory } from '../../../types/Item';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: Category Name, Description.
+const ITEM_CATEGORY_FORM_SKELETON: FormSkeletonField[] = ['input', 'textarea'];
 
 interface ItemCategoryAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: ItemCategory;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: ItemCategory; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: ItemCategory = {
-  categoryName: '',
-  description: '',
-  status: true,
-};
+const initialFormData: ItemCategory = { categoryName: '', description: '', status: true };
 
-export function ItemCategoryAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: ItemCategoryAddProps) {
+export function ItemCategoryAdd({ isOpen, onClose, data, onEvent }: ItemCategoryAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
 
@@ -36,10 +28,8 @@ export function ItemCategoryAdd({
     reset,
     setError,
     watch,
-    setValue
-  } = useForm<ItemCategory>({
-    defaultValues: initialFormData
-  });
+    setValue,
+  } = useForm<ItemCategory>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
 
@@ -53,14 +43,9 @@ export function ItemCategoryAdd({
 
   const onFormSubmit = async (formData: ItemCategory) => {
     try {
-      await onEvent?.({
-        eventType: initialData ? 'ItemCategoryUpdated' : 'ItemCategoryCreated',
-        itemCategory: formData,
-      });
+      await onEvent?.({ eventType: initialData ? 'ItemCategoryUpdated' : 'ItemCategoryCreated', itemCategory: formData });
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving item category'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving item category' });
     }
   };
 
@@ -75,15 +60,13 @@ export function ItemCategoryAdd({
             watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-              watchedStatus ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="item-category-form" disabled={isSubmitting || isLoading}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -93,6 +76,8 @@ export function ItemCategoryAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={ITEM_CATEGORY_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Item Category' : 'Add Item Category'}
@@ -108,18 +93,15 @@ export function ItemCategoryAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Category Name <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
-            {...register('categoryName', {
-              required: 'Category name is required',
-              validate: value => value.trim() !== '' || 'Category name cannot be empty'
-            })}
+            {...register('categoryName', { required: 'Category name is required', validate: (value) => value.trim() !== '' || 'Category name cannot be empty' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter category name"
           />
-          {errors.categoryName && (
-            <p className="text-red-600 text-xs mt-1">{errors.categoryName.message}</p>
-          )}
+          {errors.categoryName && <p className="text-red-600 text-xs mt-1">{errors.categoryName.message}</p>}
         </div>
 
         <div>

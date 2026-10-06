@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateEntity } from '../hooks/useEntityDetail';
 import { getDriverReplacementList, createDriverReplacement, updateDriverReplacement, deleteDriverReplacement, type DriverReplacementFilters } from '../api/DriverReplacementApi';
 import { getAllSalesmen } from '../api/SalesmanApi';
 import { getVanOptions } from '../api/VanApi';
@@ -44,56 +45,63 @@ export default function DriverReplacementProvider({ children }: { children: Reac
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<DriverReplacement | null>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['driver-replacement-list', currentPage, perPage, filters],
-    queryFn: () => getDriverReplacementList(currentPage, perPage, filters),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['driver-replacement-list', currentPage, perPage, filters], queryFn: () => getDriverReplacementList(currentPage, perPage, filters), staleTime: 5 * 60 * 1000 });
 
-  const { data: salesmenRaw = [] } = useQuery({
-    queryKey: ['salesman-all'],
-    queryFn: () => getAllSalesmen(),
-    staleTime: 10 * 60 * 1000,
-  });
+  const { data: salesmenRaw = [] } = useQuery({ queryKey: ['salesman-all'], queryFn: () => getAllSalesmen(), staleTime: 10 * 60 * 1000 });
 
-  const { data: vanOptions = [] } = useQuery({
-    queryKey: ['van-options'],
-    queryFn: getVanOptions,
-    staleTime: 10 * 60 * 1000,
-  });
+  const { data: vanOptions = [] } = useQuery({ queryKey: ['van-options'], queryFn: getVanOptions, staleTime: 10 * 60 * 1000 });
 
-  const { data: reasonOptions = [] } = useQuery({
-    queryKey: ['reason-options'],
-    queryFn: getReasonOptions,
-    staleTime: 10 * 60 * 1000,
-  });
+  const { data: reasonOptions = [] } = useQuery({ queryKey: ['reason-options'], queryFn: getReasonOptions, staleTime: 10 * 60 * 1000 });
 
   const salesmanOptions = salesmenRaw.map((s: any) => ({ value: s.id?.toString() ?? '', label: s.name || s.salesmanCode || '' }));
 
   const deleteMutation = useMutation({
     mutationFn: deleteDriverReplacement,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['driver-replacement-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
+    onSuccess: () => {
+      invalidateEntity(queryClient, 'driver-replacement-list', 'driver-replacement');
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to delete');
+    },
   });
 
   const createMutation = useMutation({
     mutationFn: createDriverReplacement,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['driver-replacement-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to create'); throw err; },
+    onSuccess: () => {
+      invalidateEntity(queryClient, 'driver-replacement-list', 'driver-replacement');
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to create');
+      throw err;
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: DriverReplacementFormData }) => updateDriverReplacement(uuid, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['driver-replacement-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to update'); throw err; },
+    onSuccess: () => {
+      invalidateEntity(queryClient, 'driver-replacement-list', 'driver-replacement');
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to update');
+      throw err;
+    },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
     if (window.confirm('Are you sure you want to delete this driver replacement?')) deleteMutation.mutate(uuid);
   };
 
-  const handleCreate = async (data: DriverReplacementFormData) => { await createMutation.mutateAsync(data); };
-  const handleUpdate = async (uuid: string, data: DriverReplacementFormData) => { await updateMutation.mutateAsync({ uuid, data }); };
+  const handleCreate = async (data: DriverReplacementFormData) => {
+    await createMutation.mutateAsync(data);
+  };
+  const handleUpdate = async (uuid: string, data: DriverReplacementFormData) => {
+    await updateMutation.mutateAsync({ uuid, data });
+  };
 
   const items = Array.isArray(responseData?.data) ? responseData.data : [];
   const meta = responseData?.meta ?? null;

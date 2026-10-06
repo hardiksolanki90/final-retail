@@ -35,17 +35,7 @@ const defaultValues: ShelfDisplayFormData = {
   notes: '',
 };
 
-export function ShelfDisplayAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  customers = [],
-  merchandisers = [],
-  brands = [],
-  categories = [],
-}: ShelfDisplayAddProps) {
+export function ShelfDisplayAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false, customers = [], merchandisers = [], brands = [], categories = [] }: ShelfDisplayAddProps) {
   const {
     register,
     handleSubmit,
@@ -75,35 +65,29 @@ export function ShelfDisplayAdd({
     onClose();
   };
 
-  const selectClass = 'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
+  const selectClass =
+    'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
 
-  const defaultCategoryOptions: SelectOption[] = categories.length > 0 ? categories : [
-    { value: 'beverages', label: 'Beverages' },
-    { value: 'snacks', label: 'Snacks' },
-    { value: 'dairy', label: 'Dairy' },
-    { value: 'personal_care', label: 'Personal Care' },
-    { value: 'household', label: 'Household' },
-  ];
+  const defaultCategoryOptions: SelectOption[] =
+    categories.length > 0
+      ? categories
+      : [
+          { value: 'beverages', label: 'Beverages' },
+          { value: 'snacks', label: 'Snacks' },
+          { value: 'dairy', label: 'Dairy' },
+          { value: 'personal_care', label: 'Personal Care' },
+          { value: 'household', label: 'Household' },
+        ];
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Shelf Display' : 'Add Shelf Display'}
-      width="w-[600px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Shelf Display' : 'Add Shelf Display'} width="w-[600px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Display Code</label>
           </div>
           <div className="flex items-center gap-2 relative">
-            <Input
-              {...register('displayCode', { required: 'Display Code is required' })}
-              error={errors.displayCode?.message}
-              placeholder="Enter display code"
-              required
-            />
+            <Input {...register('displayCode', { required: 'Display Code is required' })} error={errors.displayCode?.message} placeholder="Configure the system to auto-generate the code." required />
             <OrderCodeSettingsIcon label="Display Code" value={watch('displayCode') || ''} onChange={(v) => setValue('displayCode', v)} />
           </div>
         </div>
@@ -115,7 +99,11 @@ export function ShelfDisplayAdd({
             </label>
             <select {...register('customerId', { required: 'Customer is required' })} className={selectClass}>
               <option value="">Select customer</option>
-              {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {customers.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
           </div>
@@ -125,19 +113,17 @@ export function ShelfDisplayAdd({
             </label>
             <select {...register('salesmanId', { required: 'Merchandiser is required' })} className={selectClass}>
               <option value="">Select merchandiser</option>
-              {merchandisers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {merchandisers.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
           </div>
         </div>
 
-        <Input
-          label="Date"
-          type="date"
-          {...register('date', { required: 'Date is required' })}
-          error={errors.date?.message}
-          required
-        />
+        <Input label="Date" type="date" {...register('date', { required: 'Date is required' })} error={errors.date?.message} required />
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -146,7 +132,11 @@ export function ShelfDisplayAdd({
             </label>
             <select {...register('category', { required: 'Category is required' })} className={selectClass}>
               <option value="">Select category</option>
-              {defaultCategoryOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {defaultCategoryOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.category && <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>}
           </div>
@@ -154,7 +144,11 @@ export function ShelfDisplayAdd({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand</label>
             <select {...register('brandId')} className={selectClass}>
               <option value="">Select brand</option>
-              {brands.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {brands.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -170,13 +164,7 @@ export function ShelfDisplayAdd({
               <option value="bottom">Bottom</option>
             </select>
           </div>
-          <Input
-            label="Facing Count"
-            type="number"
-            {...register('facingCount', { valueAsNumber: true })}
-            placeholder="Enter facing count"
-            min="0"
-          />
+          <Input label="Facing Count" type="number" {...register('facingCount', { valueAsNumber: true })} placeholder="Enter facing count" min="0" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -190,24 +178,14 @@ export function ShelfDisplayAdd({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price Tag Present</label>
-            <select
-              className={selectClass}
-              onChange={(e) => setValue('priceTagPresent', e.target.value === 'true')}
-              defaultValue="true"
-            >
+            <select className={selectClass} onChange={(e) => setValue('priceTagPresent', e.target.value === 'true')} defaultValue="true">
               <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
           </div>
         </div>
 
-        <Input
-          label="Cleanliness Rating (1-10)"
-          type="number"
-          {...register('cleanlinessRating', { valueAsNumber: true })}
-          placeholder="Enter rating"
-          min="1" max="10"
-        />
+        <Input label="Cleanliness Rating (1-10)" type="number" {...register('cleanlinessRating', { valueAsNumber: true })} placeholder="Enter rating" min="1" max="10" />
 
         <div className="w-full">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Image</label>
@@ -231,7 +209,9 @@ export function ShelfDisplayAdd({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+            Cancel
+          </CancelButton>
           <SaveButton type="submit" disabled={isLoading || isSubmitting}>
             {isLoading || isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>

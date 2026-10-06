@@ -1,25 +1,10 @@
 import axiosInstance from '../lib/axios';
-import { unwrapPaginated } from '../lib/paginatedResponse';
-import type {
-  Item, 
-  ItemFormData, 
-  ItemListResponse, 
-  ItemCategory, 
-  Brand, 
-  ItemUom,
-  ItemWithStock,
-  ItemSelectOption,
-  ItemFilters,
-  ItemBulkAction 
-} from '../types/Item';
+import { queryClient } from '../lib/queryClient';
+import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
+import type { Item, ItemFormData, ItemListResponse, ItemCategory, Brand, ItemUom, ItemWithStock, ItemSelectOption, ItemFilters, ItemBulkAction } from '../types/Item';
 
 // Items CRUD Operations
-export const getItemList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-  filters?: ItemFilters
-): Promise<ItemListResponse> => {
+export const getItemList = async (page: number = 1, searchTerm?: string, perPage: number = 15, filters?: ItemFilters): Promise<ItemListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -50,8 +35,6 @@ export const getItemList = async (
 
 export const getAllItems = async (filters?: ItemFilters): Promise<ItemSelectOption[]> => {
   const params = new URLSearchParams();
-  params.append('page', '1');
-  params.append('per_page', '1000');
 
   if (filters?.itemCategoryId) {
     params.append('item_category_id', filters.itemCategoryId.toString());
@@ -61,8 +44,36 @@ export const getAllItems = async (filters?: ItemFilters): Promise<ItemSelectOpti
     params.append('brand_id', filters.brandId.toString());
   }
 
-  const response = await axiosInstance.get(`/item/list?${params.toString()}`);
-  return response.data.data || response.data;
+  // item/all: every item as a lean option with its UOMs (item/list is the paginated table feed).
+  const response = await axiosInstance.get(`/item/all?${params.toString()}`);
+  return (response.data?.data ?? []).map(toItemOption);
+};
+
+/** One item/all row → dropdown option: "CODE - name" label and its UOMs (base first). */
+const toItemOption = (it: { value: string; label: string; code?: string | null; uoms?: { id: string; code?: string; name?: string; isBase: boolean }[] }): ItemSelectOption => ({
+  value: it.value,
+  label: [it.code, it.label].filter(Boolean).join(' - '),
+  uoms: (it.uoms ?? []).map((u) => ({ value: u.id, label: [u.code, u.name].filter(Boolean).join(' - '), isBase: u.isBase })),
+});
+
+/**
+ * One searchable page of item options (by code, name or barcode) for a dropdown that loads as it
+ * scrolls. Page 1 is shared between every dropdown on a form — one request, cached a minute;
+ * item changes invalidate 'item-list', which drops these too.
+ */
+export const getItemOptions = async (page: number = 1, search?: string, perPage: number = 25): Promise<NormalizedListResponse<ItemSelectOption>> => {
+  const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+  if (search) params.append('search', search);
+  const url = `/item/all?${params.toString()}`;
+
+  return queryClient.fetchQuery<NormalizedListResponse<ItemSelectOption>>({
+    queryKey: ['item-list', 'options', url],
+    queryFn: async () => {
+      const res = unwrapPaginated<Parameters<typeof toItemOption>[0]>((await axiosInstance.get(url)).data, 'items', perPage);
+      return { ...res, data: res.data.map(toItemOption) };
+    },
+    staleTime: 60 * 1000,
+  });
 };
 
 export const getItemsWithStock = async (warehouseId?: number): Promise<ItemWithStock[]> => {
@@ -75,12 +86,7 @@ export const getItemsWithStock = async (warehouseId?: number): Promise<ItemWithS
   return response.data.data || response.data;
 };
 
-export const searchItems = async (
-  searchTerm: string,
-  page: number = 1,
-  perPage: number = 15,
-  filters?: ItemFilters
-): Promise<ItemListResponse> => {
+export const searchItems = async (searchTerm: string, page: number = 1, perPage: number = 15, filters?: ItemFilters): Promise<ItemListResponse> => {
   const params = new URLSearchParams();
   params.append('search', searchTerm);
   params.append('page', page.toString());
@@ -126,11 +132,7 @@ export const bulkActionItems = async (bulkAction: ItemBulkAction): Promise<void>
 };
 
 // Item Categories API
-export const getItemCategoryList = async (
-  page: number = 1,
-  perPage: number = 15,
-  searchTerm?: string
-): Promise<any> => {
+export const getItemCategoryList = async (page: number = 1, perPage: number = 15, searchTerm?: string): Promise<any> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -164,11 +166,7 @@ export const deleteItemCategory = async (uuid: string): Promise<void> => {
 };
 
 // Brands API
-export const getBrandList = async (
-  page: number = 1,
-  perPage: number = 15,
-  searchTerm?: string
-): Promise<any> => {
+export const getBrandList = async (page: number = 1, perPage: number = 15, searchTerm?: string): Promise<any> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -202,11 +200,7 @@ export const deleteBrand = async (uuid: string): Promise<void> => {
 };
 
 // Item UOM API
-export const getItemUomList = async (
-  page: number = 1,
-  perPage: number = 15,
-  searchTerm?: string
-): Promise<any> => {
+export const getItemUomList = async (page: number = 1, perPage: number = 15, searchTerm?: string): Promise<any> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -241,8 +235,6 @@ export const deleteItemUom = async (uuid: string): Promise<void> => {
 
 // Utility Functions
 export const exportItems = async (format: 'csv' | 'xlsx'): Promise<Blob> => {
-  const response = await axiosInstance.get(`/item/export?format=${format}`, {
-    responseType: 'blob',
-  });
+  const response = await axiosInstance.get(`/item/export?format=${format}`, { responseType: 'blob' });
   return response.data;
 };

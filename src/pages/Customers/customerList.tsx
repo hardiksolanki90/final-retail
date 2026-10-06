@@ -1,27 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  Plus,
-  Columns3,
-  Download,
-  Upload,
-  ChevronDown,
-  Check,
-  Trash2,
-  Archive,
-  Tag,
-  X,
-  Menu,
-  Filter,
-  Pencil,
-} from 'lucide-react';
+import { Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu, Filter, Pencil } from 'lucide-react';
 import { CustomerAdd } from './customerAdd';
 import { CustomerViewDrawer } from './CustomerViewDrawer';
 import { useCustomer } from '../../providers/CustomerProvider';
-import { getCustomerDetails } from '../../api/CustomerApi';
+import { useCustomerDetail } from '../../hooks/Customers/useCustomerDetail';
+import { isDetailLoading } from '../../hooks/useEntityDetail';
 import type { Customer } from '../../types/Customer';
 import { showToast } from '../../lib/toast';
 import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
-import { TableLoadingRow } from '../../components/ui/TableLoadingRow';
+import { TableSkeletonRows } from '../../components/ui/skeleton';
 import { Pagination } from '../../components/ui/Pagination';
 
 interface Column {
@@ -57,8 +44,18 @@ export function CustomerList() {
 
   // ── Local UI State ────────────────────────────────────────────────────────
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
+  // Which customer the View / Edit drawer shows; its full details come from the query cache.
+  const [viewUuid, setViewUuid] = useState<string | null>(null);
+  const [editUuid, setEditUuid] = useState<string | null>(null);
+  const viewQuery = useCustomerDetail(viewUuid);
+  const editQuery = useCustomerDetail(editUuid);
+  const viewCustomer = viewUuid ? (viewQuery.data ?? null) : null;
+  const isViewLoading = Boolean(viewUuid) && viewQuery.isPending;
+  const selectedCustomer = editUuid ? (editQuery.data ?? null) : null;
+  // Any fetch (first load or a refresh of stale details) shows the loader, so a form is never replaced while typing.
+  const isEditLoading = isDetailLoading(editQuery, editUuid);
+  const editFailed = Boolean(editUuid) && editQuery.isError && !editQuery.isFetching;
+  const viewFailed = Boolean(viewUuid) && viewQuery.isError && !viewQuery.isFetching;
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -88,12 +85,9 @@ export function CustomerList() {
   // ── Close dropdowns on outside click ────────────────────────────────────
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (bulkActionRef.current && !bulkActionRef.current.contains(event.target as Node))
-        setBulkActionOpen(false);
-      if (columnsRef.current && !columnsRef.current.contains(event.target as Node))
-        setColumnsDropdownOpen(false);
-      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target as Node))
-        setMoreActionsOpen(false);
+      if (bulkActionRef.current && !bulkActionRef.current.contains(event.target as Node)) setBulkActionOpen(false);
+      if (columnsRef.current && !columnsRef.current.contains(event.target as Node)) setColumnsDropdownOpen(false);
+      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target as Node)) setMoreActionsOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -101,21 +95,13 @@ export function CustomerList() {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  const toggleColumn = (key: string) =>
-    setColumns(prev => prev.map(col => col.key === key ? { ...col, visible: !col.visible } : col));
+  const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
 
+  const allSelected = customers.length > 0 && selectedRowKeys.length === customers.length;
 
+  const handleSelectAll = () => setSelectedRowKeys(allSelected ? [] : customers?.map((c) => c.uuid!));
 
-  const allSelected =
-    customers.length > 0 && selectedRowKeys.length === customers.length;
-
-  const handleSelectAll = () =>
-    setSelectedRowKeys(allSelected ? [] : customers?.map(c => c.uuid!));
-
-  const handleSelectRow = (uuid: string) =>
-    setSelectedRowKeys(
-      selectedRowKeys.includes(uuid) ? selectedRowKeys.filter(k => k !== uuid) : [...selectedRowKeys, uuid]
-    );
+  const handleSelectRow = (uuid: string) => setSelectedRowKeys(selectedRowKeys.includes(uuid) ? selectedRowKeys.filter((k) => k !== uuid) : [...selectedRowKeys, uuid]);
 
   // Search apply
   const applySearch = () => {
@@ -130,35 +116,33 @@ export function CustomerList() {
     setFilterOpen(false);
   };
 
-  // Edit — fetch full detail so fields the trimmed list row doesn't carry
-  // (address, credit limit, category, channel, ...) aren't blanked out.
-  const handleEditClick = async (customer: Customer) => {
+  // Edit — open the drawer immediately with a loader, then fill it from the full
+  // detail (the trimmed list row lacks address, credit limit, category, channel, ...).
+  const handleEditClick = (customer: Customer) => {
     if (!customer.uuid) return;
-    try {
-      const full = await getCustomerDetails(customer.uuid);
-      setSelectedCustomer(full);
-      setIsAddOpen(true);
-    } catch {
-      showToast.error('Failed to load customer details');
-    }
+    if (editUuid === customer.uuid && editFailed) editQuery.refetch();
+    setEditUuid(customer.uuid);
+    setIsAddOpen(true);
   };
 
-  // View — same reasoning as handleEditClick.
-  const handleViewClick = async (customer: Customer) => {
+  // View — open the drawer immediately with a loader, then fill it in once
+  // the full detail (address, credit limit, category, channel, ...) arrives.
+  const handleViewClick = (customer: Customer) => {
     if (!customer.uuid) return;
-    try {
-      const full = await getCustomerDetails(customer.uuid);
-      setViewCustomer(full);
-      setIsViewOpen(true);
-    } catch {
-      showToast.error('Failed to load customer details');
-    }
+    if (viewUuid === customer.uuid && viewFailed) viewQuery.refetch();
+    setViewUuid(customer.uuid);
+    setIsViewOpen(true);
   };
+
+  // A failed load hides the drawer it was opened for (derived below) and says why.
+  useEffect(() => {
+    if (editFailed || viewFailed) showToast.error('Failed to load customer details');
+  }, [editFailed, viewFailed]);
 
   // Add / close drawer
   const handleDrawerClose = () => {
     setIsAddOpen(false);
-    setSelectedCustomer(null);
+    setEditUuid(null);
   };
 
   const handleSaved = () => {
@@ -179,17 +163,26 @@ export function CustomerList() {
     {
       label: 'Delete Selected',
       icon: Trash2,
-      action: () => { handleBulkAction('delete'); setBulkActionOpen(false); },
+      action: () => {
+        handleBulkAction('delete');
+        setBulkActionOpen(false);
+      },
     },
     {
       label: 'Activate Selected',
       icon: Archive,
-      action: () => { handleBulkAction('activate'); setBulkActionOpen(false); },
+      action: () => {
+        handleBulkAction('activate');
+        setBulkActionOpen(false);
+      },
     },
     {
       label: 'Deactivate Selected',
       icon: Tag,
-      action: () => { handleBulkAction('deactivate'); setBulkActionOpen(false); },
+      action: () => {
+        handleBulkAction('deactivate');
+        setBulkActionOpen(false);
+      },
     },
   ];
 
@@ -205,7 +198,6 @@ export function CustomerList() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-
           {/* Bulk Action — only when rows selected */}
           {selectedRowKeys.length > 0 && (
             <div className="relative" ref={bulkActionRef}>
@@ -214,15 +206,13 @@ export function CustomerList() {
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
-                  {selectedRowKeys.length}
-                </span>
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRowKeys.length}</span>
                 <ChevronDown className="w-4 h-4" />
               </button>
               {bulkActionOpen && (
                 <div className="absolute right-0 mt-2 w-52 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
                   <div className="py-1">
-                    {bulkActionItems.map(item => (
+                    {bulkActionItems.map((item) => (
                       <button
                         key={item.label}
                         onClick={item.action}
@@ -240,17 +230,16 @@ export function CustomerList() {
 
           {/* Filter Button */}
           <button
-            onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm
-              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-              }`}
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
+              filterOpen || searchTerm
+                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            }`}
           >
             <Filter className="w-4 h-4" />
             Filter
-            {searchTerm && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">1</span>
-            )}
+            {searchTerm && <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">1</span>}
           </button>
 
           {/* Columns Dropdown */}
@@ -266,7 +255,7 @@ export function CustomerList() {
             {columnsDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
                 <div className="py-1">
-                  {columns.map(column => (
+                  {columns.map((column) => (
                     <button
                       key={column.key}
                       onClick={() => toggleColumn(column.key)}
@@ -283,7 +272,10 @@ export function CustomerList() {
 
           {/* Create Button */}
           <button
-            onClick={() => { setSelectedCustomer(null); setIsAddOpen(true); }}
+            onClick={() => {
+              setEditUuid(null);
+              setIsAddOpen(true);
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -303,16 +295,24 @@ export function CustomerList() {
               <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-20">
                 <div className="py-1">
                   <button
-                    onClick={() => { setExportModalOpen(true); setMoreActionsOpen(false); }}
+                    onClick={() => {
+                      setExportModalOpen(true);
+                      setMoreActionsOpen(false);
+                    }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
-                    <Download className="w-4 h-4" />Export
+                    <Download className="w-4 h-4" />
+                    Export
                   </button>
                   <button
-                    onClick={() => { console.log('Import'); setMoreActionsOpen(false); }}
+                    onClick={() => {
+                      console.log('Import');
+                      setMoreActionsOpen(false);
+                    }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
                   >
-                    <Upload className="w-4 h-4" />Import
+                    <Upload className="w-4 h-4" />
+                    Import
                   </button>
                 </div>
               </div>
@@ -330,17 +330,14 @@ export function CustomerList() {
               <input
                 type="text"
                 value={searchDraft}
-                onChange={e => setSearchDraft(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && applySearch()}
+                onChange={(e) => setSearchDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && applySearch()}
                 placeholder="Search by name, code, phone…"
                 className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
             <div className="flex items-end gap-2 pb-0.5">
-              <button
-                onClick={applySearch}
-                className="px-4 cursor-pointer cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-              >
+              <button onClick={applySearch} className="px-4 cursor-pointer cursor-pointer py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
                 Apply
               </button>
               <button
@@ -367,12 +364,7 @@ export function CustomerList() {
             <thead>
               <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
                 <th className="w-12 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                  />
+                  <input type="checkbox" checked={allSelected} onChange={handleSelectAll} className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500" />
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Code</th>
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Name</th>
@@ -383,70 +375,70 @@ export function CustomerList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableLoadingRow colSpan={6} label="Loading customers…" />
+                <TableSkeletonRows rows={perPage} label="Loading customers" columns={['check', 'text', 'text', 'text', 'text', 'actions']} />
               ) : customers.length === 0 ? (
                 <TableEmptyRow colSpan={6} label="No customers found." />
-              ) : customers?.map((customer: any) => (
-                <tr
-                  key={customer?.uuid}
-                  onClick={() => handleViewClick(customer)}
-                  className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
-                >
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedRowKeys.includes(customer?.uuid ?? "")}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleSelectRow(customer?.uuid ?? "");
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                    />
-                  </td>
-
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-[var(--text-secondary)]">{customer?.customerCode ?? customer?.code}</span>
-                  </td>
-
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{customer?.firstName} {customer?.lastName}</span>
-                  </td>
-
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm text-[var(--text-secondary)]">{customer?.shopName ?? "N/A"}</span>
-                  </td>
-
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-[var(--text-secondary)]">{customer?.phoneNumber}</span>
-                  </td>
-
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        className="inline-flex cursor-pointer cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
-                        onClick={(e) => {
+              ) : (
+                customers?.map((customer: any) => (
+                  <tr key={customer?.uuid} onClick={() => handleViewClick(customer)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedRowKeys.includes(customer?.uuid ?? '')}
+                        onChange={(e) => {
                           e.stopPropagation();
-                          handleEditClick(customer);
+                          handleSelectRow(customer?.uuid ?? '');
                         }}
-                      >
-                        <Pencil size={14} strokeWidth={2.5} />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        className="inline-flex cursor-pointer cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteWithConfirmation(customer?.uuid ?? "");
-                        }}
-                      >
-                        <Trash2 size={14} strokeWidth={2.5} />
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                      />
+                    </td>
+
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-mono text-[var(--text-secondary)]">{customer?.customerCode ?? customer?.code}</span>
+                    </td>
+
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
+                        {customer?.firstName} {customer?.lastName}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm text-[var(--text-secondary)]">{customer?.shopName ?? 'N/A'}</span>
+                    </td>
+
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="text-sm font-mono text-[var(--text-secondary)]">{customer?.mobile}</span>
+                    </td>
+
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          className="inline-flex cursor-pointer cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClick(customer);
+                          }}
+                        >
+                          <Pencil size={14} strokeWidth={2.5} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          className="inline-flex cursor-pointer cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 group-hover:shadow-md"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteWithConfirmation(customer?.uuid ?? '');
+                          }}
+                        >
+                          <Trash2 size={14} strokeWidth={2.5} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -457,25 +449,26 @@ export function CustomerList() {
 
       {/* View Drawer */}
       <CustomerViewDrawer
-        isOpen={isViewOpen}
+        isOpen={isViewOpen && !viewFailed}
+        isLoading={isViewLoading}
         onClose={() => {
           setIsViewOpen(false);
-          setViewCustomer(null);
+          setViewUuid(null);
         }}
         data={viewCustomer}
         onEdit={(customer) => {
           setIsViewOpen(false);
-          setViewCustomer(null);
+          setViewUuid(null);
           handleEditClick(customer);
         }}
       />
 
       {/* Add / Edit Drawer */}
       <CustomerAdd
-        isOpen={isAddOpen}
+        isOpen={isAddOpen && !editFailed}
         onClose={handleDrawerClose}
-        data={selectedCustomer}
-        onEvent={event => {
+        data={{ initialData: selectedCustomer, isLoading: isEditLoading }}
+        onEvent={(event) => {
           if (event.eventType === 'CustomerSaved') handleSaved();
         }}
       />
@@ -493,57 +486,43 @@ export function CustomerList() {
             </div>
             <div className="px-6 py-4 space-y-6">
               <div className="space-y-3">
-                {(['all', 'specific'] as const).map(t => (
+                {(['all', 'specific'] as const).map((t) => (
                   <label key={t} className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="exportType"
-                      checked={exportType === t}
-                      onChange={() => setExportType(t)}
-                      className="w-5 h-5 text-primary-600"
-                    />
+                    <input type="radio" name="exportType" checked={exportType === t} onChange={() => setExportType(t)} className="w-5 h-5 text-primary-600" />
                     <span className="text-[var(--text-primary)] font-medium capitalize">{t} Customers</span>
                   </label>
                 ))}
               </div>
               {exportType === 'specific' && (
                 <div className="grid grid-cols-2 gap-4">
-                  {[['From', exportFromDate, setExportFromDate], ['To', exportToDate, setExportToDate]].map(
-                    ([label, val, set]) => (
-                      <div key={label as string}>
-                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{label as string}</label>
-                        <input
-                          type="date"
-                          value={val as string}
-                          onChange={e => (set as any)(e.target.value)}
-                          className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                    )
-                  )}
+                  {[
+                    ['From', exportFromDate, setExportFromDate],
+                    ['To', exportToDate, setExportToDate],
+                  ].map(([label, val, set]) => (
+                    <div key={label as string}>
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{label as string}</label>
+                      <input
+                        type="date"
+                        value={val as string}
+                        onChange={(e) => (set as any)(e.target.value)}
+                        className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As:</label>
-                {(['csv', 'xls'] as const).map(f => (
+                {(['csv', 'xls'] as const).map((f) => (
                   <label key={f} className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="exportFormat"
-                      checked={exportFormat === f}
-                      onChange={() => setExportFormat(f)}
-                      className="w-5 h-5 text-primary-600"
-                    />
+                    <input type="radio" name="exportFormat" checked={exportFormat === f} onChange={() => setExportFormat(f)} className="w-5 h-5 text-primary-600" />
                     <span className="text-[var(--text-primary)] uppercase">{f}</span>
                   </label>
                 ))}
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
-              <button
-                onClick={handleExportSubmit}
-                className="px-4 cursor-pointer cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
-              >
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">
                 Export
               </button>
               <button

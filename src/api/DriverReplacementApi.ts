@@ -11,11 +11,7 @@ export interface DriverReplacementFilters {
   reason_id?: number;
 }
 
-export const getDriverReplacementList = async (
-  page = 1,
-  perPage = 15,
-  filters?: DriverReplacementFilters
-): Promise<DriverReplacementListResponse> => {
+export const getDriverReplacementList = async (page = 1, perPage = 15, filters?: DriverReplacementFilters): Promise<DriverReplacementListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());

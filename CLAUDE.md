@@ -73,6 +73,12 @@ src/
 
 ## Architecture Patterns
 
+# Code Style Guidelines
+- Write all code as a single line whenever possible. 
+- Never split expressions, array declarations, or function logic into multiple lines.
+- Omit optional whitespace, line breaks, and intermediate variables.
+
+
 ### API Layer
 - `src/services/api.js` — Axios base instance (`withCredentials`, CSRF token, 401/419 interceptors)
 - `src/api/*.ts` — Module API classes. **Never call `axios.get()` directly in components.**
@@ -122,14 +128,16 @@ api/{Module}Api.ts       ← API class
 
 ---
 
-## List Page Loading & Empty States
+## Loading & Empty States
 
-Every `{Module}List.tsx` table body MUST use these two shared components (`src/components/ui/`) instead of ad-hoc "Loading…" text or overlay spinners:
+Loading is shown as **skeletons shaped like the real content** (`src/components/ui/skeleton/`), never as a spinner or "Loading…" text. Every screen declares its own skeleton so it matches that screen's layout.
+
+Every `{Module}List.tsx` table body MUST use `TableSkeletonRows` and `TableEmptyRow`:
 
 ```tsx
 <tbody>
   {isLoading ? (
-    <TableLoadingRow colSpan={N} label="Loading {modules}…" />
+    <TableSkeletonRows rows={perPage} label="Loading {modules}" columns={['check', 'text', 'badge', 'actions']} />
   ) : items.length === 0 ? (
     <TableEmptyRow colSpan={N} label="No {modules} found." />
   ) : items.map((item) => (
@@ -138,10 +146,13 @@ Every `{Module}List.tsx` table body MUST use these two shared components (`src/c
 </tbody>
 ```
 
-- `TableLoadingRow` — spinner + label, one `<tr>`.
-- `TableEmptyRow` — dashed icon badge + uppercase label, one `<tr>`.
-- `colSpan` = total `<th>` count in that table's `<thead>`.
-- No separate overlay-spinner `<div className="absolute inset-0 ...animate-spin...">` over the table — the in-row loader is the only loading UI.
+- `columns` mirrors the list's real `<th>` cells, in order. Kinds: `check`, `text`, `text-sub`, `badge`, `number`, `date`, `avatar`, `actions` (Edit + Delete), `action` (Delete only).
+- Hideable columns: `...when(isCodeVisible, 'text')`. Columns driven by a `columns` array: `...colsByKey(visibleColumns, { status: 'badge' })`.
+- `rows` = the list's page size (capped at 25). Use `dense` for lists whose cells are `py-3`.
+- Only the table body is skeletonised — toolbar, header row and pagination stay real.
+- `TableEmptyRow` — dashed icon badge + uppercase label, one `<tr>`; `colSpan` = total `<th>` count.
+- Edit drawers: pass `skeleton={<FormSkeleton fields={[...]} />}` to `Drawer` next to `isLoading`; `fields` mirrors the form's rows.
+- Keep a skeleton in the same file/folder as the screen it mirrors, so the two change together.
 
 ## Non-Negotiable Conventions
 
@@ -182,3 +193,4 @@ npm run preview   # Preview production build
 - `.claude/rules/frontend/api.md` — API integration patterns
 - `.claude/rules/frontend/modal-hook-pattern.md` — Modal | Hook pattern (4-prop rule)
 - `PROJECT_STRUCTURE.md` — Full coding standards reference
+- `code-simplifier.md` — Code Simplifier

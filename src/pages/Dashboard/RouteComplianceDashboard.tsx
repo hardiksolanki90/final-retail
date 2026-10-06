@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import {
-  Trophy,
-  TrendingDown,
-  Route,
-  Users,
-  Target,
-  CheckCircle2,
-} from 'lucide-react';
+import { Trophy, TrendingDown, Route, Users, Target, CheckCircle2 } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 
@@ -40,7 +33,7 @@ const performers: PerformerData[] = [
   { name: 'Sanjib Meche', score: 16.67, type: 'standard', routes: 6, visits: 38 },
   { name: 'Herbert Kimbugwe', score: 16.67, type: 'standard', routes: 6, visits: 36 },
   { name: 'Richard Musinguzi', score: 16.67, type: 'standard', routes: 6, visits: 41 },
-  { name: 'Adeel Qasim Muhammad Qasim', score: 12.50, type: 'standard', routes: 8, visits: 28 },
+  { name: 'Adeel Qasim Muhammad Qasim', score: 12.5, type: 'standard', routes: 8, visits: 28 },
   { name: 'Osman Ahmed', score: 11.11, type: 'standard', routes: 9, visits: 24 },
   { name: 'Aneesh Erinjeri', score: 5.56, type: 'standard', routes: 18, visits: 12 },
 ];
@@ -103,15 +96,15 @@ function PerformerCard({ performer, rank }: { performer: PerformerData; rank: nu
       {/* Header: Rank + Label */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className={`
+          <span
+            className={`
             w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
             ${isHighlighted ? accent.badge + ' ' + accent.badgeText : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}
-          `}>
+          `}
+          >
             {rank}
           </span>
-          <span className={`text-[10px] font-semibold uppercase tracking-widest ${accent.badgeText}`}>
-            {getPerformerLabel(performer.type)}
-          </span>
+          <span className={`text-[10px] font-semibold uppercase tracking-widest ${accent.badgeText}`}>{getPerformerLabel(performer.type)}</span>
         </div>
         {performer.type === 'top' && <Trophy className="w-4 h-4 text-amber-500" />}
         {performer.type === 'lower' && <TrendingDown className="w-4 h-4 text-red-400" />}
@@ -129,10 +122,7 @@ function PerformerCard({ performer, rank }: { performer: PerformerData; rank: nu
           <span className={`text-sm font-bold ${accent.text}`}>{performer.score.toFixed(2)}%</span>
         </div>
         <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-          <div
-            className={`${accent.bar} h-2 rounded-full transition-all`}
-            style={{ width: `${Math.max(performer.score, 1)}%` }}
-          />
+          <div className={`${accent.bar} h-2 rounded-full transition-all`} style={{ width: `${Math.max(performer.score, 1)}%` }} />
         </div>
       </div>
 
@@ -140,15 +130,11 @@ function PerformerCard({ performer, rank }: { performer: PerformerData; rank: nu
       <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800/50">
         <div className="flex items-center gap-1.5">
           <Route className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {performer.routes} routes
-          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{performer.routes} routes</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Users className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {performer.visits} visits
-          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{performer.visits} visits</span>
         </div>
       </div>
     </div>
@@ -169,9 +155,7 @@ function KpiStat({ title, value, icon, color }: { title: string; value: string; 
       <div className="flex items-start gap-4">
         <div className={`p-3 rounded-xl shrink-0 ${c.iconBg}`}>{icon}</div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            {title}
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{title}</p>
           <p className={`text-2xl font-bold mt-1 ${c.valueText}`}>{value}</p>
         </div>
       </div>
@@ -196,41 +180,19 @@ export function RouteComplianceDashboard() {
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
         <div className="flex flex-col md:flex-row items-end gap-3">
           <div className="w-full md:w-auto md:flex-1">
-            <Input
-              label="From Date"
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
+            <Input label="From Date" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
           </div>
           <div className="w-full md:w-auto md:flex-1">
-            <Input
-              label="To Date"
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
+            <Input label="To Date" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
           <div className="w-full md:w-auto md:flex-1">
-            <Select
-              label="Merchandiser"
-              options={merchandiserOptions}
-              value={merchandiser}
-              onChange={(e) => setMerchandiser(e.target.value)}
-            />
+            <Select label="Merchandiser" options={merchandiserOptions} value={merchandiser} onChange={(e) => setMerchandiser(e.target.value)} />
           </div>
           <div className="w-full md:w-auto md:flex-1">
-            <Select
-              label="Select Options"
-              options={selectOptions}
-              value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-            />
+            <Select label="Select Options" options={selectOptions} value={selectedOption} onChange={(e) => setSelectedOption(e.target.value)} />
           </div>
           <div className="hidden md:block">
-            <span className="text-xs text-gray-400 whitespace-nowrap">
-              Last Reload Date: 12/12/2020
-            </span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">Last Reload Date: 12/12/2020</span>
           </div>
         </div>
       </div>
@@ -240,37 +202,15 @@ export function RouteComplianceDashboard() {
 
       {/* Page Header */}
       <div className="pt-5 pb-3">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Merchandising – Reach-routeCompliance
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Merchandising – Reach-routeCompliance</h2>
       </div>
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        <KpiStat
-          title="Overall Compliance"
-          value={`${avgCompliance.toFixed(1)}%`}
-          icon={<Target className="w-6 h-6" />}
-          color="amber"
-        />
-        <KpiStat
-          title="Total Merchandisers"
-          value={String(totalMerchandisers)}
-          icon={<Users className="w-6 h-6" />}
-          color="blue"
-        />
-        <KpiStat
-          title="Total Route Visits"
-          value={String(totalVisits)}
-          icon={<Route className="w-6 h-6" />}
-          color="default"
-        />
-        <KpiStat
-          title="Above Target (15%)"
-          value={`${aboveTarget} / ${totalMerchandisers}`}
-          icon={<CheckCircle2 className="w-6 h-6" />}
-          color="green"
-        />
+        <KpiStat title="Overall Compliance" value={`${avgCompliance.toFixed(1)}%`} icon={<Target className="w-6 h-6" />} color="amber" />
+        <KpiStat title="Total Merchandisers" value={String(totalMerchandisers)} icon={<Users className="w-6 h-6" />} color="blue" />
+        <KpiStat title="Total Route Visits" value={String(totalVisits)} icon={<Route className="w-6 h-6" />} color="default" />
+        <KpiStat title="Above Target (15%)" value={`${aboveTarget} / ${totalMerchandisers}`} icon={<CheckCircle2 className="w-6 h-6" />} color="green" />
       </div>
 
       {/* Top & Lower Performer Highlight */}
@@ -281,48 +221,37 @@ export function RouteComplianceDashboard() {
 
       {/* All Performers Grid */}
       <div className="mt-6">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          All Performers
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">All Performers</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {standardPerformers.map((performer, index) => (
-            <PerformerCard
-              key={performer.name}
-              performer={performer}
-              rank={index + 2}
-            />
+            <PerformerCard key={performer.name} performer={performer} rank={index + 2} />
           ))}
         </div>
       </div>
 
       {/* Compliance Ranked Bar Chart */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm mt-6">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-4">
-          Compliance Ranking
-        </h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-500 mb-4">Compliance Ranking</h3>
         <div className="space-y-3">
           {sorted.map((performer, index) => {
             const accent = accentMap[performer.type];
             return (
               <div key={performer.name} className="flex items-center gap-3">
-                <span className={`
+                <span
+                  className={`
                   w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0
                   ${getRankBadgeClass(performer.type)}
-                `}>
+                `}
+                >
                   {index + 1}
                 </span>
                 <span className="text-sm text-gray-900 dark:text-white w-56 truncate shrink-0" title={performer.name}>
                   {performer.name}
                 </span>
                 <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2.5">
-                  <div
-                    className={`${accent.bar} h-2.5 rounded-full transition-all`}
-                    style={{ width: `${Math.max(performer.score, 0.5)}%` }}
-                  />
+                  <div className={`${accent.bar} h-2.5 rounded-full transition-all`} style={{ width: `${Math.max(performer.score, 0.5)}%` }} />
                 </div>
-                <span className={`text-sm font-bold w-16 text-right shrink-0 ${accent.text}`}>
-                  {performer.score.toFixed(2)}%
-                </span>
+                <span className={`text-sm font-bold w-16 text-right shrink-0 ${accent.text}`}>{performer.score.toFixed(2)}%</span>
               </div>
             );
           })}

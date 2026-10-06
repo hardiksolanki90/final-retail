@@ -1,61 +1,28 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { isAxiosError } from 'axios';
 import * as AuthApi from '../api/AuthApi';
-import { getOrganisationDetails } from '../api/OrganisationApi';
+import type { AppConfig, ConfigCurrency, ConfigOrganisation, ConfigRole, ConfigTax, ConfigUser } from '../types/AppConfig';
+import type { MenuSection, SettingsMenuItem } from '../data/menuData';
 import {
-  getStoredOrganisation,
-  setStoredOrganisation,
-  clearStoredOrganisation,
-} from '../utils/organisationStorage';
+  clearConfig,
+  configFromLoginUser,
+  fetchAppConfig,
+  getEffectiveCurrency,
+  getSettingsMenu,
+  getSidebarMenu,
+  hasPermission as configHasPermission,
+  loadStoredConfig,
+  removeLegacyKeys,
+  saveConfig,
+} from '../services/appConfig';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Organisation {
-  id: number;
-  uuid?: string;
-  org_name: string;
-  org_company_id?: string;
-  org_email?: string;
-  org_phone?: string;
-  org_address?: string;
-  org_city?: string;
-  org_state?: string;
-  org_postal?: string;
-  org_currency?: string;
-  org_contact_person?: string;
-  org_contact_person_number?: string;
-  org_status: boolean;
-  is_complete?: boolean;
-  country?: {
-    id: number;
-    countryMasterId: number | null;
-    name: string;
-    countryCode: string;
-    dialCode?: string | null;
-    currency?: string | null;
-    currencyCode?: string | null;
-    currencySymbol?: string | null;
-  } | null;
-}
-
-interface UserRole {
-  id: number;
-  name: string;
-  permissions: string[];
-}
-
-interface User {
-  id: number;
-  uuid: string;
-  firstname: string;
-  lastname: string;
-  email: string;
-  mobile?: string;
-  usertype: number;
-  status: boolean;
-  is_approved_by_admin: boolean;
-  organisation?: Organisation;
-  role?: UserRole | null;
+/** Logged-in user as screens read it — role and organisation nested for convenience. */
+export interface AuthUserView extends ConfigUser {
+  role: ConfigRole | null;
+  organisation: ConfigOrganisation | null;
 }
 
 interface LoginCredentialsLocal {
@@ -66,206 +33,202 @@ interface LoginCredentialsLocal {
 interface AuthResult {
   success: boolean;
   message?: string;
-  data?: any;
-  errors?: any;
+  data?: unknown;
+  errors?: Record<string, string[]>;
 }
 
 interface AuthContextType {
-  user: User | null;
-  organisation: Organisation | null;
+  /** Full global config (user, role, organisation, currency). Null when logged out. */
+  config: AppConfig | null;
+  user: AuthUserView | null;
+  organisation: ConfigOrganisation | null;
+  currency: ConfigCurrency | null;
+  tax: ConfigTax | null;
+  sidebarMenu: MenuSection[];
+  settingsMenu: SettingsMenuItem[];
   isAuthenticated: boolean;
   organisationComplete: boolean;
   loading: boolean;
   login: (credentials: LoginCredentialsLocal) => Promise<AuthResult>;
-  register: (userData: any) => Promise<AuthResult>;
+  register: (userData: Record<string, unknown>) => Promise<AuthResult>;
   logout: () => Promise<void>;
-  updateProfile: (profileData: any) => Promise<AuthResult>;
+  updateProfile: (profileData: Record<string, unknown>) => Promise<AuthResult>;
+  /** Re-fetch /app/config — call after anything that changes org, currency or roles. */
+  refreshConfig: () => Promise<AppConfig | null>;
+  /** Kept for existing callers; same as refreshConfig. */
   checkAuthStatus: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
+}
+
+type LoginPayload = Parameters<typeof configFromLoginUser>[0];
+
+function errorResult(error: unknown, fallback: string): AuthResult {
+  if (isAxiosError(error)) {
+    const data = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined;
+    return { success: false, message: data?.message || error.message || fallback, errors: data?.errors };
+  }
+  return { success: false, message: error instanceof Error ? error.message : fallback };
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// ─── Provider ────────────────────────────────────────────────────────────────
-
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [organisation, setOrganisation] = useState<Organisation | null>(() => getStoredOrganisation() as Organisation | null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [organisationComplete, setOrganisationComplete] = useState(false);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  const applyUser = (u: User) => {
-    setUser(u);
-    setIsAuthenticated(true);
-    // is_complete is set server-side only when the user submits the
-    // Organisation Details form (OrganisationAdd) — registration always
-    // creates the org shell with is_complete = false, even though it
-    // already carries org_name/org_company_id/org_phone.
-    setOrganisationComplete(Boolean(u.organisation?.is_complete));
-    if (u.organisation) {
-      setOrganisation(u.organisation);
-      setStoredOrganisation(u.organisation as any);
-    }
-  };
-
-  const clearUser = () => {
-    setUser(null);
-    setOrganisation(null);
-    setIsAuthenticated(false);
-    setOrganisationComplete(false);
-    clearStoredOrganisation();
-  };
-
-  // ── checkAuthStatus ───────────────────────────────────────────────────────
-  // On mount, silently probe /auth/user. If the session cookie is valid
-  // Laravel returns the user; if not, it returns 401 which we catch quietly.
-
-  const checkAuthStatus = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const userData = await AuthApi.getCurrentUser();
-      applyUser(userData as unknown as User);
-
-      // Refresh organisation details in localStorage
-      try {
-        const orgDetails = await getOrganisationDetails();
-        if (orgDetails) {
-          setOrganisation(orgDetails as any);
-          setStoredOrganisation(orgDetails as any);
-          setOrganisationComplete(Boolean(orgDetails.is_complete));
-        }
-      } catch {
-        // Fallback gracefully if org details call fails
-      }
-    } catch {
-      clearUser();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Guards against StrictMode's dev-mode double-invoke of mount effects,
-  // which otherwise fires getCurrentUser()/getOrganisationDetails() twice.
-  const didCheckAuth = useRef(false);
-  useEffect(() => {
-    if (didCheckAuth.current) return;
-    didCheckAuth.current = true;
-    checkAuthStatus();
+  const applyConfig = useCallback(async (next: AppConfig, options?: { newSession?: boolean }) => {
+    setConfig(next);
+    await saveConfig(next, options);
   }, []);
 
-  // ── login ─────────────────────────────────────────────────────────────────
-  // getCsrfCookie() is called inside AuthApi.login before posting credentials.
-  // Laravel Sanctum responds with a Set-Cookie (session + XSRF-TOKEN).
+  const resetSession = useCallback(async () => {
+    setConfig(null);
+    await clearConfig();
+  }, []);
 
-  const login = async (credentials: any): Promise<AuthResult> => {
+  const refreshConfig = useCallback(async (): Promise<AppConfig | null> => {
+    try {
+      const fresh = await fetchAppConfig();
+      await applyConfig(fresh);
+      return fresh;
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 401) {
+        await resetSession();
+        return null;
+      }
+      // Network/server hiccup — keep whatever config is already loaded.
+      console.warn('Could not refresh app config', error);
+      return null;
+    }
+  }, [applyConfig, resetSession]);
+
+  // ── App load: show cached config instantly, then refresh from the server ──
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
+
+    (async () => {
+      removeLegacyKeys();
+      const stored = await loadStoredConfig();
+      if (stored) {
+        setConfig(stored);
+        setLoading(false);
+      }
+      try {
+        await applyConfig(await fetchAppConfig());
+      } catch (error) {
+        // 401 = no session. Any other failure with nothing cached also means
+        // we can't confirm a session, so treat as logged out.
+        if (!stored || (isAxiosError(error) && error.response?.status === 401)) {
+          await resetSession();
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [applyConfig, resetSession]);
+
+  // ── login ─────────────────────────────────────────────────────────────────
+  const login = async (credentials: LoginCredentialsLocal): Promise<AuthResult> => {
     try {
       setLoading(true);
-      const response = await AuthApi.login(credentials as any);
+      const response = await AuthApi.login(credentials as Parameters<typeof AuthApi.login>[0]);
+      const loginUser = ((response as { user?: unknown })?.user ?? response) as LoginPayload;
 
-      // Backend: { success, data: { user, ... } } or just { user }
-      const user = (response as any)?.user ?? response;
-      applyUser(user as User);
-
-      // Call API after successfully login to fetch and store reusable org details in localStorage
       try {
-        const orgDetails = await getOrganisationDetails();
-        if (orgDetails) {
-          setOrganisation(orgDetails as any);
-          setStoredOrganisation(orgDetails as any);
-          setOrganisationComplete(Boolean(orgDetails.is_complete));
-        }
-      } catch (orgErr) {
-        console.warn('Could not fetch organisation details after login:', orgErr);
+        await applyConfig(await fetchAppConfig(), { newSession: true });
+      } catch (configError) {
+        // Non-critical: login succeeded, so run on the login payload in memory.
+        console.warn('App config unavailable after login, using login response', configError);
+        setConfig(configFromLoginUser(loginUser));
       }
 
       return { success: true, data: response };
-    } catch (error: any) {
-      clearUser();
-      const message = error.response?.data?.message || error.message || 'Login failed.';
-      return { success: false, message, errors: error.response?.data?.errors };
+    } catch (error) {
+      await resetSession();
+      return errorResult(error, 'Login failed.');
     } finally {
       setLoading(false);
     }
   };
 
   // ── register ──────────────────────────────────────────────────────────────
-
-  const register = async (userData: any): Promise<AuthResult> => {
+  const register = async (userData: Record<string, unknown>): Promise<AuthResult> => {
     try {
       setLoading(true);
-      const response = await AuthApi.register(userData as any);
-      const user = (response as any)?.user ?? response;
-      if (user) {
-        applyUser(user as User);
+      const response = await AuthApi.register(userData as Parameters<typeof AuthApi.register>[0]);
+      const registeredUser = ((response as { user?: unknown })?.user ?? response) as LoginPayload | undefined;
+
+      try {
+        await applyConfig(await fetchAppConfig(), { newSession: true });
+      } catch {
+        if (registeredUser?.uuid) setConfig(configFromLoginUser(registeredUser));
       }
-      return {
-        success: true,
-        data: response,
-        message: 'Registration successful.',
-      };
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Registration failed.';
-      return { success: false, message, errors: error.response?.data?.errors };
+
+      return { success: true, data: response, message: 'Registration successful.' };
+    } catch (error) {
+      return errorResult(error, 'Registration failed.');
     } finally {
       setLoading(false);
     }
   };
 
   // ── logout ────────────────────────────────────────────────────────────────
-
   const logout = async (): Promise<void> => {
     try {
       await AuthApi.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      clearUser();
+      await resetSession();
       window.location.href = '/login';
     }
   };
 
   // ── updateProfile ─────────────────────────────────────────────────────────
-
-  const updateProfile = async (profileData: any): Promise<AuthResult> => {
+  const updateProfile = async (profileData: Record<string, unknown>): Promise<AuthResult> => {
     try {
-      const updated = await AuthApi.updateProfile(profileData as Partial<AuthUser>);
-      applyUser(updated as unknown as User);
+      const updated = await AuthApi.updateProfile(profileData);
+      await refreshConfig();
       return { success: true, data: updated };
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Profile update failed.';
-      return { success: false, message, errors: error.response?.data?.errors };
+    } catch (error) {
+      return errorResult(error, 'Profile update failed.');
     }
   };
 
-  // ── hasPermission ─────────────────────────────────────────────────────────
-
-  const hasPermission = (permission: string): boolean => {
-    return user?.role?.permissions.includes(permission) ?? false;
-  };
-
-  // ── Context value ─────────────────────────────────────────────────────────
+  // ── Derived values ────────────────────────────────────────────────────────
+  const user = useMemo<AuthUserView | null>(() => (config ? { ...config.user, role: config.role, organisation: config.organisation } : null), [config]);
+  const sidebarMenu = useMemo(() => getSidebarMenu(config), [config]);
+  const settingsMenu = useMemo(() => getSettingsMenu(config), [config]);
+  const currency = useMemo(() => getEffectiveCurrency(config), [config]);
 
   const value: AuthContextType = {
+    config,
     user,
-    organisation,
-    isAuthenticated,
-    organisationComplete,
+    organisation: config?.organisation ?? null,
+    currency,
+    tax: config?.tax ?? null,
+    sidebarMenu,
+    settingsMenu,
+    isAuthenticated: Boolean(config),
+    organisationComplete: Boolean(config?.organisation?.is_complete),
     loading,
     login,
     register,
     logout,
     updateProfile,
-    checkAuthStatus,
-    hasPermission,
+    refreshConfig,
+    checkAuthStatus: async () => {
+      await refreshConfig();
+    },
+    hasPermission: (permission: string) => configHasPermission(config, permission),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -9,12 +9,7 @@ import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon
 interface AssetTrackingAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: AssetTrackingFormData;
-    isLoading?: boolean;
-    customers?: SelectOption[];
-    categories?: SelectOption[];
-  };
+  data?: { initialData?: AssetTrackingFormData; isLoading?: boolean; customers?: SelectOption[]; categories?: SelectOption[] };
   onEvent?: (event: any) => void;
 }
 
@@ -44,12 +39,7 @@ const initialFormData: AssetTrackingFormData = {
   image: null,
 };
 
-export function AssetTrackingAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: AssetTrackingAddProps) {
+export function AssetTrackingAdd({ isOpen, onClose, data, onEvent }: AssetTrackingAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
   const customers = data?.customers || [];
@@ -62,10 +52,8 @@ export function AssetTrackingAdd({
     reset,
     setError,
     watch,
-    setValue
-  } = useForm<AssetTrackingFormData>({
-    defaultValues: initialFormData
-  });
+    setValue,
+  } = useForm<AssetTrackingFormData>({ defaultValues: initialFormData });
 
   const [imageName, setImageName] = useState<string>('');
 
@@ -101,36 +89,31 @@ export function AssetTrackingAdd({
         team: data.team?.trim() || '',
         vendors: data.vendors?.trim() || '',
         usefulLife: data.usefulLife?.trim() || '',
-        additionalInformation: data.additionalInformation?.trim() || ''
+        additionalInformation: data.additionalInformation?.trim() || '',
       };
-      
+
       // Submit via onEvent pattern
       onEvent?.({ eventType: 'AssetTrackingCreated', assetTracking: trimmedData });
       onClose();
     } catch (error: any) {
       console.error('Error saving asset tracking:', error);
-      setError('root', {
-        type: 'manual',
-        message: error?.message || 'Failed to save asset tracking. Please try again.'
-      });
+      setError('root', { type: 'manual', message: error?.message || 'Failed to save asset tracking. Please try again.' });
     }
   };
 
-  const defaultCategories: SelectOption[] = categories.length > 0 ? categories : [
-    { value: 'Electronics', label: 'Electronics' },
-    { value: 'Furniture', label: 'Furniture' },
-    { value: 'Equipment', label: 'Equipment' },
-    { value: 'Vehicles', label: 'Vehicles' },
-    { value: 'Other', label: 'Other' },
-  ];
+  const defaultCategories: SelectOption[] =
+    categories.length > 0
+      ? categories
+      : [
+          { value: 'Electronics', label: 'Electronics' },
+          { value: 'Furniture', label: 'Furniture' },
+          { value: 'Equipment', label: 'Equipment' },
+          { value: 'Vehicles', label: 'Vehicles' },
+          { value: 'Other', label: 'Other' },
+        ];
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Asset Tracking' : 'Add Asset Tracking'}
-      width="w-[600px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Asset Tracking' : 'Add Asset Tracking'} width="w-[600px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         {errors.root && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -146,28 +129,21 @@ export function AssetTrackingAdd({
           </div>
           <div className="flex items-center gap-2 relative">
             <input
-              {...register('assetCode', {
-                required: 'Asset Code is required',
-                validate: value => value?.trim() ? true : 'Asset Code is required'
-              })}
+              {...register('assetCode', { required: 'Asset Code is required', validate: (value) => (value?.trim() ? true : 'Asset Code is required') })}
               className="block w-full px-3 py-2 rounded-lg border transition-colors
                 bg-white dark:bg-gray-800
                 text-gray-900 dark:text-gray-100
                 border-gray-300 dark:border-gray-600
                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Enter asset code"
+              placeholder="Configure the system to auto-generate the code."
             />
             <OrderCodeSettingsIcon label="Asset Code" value={watch('assetCode') || ''} onChange={(v) => setValue('assetCode', v)} />
-            {errors.assetCode && (
-              <p className="text-red-600 text-xs mt-1">{errors.assetCode.message}</p>
-            )}
+            {errors.assetCode && <p className="text-red-600 text-xs mt-1">{errors.assetCode.message}</p>}
           </div>
         </div>
 
         <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Image
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Image</label>
           <input
             type="file"
             accept="image/*"
@@ -182,10 +158,7 @@ export function AssetTrackingAdd({
             Title <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
-            {...register('title', {
-              required: 'Title is required',
-              validate: value => value?.trim() ? true : 'Title is required'
-            })}
+            {...register('title', { required: 'Title is required', validate: (value) => (value?.trim() ? true : 'Title is required') })}
             className="block w-full px-3 py-2 rounded-lg border transition-colors
               bg-white dark:bg-gray-800
               text-gray-900 dark:text-gray-100
@@ -193,9 +166,7 @@ export function AssetTrackingAdd({
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter title"
           />
-          {errors.title && (
-            <p className="text-red-600 text-xs mt-1">{errors.title.message}</p>
-          )}
+          {errors.title && <p className="text-red-600 text-xs mt-1">{errors.title.message}</p>}
         </div>
 
         <div>
@@ -203,10 +174,7 @@ export function AssetTrackingAdd({
             Description <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
-            {...register('description', {
-              required: 'Description is required',
-              validate: value => value?.trim() ? true : 'Description is required'
-            })}
+            {...register('description', { required: 'Description is required', validate: (value) => (value?.trim() ? true : 'Description is required') })}
             className="block w-full px-3 py-2 rounded-lg border transition-colors
               bg-white dark:bg-gray-800
               text-gray-900 dark:text-gray-100
@@ -214,9 +182,7 @@ export function AssetTrackingAdd({
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter description"
           />
-          {errors.description && (
-            <p className="text-red-600 text-xs mt-1">{errors.description.message}</p>
-          )}
+          {errors.description && <p className="text-red-600 text-xs mt-1">{errors.description.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -229,9 +195,7 @@ export function AssetTrackingAdd({
               {...register('fromDate', { required: 'From Date is required' })}
               className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
-            {errors.fromDate && (
-              <p className="text-red-600 text-xs mt-1">{errors.fromDate.message}</p>
-            )}
+            {errors.fromDate && <p className="text-red-600 text-xs mt-1">{errors.fromDate.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -242,9 +206,7 @@ export function AssetTrackingAdd({
               {...register('toDate', { required: 'To Date is required' })}
               className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
-            {errors.toDate && (
-              <p className="text-red-600 text-xs mt-1">{errors.toDate.message}</p>
-            )}
+            {errors.toDate && <p className="text-red-600 text-xs mt-1">{errors.toDate.message}</p>}
           </div>
         </div>
 
@@ -257,9 +219,7 @@ export function AssetTrackingAdd({
             className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter model name"
           />
-          {errors.modelName && (
-            <p className="text-red-600 text-xs mt-1">{errors.modelName.message}</p>
-          )}
+          {errors.modelName && <p className="text-red-600 text-xs mt-1">{errors.modelName.message}</p>}
         </div>
 
         <div>
@@ -271,9 +231,7 @@ export function AssetTrackingAdd({
             className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter barcode"
           />
-          {errors.barcode && (
-            <p className="text-red-600 text-xs mt-1">{errors.barcode.message}</p>
-          )}
+          {errors.barcode && <p className="text-red-600 text-xs mt-1">{errors.barcode.message}</p>}
         </div>
 
         <div>
@@ -286,12 +244,12 @@ export function AssetTrackingAdd({
           >
             <option value="">Select category</option>
             {defaultCategories.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
-          {errors.category && (
-            <p className="text-red-600 text-xs mt-1">{errors.category.message}</p>
-          )}
+          {errors.category && <p className="text-red-600 text-xs mt-1">{errors.category.message}</p>}
         </div>
 
         <div>
@@ -303,9 +261,7 @@ export function AssetTrackingAdd({
             className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter location"
           />
-          {errors.location && (
-            <p className="text-red-600 text-xs mt-1">{errors.location.message}</p>
-          )}
+          {errors.location && <p className="text-red-600 text-xs mt-1">{errors.location.message}</p>}
         </div>
 
         <div>
@@ -317,9 +273,7 @@ export function AssetTrackingAdd({
             className="block w-full px-3 py-2 rounded-lg border transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter area"
           />
-          {errors.area && (
-            <p className="text-red-600 text-xs mt-1">{errors.area.message}</p>
-          )}
+          {errors.area && <p className="text-red-600 text-xs mt-1">{errors.area.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -370,12 +324,12 @@ export function AssetTrackingAdd({
           >
             <option value="">Select customer</option>
             {customers.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
-          {errors.customerId && (
-            <p className="text-red-600 text-xs mt-1">{errors.customerId.message}</p>
-          )}
+          {errors.customerId && <p className="text-red-600 text-xs mt-1">{errors.customerId.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -438,9 +392,7 @@ export function AssetTrackingAdd({
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Additional Information
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional Information</label>
           <textarea
             {...register('additionalInformation')}
             placeholder="Enter additional information"

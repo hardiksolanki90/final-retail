@@ -16,25 +16,9 @@ export interface Delivery {
   proof?: string;
   createdAt?: string;
   updatedAt?: string;
-  order?: {
-    id?: number;
-    uuid?: string;
-    orderNumber: string;
-    totalAmount: number;
-  };
-  customer?: {
-    id?: number;
-    uuid?: string;
-    firstName: string;
-    lastName: string;
-    shopName?: string;
-  };
-  driver?: {
-    id?: number;
-    uuid?: string;
-    firstName: string;
-    lastName: string;
-  };
+  order?: { id?: number; uuid?: string; orderNumber: string; totalAmount: number };
+  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string };
+  driver?: { id?: number; uuid?: string; firstName: string; lastName: string };
   deliveryItems?: DeliveryItem[];
 }
 
@@ -46,12 +30,7 @@ export interface DeliveryItem {
   orderedQuantity: number;
   deliveredQuantity: number;
   pendingQuantity: number;
-  item?: {
-    id?: number;
-    uuid?: string;
-    name: string;
-    itemCode: string;
-  };
+  item?: { id?: number; uuid?: string; name: string; itemCode: string };
 }
 
 export interface DeliveryFormData {
@@ -63,11 +42,7 @@ export interface DeliveryFormData {
   scheduledDate?: string;
   deliveryAddress: string;
   deliveryNotes?: string;
-  deliveryItems: Array<{
-    itemId: string;
-    orderedQuantity: number;
-    deliveredQuantity: number;
-  }>;
+  deliveryItems: Array<{ itemId: string; orderedQuantity: number; deliveredQuantity: number }>;
 }
 
 export interface DeliveryListResponse {

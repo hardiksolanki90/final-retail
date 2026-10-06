@@ -346,7 +346,7 @@ All 40+ screens categorised by purpose.
 2. Click "Create" button (primary, top-right)
 3. Routed to /order/add (OrderAdd form)
 4. Select customer from async-search Select dropdown
-5. Add line items: search SKU → select quantity → UOM auto-populated
+5. Add Items: search SKU → select quantity → UOM auto-populated
 6. Discounts / promotions auto-apply if active campaign matches
 7. Review order summary panel (sticky right column on desktop)
 8. Submit → POST /api/order/add
@@ -501,7 +501,7 @@ LEFT COLUMN (2/3)                  RIGHT COLUMN (1/3, sticky)
   Customer *                         Subtotal
   Date *                             Tax (auto)
   Payment Terms                      Grand Total
-[Card: Line Items]                 [Card: Notes]
+[Card: Items]                 [Card: Notes]
   [+ Add Item row]                   Internal notes textarea
   SKU | QTY | UOM | Price | Total
   ──────────────────────────────

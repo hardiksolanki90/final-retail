@@ -27,23 +27,11 @@ export function OverviewTab({ register, errors, watch, setValue, control }: Prop
       <div className="space-y-4">
         <SectionLabel title="Journey Identity" />
 
-        <Input
-          label="Journey Name"
-          required
-          {...register('journeyName', { required: 'Journey Name is required' })}
-          error={errors.journeyName?.message}
-        />
+        <Input label="Journey Name" required {...register('journeyName', { required: 'Journey Name is required' })} error={errors.journeyName?.message} />
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Description
-          </label>
-          <textarea
-            {...register('description')}
-            rows={3}
-            className={textareaCls}
-            placeholder="Optional notes about this journey plan..."
-          />
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+          <textarea {...register('description')} rows={3} className={textareaCls} placeholder="Optional notes about this journey plan..." />
         </div>
       </div>
 
@@ -72,7 +60,7 @@ export function OverviewTab({ register, errors, watch, setValue, control }: Prop
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                End Date <span className='text-red-500 font-bold'>*</span>
+                End Date <span className="text-red-500 font-bold">*</span>
               </label>
               <button
                 type="button"
@@ -87,17 +75,9 @@ export function OverviewTab({ register, errors, watch, setValue, control }: Prop
                 }}
                 className="flex items-center gap-1.5 group"
               >
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
-                  No End Date
-                </span>
-                <span
-                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${noEnd ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${noEnd ? 'translate-x-[18px]' : 'translate-x-1'
-                      }`}
-                  />
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">No End Date</span>
+                <span className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${noEnd ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${noEnd ? 'translate-x-[18px]' : 'translate-x-1'}`} />
                 </span>
               </button>
             </div>

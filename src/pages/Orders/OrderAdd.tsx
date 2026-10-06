@@ -1,23 +1,44 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { Input } from '../../components/ui/Input';
-import { Button, SaveButton, CancelButton } from '../../components/ui/Button';
-import { Plus, Trash2, ShoppingCart, ChevronLeft, Settings } from 'lucide-react';
+import { SaveButton, CancelButton } from '../../components/ui/Button';
+import { ShoppingCart, Gift } from 'lucide-react';
 import type { SelectOption } from '../../components/ui/Select';
+import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
+import { useCreateOrder, useOrderFormOptions, usePdpPromotions } from '../../hooks/useOrderForm';
+import { usePdpLinePreview } from '../../hooks/usePdpLinePreview';
+import type { PdpPromotion } from '../../types/PdpResolution';
+import {
+  AddLineButton,
+  CodeField,
+  ControlledDate,
+  ControlledSelect,
+  DocSection,
+  DocumentShell,
+  LineCell,
+  LineFigure,
+  LineHeader,
+  QtyStepper,
+  LineStrip,
+  LineUomCell,
+  ReceiptRail,
+  SectionPair,
+  TaxNotice,
+  TypeSwitch,
+  fieldGridCls,
+  wideCellCls,
+} from '../shared/DocumentForm';
+import { documentTypeId } from '../../constants/documentTypes';
+import { lineCols } from '../shared/DocumentForm/lineCols';
+import { LineItemSelect } from '../shared/DocumentForm/LineItemSelect';
+import { useKnownItems } from '../../hooks/useKnownItems';
+import { PdpDiscountCell, PdpPriceCell } from '../shared/DocumentForm/PdpLineCells';
+import { useMoney } from '../../hooks/Currency/useMoney';
+import { computeLine, sumLines } from '../../utils/documentMath';
+import { useLineTaxRates } from '../../hooks/Tax/useLineTaxRates';
 
-type OrderItem = {
-  id: string;
-  itemId: string;
-  uom: string;
-  quantity: number;
-  price: number;
-  discount: number;
-  vat: number;
-  net: number;
-  excise: number;
-  total: number;
-};
+type OrderItem = { id: string; itemId: string; uom: string; quantity: number; price: number; discount: number; vat: number; net: number; excise: number; total: number };
 
 type OrderFormFields = {
   orderType: string;
@@ -37,18 +58,7 @@ type OrderFormFields = {
   finalTotal: number;
 };
 
-const emptyItem: OrderItem = {
-  id: '',
-  itemId: '',
-  uom: '',
-  quantity: 1,
-  price: 0,
-  discount: 0,
-  vat: 0,
-  net: 0,
-  excise: 0,
-  total: 0,
-};
+const emptyItem: OrderItem = { id: '', itemId: '', uom: '', quantity: 1, price: 0, discount: 0, vat: 0, net: 0, excise: 0, total: 0 };
 
 const defaultValues: OrderFormFields = {
   orderType: 'Cash',
@@ -69,20 +79,14 @@ const defaultValues: OrderFormFields = {
 };
 
 export function OrderAdd() {
-  const data: any = {};
-  const customers = (data?.customers || []) as SelectOption[];
-  const salesman = (data?.salesman || []) as SelectOption[];
-  const items = (data?.items || []) as SelectOption[];
-  const uomOptions = (data?.uomOptions || []) as SelectOption[];
+  const { customers, salesmen, paymentTerms } = useOrderFormOptions();
+  const { known: knownItems, remember: rememberItems } = useKnownItems();
+  const createOrder = useCreateOrder();
 
   const navigate = useNavigate();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [orderPrefix, setOrderPrefix] = useState('');
-  const [orderNum, setOrderNum] = useState('');
-  const [orderMode, setOrderMode] = useState<'auto' | 'manual'>('auto');
+  const [codeLocked, setCodeLocked] = useState(false);
 
-  const { control, register, handleSubmit, setValue, getValues, formState: { errors } } =
-    useForm<OrderFormFields>({ defaultValues });
+  const { control, register, handleSubmit, setValue, getValues, watch } = useForm<OrderFormFields>({ defaultValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchedItems = useWatch({ control, name: 'items' });
@@ -93,14 +97,6 @@ export function OrderAdd() {
   const discountTotal = useWatch({ control, name: 'discount' });
   const finalTotal = useWatch({ control, name: 'finalTotal' });
 
-  const defaultUomOptions: SelectOption[] = uomOptions.length > 0 ? uomOptions : [
-    { value: 'PC', label: 'PC' },
-    { value: 'KG', label: 'KG' },
-    { value: 'LTR', label: 'LTR' },
-    { value: 'BOX', label: 'BOX' },
-    { value: 'CTN', label: 'CTN' },
-  ];
-
   const orderTypeOptions: SelectOption[] = [
     { value: 'Cash', label: 'Cash' },
     { value: 'Credit', label: 'Credit' },
@@ -108,438 +104,218 @@ export function OrderAdd() {
     { value: 'Depot', label: 'Depot' },
   ];
 
-  const paymentTermsOptions: SelectOption[] = [
-    { value: '30 Days from Invoice PDC', label: '30 Days from Invoice PDC' },
-    { value: 'Net 15 days', label: 'Net 15 days' },
-    { value: 'Net 30 Days', label: 'Net 30 Days' },
-    { value: 'Cash on Delivery', label: 'Cash on Delivery' },
-    { value: 'Advance Payment', label: 'Advance Payment' },
-  ];
+  // ── PDP preview ────────────────────────────────────────────────────────────
+  const customerId = useWatch({ control, name: 'customerId' });
+  const resolutions = usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
 
+  // Promotions sum buy qty across lines, so they're previewed for the whole
+  // basket (debounced), shown under the last line that fed each one.
+  const basketJson = JSON.stringify(
+    fields.flatMap((field, index) => {
+      const row = watchedItems?.[index];
+      const quantity = Number(row?.quantity) || 0;
+      return row?.itemId && row?.uom && quantity > 0 ? [{ key: field.id, itemId: row.itemId, itemUomId: row.uom || undefined, quantity, price: Number(row.price) || 0 }] : [];
+    })
+  );
+  const [debouncedBasket, setDebouncedBasket] = useState(basketJson);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedBasket(basketJson), 400);
+    return () => clearTimeout(timer);
+  }, [basketJson]);
+  const promotions = usePdpPromotions(customerId, debouncedBasket);
+  const promotionsByLine = useMemo(() => {
+    const map: Record<string, PdpPromotion[]> = {};
+    promotions.forEach((promotion) => {
+      const last = promotion.lineKeys[promotion.lineKeys.length - 1];
+      if (last) (map[last] ??= []).push(promotion);
+    });
+    return map;
+  }, [promotions]);
+
+  const { digits } = useMoney();
+  const taxRates = useLineTaxRates(
+    (watchedItems ?? []).map((item) => item?.itemId),
+    customerId
+  );
   const calculateTotals = useCallback(() => {
     if (!watchedItems) return;
-    let grossTotal = 0, vatTotal = 0, exciseTotal = 0, discountTotal = 0;
-
     const currentItems = getValues('items') || [];
+    const lines = watchedItems.map((item) => computeLine(item, digits, taxRates.forItem(item?.itemId)));
 
-    watchedItems.forEach((item, index) => {
-      const qty = Number(item.quantity) || 0;
-      const price = Number(item.price) || 0;
-      const discount = Number(item.discount) || 0;
-      const vat = Number(item.vat) || 0;
-      const excise = Number(item.excise) || 0;
-
-      const subtotal = qty * price;
-      const net = subtotal - discount;
-      const total = net + vat + excise;
-
-      const newNet = parseFloat(net.toFixed(2));
-      const newTotal = parseFloat(total.toFixed(2));
-
-      if (currentItems[index]?.net !== newNet) {
-        setValue(`items.${index}.net`, newNet);
-      }
-      if (currentItems[index]?.total !== newTotal) {
-        setValue(`items.${index}.total`, newTotal);
-      }
-
-      grossTotal += subtotal;
-      vatTotal += vat;
-      exciseTotal += excise;
-      discountTotal += discount;
+    lines.forEach((line, index) => {
+      if (currentItems[index]?.net !== line.net) setValue(`items.${index}.net`, line.net);
+      if (currentItems[index]?.total !== line.total) setValue(`items.${index}.total`, line.total);
+      if (currentItems[index]?.vat !== line.tax) setValue(`items.${index}.vat`, line.tax);
+      if (currentItems[index]?.excise !== line.excise) setValue(`items.${index}.excise`, line.excise);
     });
 
-    const netTotal = grossTotal - discountTotal;
-    const finalTotal = netTotal + vatTotal + exciseTotal;
-
-    const newGrossTotal = parseFloat(grossTotal.toFixed(2));
-    const newVat = parseFloat(vatTotal.toFixed(2));
-    const newExcise = parseFloat(exciseTotal.toFixed(2));
-    const newDiscount = parseFloat(discountTotal.toFixed(2));
-    const newNetTotal = parseFloat(netTotal.toFixed(2));
-    const newFinalTotal = parseFloat(finalTotal.toFixed(2));
-
-    if (getValues('grossTotal') !== newGrossTotal) setValue('grossTotal', newGrossTotal);
-    if (getValues('vat') !== newVat) setValue('vat', newVat);
-    if (getValues('excise') !== newExcise) setValue('excise', newExcise);
-    if (getValues('discount') !== newDiscount) setValue('discount', newDiscount);
-    if (getValues('netTotal') !== newNetTotal) setValue('netTotal', newNetTotal);
-    if (getValues('finalTotal') !== newFinalTotal) setValue('finalTotal', newFinalTotal);
-  }, [watchedItems, setValue, getValues]);
+    const totals = sumLines(lines, digits);
+    if (getValues('grossTotal') !== totals.gross) setValue('grossTotal', totals.gross);
+    if (getValues('vat') !== totals.tax) setValue('vat', totals.tax);
+    if (getValues('excise') !== totals.excise) setValue('excise', totals.excise);
+    if (getValues('discount') !== totals.discount) setValue('discount', totals.discount);
+    if (getValues('netTotal') !== totals.net) setValue('netTotal', totals.net);
+    if (getValues('finalTotal') !== totals.total) setValue('finalTotal', totals.total);
+  }, [watchedItems, setValue, getValues, digits, taxRates]);
 
   useEffect(() => {
     calculateTotals();
   }, [calculateTotals]);
 
-  const onSubmit = (formData: OrderFormFields) => {
-    console.log('Order form data:', formData);
-    navigate('/order');
+  const onSubmit = async (formData: OrderFormFields) => {
+    try {
+      const orderNumber = await reserveCodeIfAuto('order', formData.orderNumber);
+      if (orderNumber !== formData.orderNumber) {
+        setValue('orderNumber', orderNumber ?? '');
+        setCodeLocked(true);
+      }
+
+      await createOrder.mutateAsync({
+        customerId: formData.customerId,
+        orderTypeId: documentTypeId(formData.orderType),
+        salesmanId: formData.salesmanId || undefined,
+        paymentTermId: formData.paymentTerms || undefined,
+        orderNumber: orderNumber || undefined,
+        deliveryDate: formData.deliveryDate || undefined,
+        dueDate: formData.dueDate || undefined,
+        notes: formData.notes || undefined,
+        items: formData.items
+          .filter((item) => item.itemId)
+          .map((item) => ({ itemId: item.itemId, itemUomId: item.uom || undefined, quantity: Number(item.quantity) || 0, price: Number(item.price) || 0, discount: Number(item.discount) || 0 })),
+      });
+      navigate('/order');
+    } catch {
+      // toast already shown by useCreateOrder's onError
+    }
   };
 
-  const selectClass = 'w-full px-2 py-1 border rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500';
+  const cols = lineCols({ reason: false, excise: taxRates.hasExcise });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="w-6 h-6 text-gray-900 dark:text-white" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Order</h2>
-        </div>
-        <button
-          onClick={() => navigate('/order')}
-          className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-        >
-          <ChevronLeft className="w-4 h-4" /> Back
-        </button>
-      </div>
+    <>
+      <DocumentShell icon={ShoppingCart} eyebrow="Field Sales · New" title="Add Order" onBack={() => navigate('/order')} onSubmit={handleSubmit(onSubmit)}>
+        <DocSection index={1} title="Order Type" aside={<TypeSwitch label="Order Type" options={orderTypeOptions} registration={register('orderType', { required: 'Order Type is required' })} />} />
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Order Type header */}
-        <div className="bg-gray-200 dark:bg-gray-700 px-4 py-4">
-          <div className="grid grid-cols-2 gap-8 max-w-4xl">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Order Type <span className="text-red-500 font-bold ml-0.5">*</span>
-              </label>
-              <select
-                {...register('orderType', { required: 'Order Type is required' })}
-                className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {orderTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              {errors.orderType && <p className="text-sm text-red-500 mt-1">{errors.orderType.message}</p>}
+        <SectionPair>
+          <DocSection index={2} title="Customer">
+            <div className={fieldGridCls}>
+              <ControlledSelect control={control} name="customerId" rules={{ required: 'Customer is required' }} label="Customer" options={customers} placeholder="Select Customer" />
+              <ControlledSelect control={control} name="salesmanId" label="Salesman" options={salesmen} placeholder="Select Salesman" />
             </div>
-          </div>
-        </div>
+          </DocSection>
 
-        <div className="bg-white dark:bg-gray-800 p-6">
-          <div className="grid grid-cols-2 gap-8 mb-8">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Customer <span className="text-red-500 font-bold ml-0.5">*</span>
-                </label>
-                <select
-                  {...register('customerId', { required: 'Customer is required' })}
-                  className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                {errors.customerId && <p className="text-sm text-red-500 mt-1">{errors.customerId.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Salesman
-                </label>
-                <select
-                  {...register('salesmanId')}
-                  className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Select Salesman</option>
-                  {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Payment Terms <span className="text-red-500 font-bold ml-0.5">*</span>
-                </label>
-                <select
-                  {...register('paymentTerms', { required: 'Payment Terms is required' })}
-                  className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Select Payment Terms</option>
-                  {paymentTermsOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                {errors.paymentTerms && <p className="text-sm text-red-500 mt-1">{errors.paymentTerms.message}</p>}
-              </div>
+          <DocSection index={3} title="Document">
+            <div className={fieldGridCls}>
+              <CodeField
+                label="Order Number"
+                registration={register('orderNumber')}
+                disabled={codeLocked}
+                action={<OrderCodeSettingsIcon label="Order Number" entityKey="order" value={watch('orderNumber') || ''} onChange={(v) => setValue('orderNumber', v)} onLockChange={setCodeLocked} />}
+              />
+              <ControlledDate control={control} name="deliveryDate" rules={{ required: 'Date is required' }} label="Delivery Date" />
+              <ControlledSelect
+                control={control}
+                name="paymentTerms"
+                rules={{ required: 'Payment Terms is required' }}
+                label="Payment Terms"
+                options={paymentTerms}
+                placeholder="Select Payment Terms"
+              />
+              <ControlledDate control={control} name="dueDate" label="Due Date" />
             </div>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Order Number
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setSettingsOpen(true)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                    title="order Code"
+          </DocSection>
+        </SectionPair>
+
+        <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
+
+        <DocSection index={4} title="Items" flush>
+          <LineHeader
+            cols={cols}
+            labels={['Item', 'UOM', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']}
+            numericLabels={[taxRates.taxCode]}
+          />
+          {fields.map((field, index) => {
+            const resolution = resolutions[field.id];
+
+            return (
+              <LineStrip
+                key={field.id}
+                index={index}
+                cols={cols}
+                onRemove={() => fields.length > 1 && remove(index)}
+                canRemove={fields.length > 1}
+                below={promotionsByLine[field.id]?.map((promotion) => (
+                  <div
+                    key={promotion.planName}
+                    className="mx-4 xl:ml-[3.625rem] xl:mr-5 mb-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-emerald-200/70 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/15 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400"
                   >
-                    <Settings className="w-4 h-4" />
-                  </button>
-                </div>
-                <Input
-                  {...register('orderNumber')}
-                  placeholder="Auto-generated"
-                  disabled
-                />
-              </div>
-              <Input
-                label="Delivery Date"
-                type="date"
-                {...register('deliveryDate', { required: 'Date is required' })}
-                required
-              />
-              <Input
-                label="Due Date"
-                type="date"
-                {...register('dueDate')}
-              />
-            </div>
-          </div>
-
-          {/* Items table */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-4">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-3 py-2 text-left">#</th>
-                  <th className="px-3 py-2 text-left">Item</th>
-                  <th className="px-3 py-2 text-left">UOM</th>
-                  <th className="px-3 py-2 text-left">Qty</th>
-                  <th className="px-3 py-2 text-left">Price</th>
-                  <th className="px-3 py-2 text-left">Discount</th>
-                  <th className="px-3 py-2 text-left">VAT</th>
-                  <th className="px-3 py-2 text-left">Net</th>
-                  <th className="px-3 py-2 text-left">Excise</th>
-                  <th className="px-3 py-2 text-left">Total</th>
-                  <th className="px-3 py-2 text-left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => (
-                  <tr key={field.id} className="border-t border-gray-200 dark:border-gray-700">
-                    <td className="px-3 py-2">{index + 1}</td>
-                    <td className="px-3 py-2">
-                      <select {...register(`items.${index}.itemId`)} className={selectClass}>
-                        <option value="">Select Item</option>
-                        {items.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <select {...register(`items.${index}.uom`)} className={selectClass}>
-                        <option value="">UOM</option>
-                        {defaultUomOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                        className="w-16 px-2 py-1 border rounded text-sm"
-                        min="0"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.price`, { valueAsNumber: true })}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        step="0.01"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.discount`, { valueAsNumber: true })}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        step="0.01"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.vat`, { valueAsNumber: true })}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        step="0.01"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {(Number(watchedItems?.[index]?.net) || 0).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.excise`, { valueAsNumber: true })}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        step="0.01"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {(Number(watchedItems?.[index]?.total) || 0).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => fields.length > 1 && remove(index)}
-                        className="text-red-500 hover:text-red-700"
-                        disabled={fields.length === 1}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
+                    <Gift className="w-3.5 h-3.5 shrink-0" />
+                    <span>{promotion.offers.length ? 'Free on save:' : `Discount on save: ${promotion.discount}`}</span>
+                    {promotion.offers.map((offer, i) => (
+                      <span key={i} className="font-medium">
+                        {offer.quantity} × {offer.itemName}
+                        {offer.itemUomName ? ` (${offer.itemUomName})` : ''}
+                        {i < promotion.offers.length - 1 ? ',' : ''}
+                      </span>
+                    ))}
+                    <span className="text-emerald-600/70 dark:text-emerald-400/70">
+                      — {promotion.planName}
+                      {promotion.lineKeys.length > 1 ? ` (lines ${promotion.lineKeys.map((k) => fields.findIndex((f) => f.id === k) + 1).join(', ')})` : ''}
+                    </span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex justify-end mb-6">
-            <Button
-              type="button"
-              onClick={() => append({ ...emptyItem, id: Date.now().toString() })}
-              variant="primary"
-            >
-              <Plus className="w-4 h-4 mr-1" /> Add Item
-            </Button>
-          </div>
-
-          {/* Totals */}
-          <div className="flex justify-end">
-            <div className="w-80 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-2">
-              {([
-                ['Gross Total', grossTotal],
-                ['VAT', vatTotal],
-                ['Excise', exciseTotal],
-                ['Net Total', netTotal],
-                ['Discount', discountTotal],
-              ] as [string, number][]).map(([label, value]) => (
-                <div key={label} className="flex justify-between">
-                  <span>{label}</span>
-                  <span>AED {(Number(value) || 0).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>AED {(Number(finalTotal) || 0).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gray-200 dark:bg-gray-700 p-4 flex justify-end gap-3">
-          <CancelButton onClick={() => navigate('/order')}>Cancel</CancelButton>
-          <SaveButton type="submit">Save &amp; Submit</SaveButton>
-        </div>
-      </form>
-
-      {/* Order Number Settings Modal */}
-      {settingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setSettingsOpen(false)} />
-          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Order Code
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
               >
-                &times;
-              </button>
-            </div>
+                <LineCell label="Item" className={wideCellCls}>
+                  <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} disabled={!customerId} />
+                </LineCell>
+                <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
+                <LineCell label="Qty">
+                  <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
+                </LineCell>
+                <PdpPriceCell resolution={resolution} aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
+                <PdpDiscountCell resolution={resolution} aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
+                <LineCell label="Net">
+                  <LineFigure value={Number(watchedItems?.[index]?.net) || 0} />
+                </LineCell>
+                {taxRates.hasExcise && (
+                  <LineCell label="Excise">
+                    <LineFigure value={Number(watchedItems?.[index]?.excise) || 0} />
+                  </LineCell>
+                )}
+                <LineCell label={taxRates.taxCode}>
+                  <LineFigure value={Number(watchedItems?.[index]?.vat) || 0} />
+                </LineCell>
+                <LineCell label="Total">
+                  <LineFigure value={Number(watchedItems?.[index]?.total) || 0} strong />
+                </LineCell>
+              </LineStrip>
+            );
+          })}
+          <AddLineButton onClick={() => append({ ...emptyItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
+        </DocSection>
 
-            {/* Body */}
-            <div className="px-6 py-5">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                Your Order Number are set on auto generate mode to save your time.
-                Are you sure about changing this setting?
-              </p>
-
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="orderMode"
-                    value="auto"
-                    checked={orderMode === 'auto'}
-                    onChange={() => setOrderMode('auto')}
-                    className="mt-0.5 accent-primary-600"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Continue auto-generating Order Number
-                  </span>
-                </label>
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="orderMode"
-                    value="manual"
-                    checked={orderMode === 'manual'}
-                    onChange={() => setOrderMode('manual')}
-                    className="mt-0.5 accent-primary-600"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    I will add them manually each time
-                  </span>
-                </label>
-              </div>
-
-              {/* Manual fields — shown only when manual mode selected */}
-              {orderMode === 'manual' && (
-                <div className="mt-5 flex gap-3 border-t border-gray-100 dark:border-gray-700 pt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Prefix
-                    </label>
-                    <input
-                      type="text"
-                      value={orderPrefix}
-                      onChange={e => setOrderPrefix(e.target.value)}
-                      placeholder="e.g. ORD"
-                      className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Number
-                    </label>
-                    <input
-                      type="text"
-                      value={orderNum}
-                      onChange={e => setOrderNum(e.target.value)}
-                      placeholder="e.g. 10000"
-                      className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={() => {
-                  if (orderMode === 'manual') {
-                    const combined = [orderPrefix, orderNum].filter(Boolean).join('-');
-                    setValue('orderNumber', combined || '');
-                  } else {
-                    setValue('orderNumber', '');
-                  }
-                  setSettingsOpen(false);
-                }}
-                className="px-5 py-2 text-sm rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(false)}
-                className="px-5 py-2 text-sm rounded-lg bg-gray-500 hover:bg-gray-600 text-white font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        <ReceiptRail
+          gross={grossTotal}
+          discount={discountTotal}
+          net={netTotal}
+          vat={vatTotal}
+          excise={exciseTotal}
+          taxLabel={taxRates.taxCode}
+          taxRate={taxRates.uniformRate}
+          taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
+          showExcise={taxRates.hasExcise}
+          total={finalTotal}
+          lineCount={fields.length}
+          noteRegister={register('notes')}
+        >
+          <SaveButton type="submit" fullWidth isLoading={createOrder.isPending}>
+            Save &amp; Submit
+          </SaveButton>
+          <CancelButton type="button" fullWidth onClick={() => navigate('/order')}>
+            Cancel
+          </CancelButton>
+        </ReceiptRail>
+      </DocumentShell>
+    </>
   );
 }

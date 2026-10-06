@@ -1,10 +1,7 @@
-
 import { useState } from 'react';
-import {
-  Filter,
-  Plus, Columns3, ChevronDown, Check
-} from 'lucide-react';
+import { Filter, Plus, Columns3, ChevronDown, Check } from 'lucide-react';
 import { Pagination } from '../../components/ui/Pagination';
+import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
 
 const complaintFeedbacksData = [
   { id: 1, type: 'Complaint', customerName: 'Acme Corp', subject: 'Delivery Delay', category: 'Delivery', priority: 'High', status: 'Open' },
@@ -24,6 +21,7 @@ export function ComplaintFeedbackList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
 
   const [columns, setColumns] = useState<Column[]>([
@@ -45,13 +43,32 @@ export function ComplaintFeedbackList() {
   const endIndex = startIndex + rowsPerPage;
 
   // Apply filters
-  const filteredData = complaintFeedbacksData.filter(c =>
-    (!appliedFilter.type || String(c.type ?? '').toLowerCase().includes(appliedFilter.type.toLowerCase())) &&
-    (!appliedFilter.customerName || String(c.customerName ?? '').toLowerCase().includes(appliedFilter.customerName.toLowerCase())) &&
-    (!appliedFilter.subject || String(c.subject ?? '').toLowerCase().includes(appliedFilter.subject.toLowerCase())) &&
-    (!appliedFilter.category || String(c.category ?? '').toLowerCase().includes(appliedFilter.category.toLowerCase())) &&
-    (!appliedFilter.priority || String(c.priority ?? '').toLowerCase().includes(appliedFilter.priority.toLowerCase())) &&
-    (!appliedFilter.status || String(c.status ?? '').toLowerCase().includes(appliedFilter.status.toLowerCase()))
+  const filteredData = complaintFeedbacksData.filter(
+    (c) =>
+      (!appliedFilter.type ||
+        String(c.type ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.type.toLowerCase())) &&
+      (!appliedFilter.customerName ||
+        String(c.customerName ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.customerName.toLowerCase())) &&
+      (!appliedFilter.subject ||
+        String(c.subject ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.subject.toLowerCase())) &&
+      (!appliedFilter.category ||
+        String(c.category ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.category.toLowerCase())) &&
+      (!appliedFilter.priority ||
+        String(c.priority ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.priority.toLowerCase())) &&
+      (!appliedFilter.status ||
+        String(c.status ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.status.toLowerCase()))
   );
   const currentData = filteredData.slice(startIndex, endIndex);
   const visibleColumns = columns.filter((col) => col.visible);
@@ -65,15 +82,11 @@ export function ComplaintFeedbackList() {
   };
 
   const handleSelectRow = (id: number) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    );
+    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
   const toggleColumn = (key: string) => {
-    setColumns((prev) =>
-      prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col))
-    );
+    setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   };
 
   return (
@@ -87,18 +100,17 @@ export function ComplaintFeedbackList() {
         <div className="flex flex-wrap items-center gap-2">
           {/* Filter Button */}
           <button
-            onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
-              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-              }`}
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
+              filterOpen || Object.values(appliedFilter).some(Boolean)
+                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            }`}
           >
             <Filter className="w-4 h-4" />
             Filter
             {Object.values(appliedFilter).some(Boolean) && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">
-                {Object.values(appliedFilter).filter(Boolean).length}
-              </span>
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">{Object.values(appliedFilter).filter(Boolean).length}</span>
             )}
           </button>
           <div className="relative">
@@ -142,20 +154,22 @@ export function ComplaintFeedbackList() {
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
-            {([
-              { key: 'type', label: 'Type' },
-              { key: 'customerName', label: 'Customer Name' },
-              { key: 'subject', label: 'Subject' },
-              { key: 'category', label: 'Category' },
-              { key: 'priority', label: 'Priority' },
-              { key: 'status', label: 'Status' },
-            ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
+            {(
+              [
+                { key: 'type', label: 'Type' },
+                { key: 'customerName', label: 'Customer Name' },
+                { key: 'subject', label: 'Subject' },
+                { key: 'category', label: 'Category' },
+                { key: 'priority', label: 'Priority' },
+                { key: 'status', label: 'Status' },
+              ] as { key: keyof typeof filterDraft; label: string }[]
+            ).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
                 <input
                   type="text"
                   value={filterDraft[key]}
-                  onChange={e => setFilterDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                  onChange={(e) => setFilterDraft((prev) => ({ ...prev, [key]: e.target.value }))}
                   placeholder={`Filter by ${label.toLowerCase()}...`}
                   className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
@@ -163,7 +177,9 @@ export function ComplaintFeedbackList() {
             ))}
             <div className="flex items-end gap-2 pb-0.5">
               <button
-                onClick={() => { setAppliedFilter({ ...filterDraft }); }}
+                onClick={() => {
+                  setAppliedFilter({ ...filterDraft });
+                }}
                 className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
               >
                 Apply
@@ -198,57 +214,58 @@ export function ComplaintFeedbackList() {
                   />
                 </th>
                 {visibleColumns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
-                  >
+                  <th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {column.label}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((item) => (
-                <tr
-                  key={item.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                    }`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(item.id)}
-                      onChange={() => handleSelectRow(item.id)}
-                      className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                    />
-                  </td>
-                  {visibleColumns.map((column) => (
-                    <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                      {column.key === 'type' ? (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.type === 'Complaint'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          }`}>
-                          {item.type}
-                        </span>
-                      ) : column.key === 'priority' ? (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.priority === 'Urgent'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                          : item.priority === 'High'
-                            ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-                            : item.priority === 'Medium'
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                          }`}>
-                          {item.priority}
-                        </span>
-                      ) : (
-                        item[column.key as keyof typeof item]
-                      )}
+              {isLoading ? (
+                <TableSkeletonRows rows={rowsPerPage} label="Loading complaints & feedback" columns={['check', ...colsByKey(visibleColumns, { type: 'badge', priority: 'badge' })]} dense />
+              ) : (
+                currentData.map((item) => (
+                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(item.id)}
+                        onChange={() => handleSelectRow(item.id)}
+                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                      />
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    {visibleColumns.map((column) => (
+                      <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
+                        {column.key === 'type' ? (
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              item.type === 'Complaint' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            }`}
+                          >
+                            {item.type}
+                          </span>
+                        ) : column.key === 'priority' ? (
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              item.priority === 'Urgent'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                : item.priority === 'High'
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                                  : item.priority === 'Medium'
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                            }`}
+                          >
+                            {item.priority}
+                          </span>
+                        ) : (
+                          item[column.key as keyof typeof item]
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

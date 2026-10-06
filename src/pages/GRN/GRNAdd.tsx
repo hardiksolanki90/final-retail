@@ -7,20 +7,9 @@ import { Plus, Trash2, ClipboardList, ChevronLeft, Settings } from 'lucide-react
 import type { GRNFormData, GRNItem } from '../../types/GRN';
 import { useGRNFormOptions, useGRNMutations } from '../../hooks/GRN/useGRN';
 
-type SelectOption = {
-  value: string;
-  label: string;
-};
+type SelectOption = { value: string; label: string };
 
-const emptyItem: GRNItem = {
-  id: '',
-  itemId: '',
-  itemName: '',
-  uom: '',
-  quantity: 1,
-  reason: '',
-  returnReason: '',
-};
+const emptyItem: GRNItem = { id: '', itemId: '', itemName: '', uom: '', quantity: 1, reason: '', returnReason: '' };
 
 const defaultValues: GRNFormData = {
   sourceWarehouseId: '',
@@ -48,8 +37,13 @@ export function GRNAdd() {
     { value: 'CTN', label: 'CTN' },
   ];
 
-  const { control, register, handleSubmit, setValue, formState: { errors, isSubmitting } } =
-    useForm<GRNFormData>({ defaultValues });
+  const {
+    control,
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<GRNFormData>({ defaultValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
@@ -62,7 +56,8 @@ export function GRNAdd() {
     }
   };
 
-  const selectClass = 'w-full px-2 py-1 border rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500';
+  const selectClass =
+    'w-full px-2 py-1 border rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -71,10 +66,7 @@ export function GRNAdd() {
           <ClipboardList className="w-6 h-6 text-gray-900 dark:text-white" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Goods Receipt Note</h2>
         </div>
-        <button
-          onClick={() => navigate('/grn')}
-          className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-        >
+        <button onClick={() => navigate('/grn')} className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
       </div>
@@ -84,30 +76,34 @@ export function GRNAdd() {
           <div className="grid grid-cols-2 gap-8 mb-8">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Source Warehouse
-                </label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source Warehouse</label>
                 <select
                   {...register('sourceWarehouseId')}
                   className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   disabled={optionsLoading}
                 >
                   <option value="">{optionsLoading ? 'Loading…' : 'Select'}</option>
-                  {warehouses.map((o: SelectOption) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {warehouses.map((o: SelectOption) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Destination Warehouse
-                </label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Destination Warehouse</label>
                 <select
                   {...register('destinationWarehouseId')}
                   className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   disabled={optionsLoading}
                 >
                   <option value="">{optionsLoading ? 'Loading…' : 'Select'}</option>
-                  {warehouses.map((o: SelectOption) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {warehouses.map((o: SelectOption) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -115,31 +111,15 @@ export function GRNAdd() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    GRN Number
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setSettingsOpen(true)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                    title="GRN Settings"
-                  >
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">GRN Number</label>
+                  <button type="button" onClick={() => setSettingsOpen(true)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" title="GRN Settings">
                     <Settings className="w-4 h-4" />
                   </button>
                 </div>
-                <Input
-                  {...register('grnNumber')}
-                  placeholder="Auto-generated"
-                  disabled
-                />
+                <Input {...register('grnNumber')} placeholder="Auto-generated" disabled />
               </div>
               <div>
-                <Input
-                  label="GRN Date"
-                  type="date"
-                  {...register('grnDate', { required: 'Date is required' })}
-                  required
-                />
+                <Input label="GRN Date" type="date" {...register('grnDate', { required: 'Date is required' })} required />
                 {errors.grnDate && <p className="text-sm text-red-500 mt-1">{errors.grnDate.message}</p>}
               </div>
             </div>
@@ -170,7 +150,7 @@ export function GRNAdd() {
                         className={selectClass}
                         disabled={optionsLoading}
                         onChange={(e) => {
-                          const selectedItem = items.find(i => i.value === e.target.value);
+                          const selectedItem = items.find((i) => i.value === e.target.value);
                           if (selectedItem) {
                             setValue(`items.${index}.itemName`, selectedItem.label);
                           } else {
@@ -179,41 +159,47 @@ export function GRNAdd() {
                         }}
                       >
                         <option value="">{optionsLoading ? 'Loading…' : 'Search an item *'}</option>
-                        {items.map((o: SelectOption) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {items.map((o: SelectOption) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        {...register(`items.${index}.itemName`)}
-                        className="w-full px-2 py-1 border rounded text-sm bg-gray-100 dark:bg-gray-800 disabled:opacity-75"
-                        readOnly
-                      />
+                      <input type="text" {...register(`items.${index}.itemName`)} className="w-full px-2 py-1 border rounded text-sm bg-gray-100 dark:bg-gray-800 disabled:opacity-75" readOnly />
                     </td>
                     <td className="px-3 py-2">
                       <select {...register(`items.${index}.uom`)} className={selectClass}>
                         <option value="">Select</option>
-                        {uomOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {uomOptions.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                        className="w-full px-2 py-1 border rounded text-sm"
-                        min="1"
-                      />
+                      <input type="number" {...register(`items.${index}.quantity`, { valueAsNumber: true })} className="w-full px-2 py-1 border rounded text-sm" min="1" />
                     </td>
                     <td className="px-3 py-2">
                       <select {...register(`items.${index}.reason`)} className={selectClass}>
                         <option value="">Select</option>
-                        {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {reasons.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td className="px-3 py-2">
                       <select {...register(`items.${index}.returnReason`)} className={selectClass}>
                         <option value="">Select</option>
-                        {reasons.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {reasons.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -233,20 +219,13 @@ export function GRNAdd() {
           </div>
 
           <div className="flex justify-start mb-6">
-            <Button
-              type="button"
-              onClick={() => append({ ...emptyItem, id: Date.now().toString() })}
-              variant="secondary"
-              className="flex items-center text-sm bg-gray-100 dark:bg-gray-700"
-            >
+            <Button type="button" onClick={() => append({ ...emptyItem, id: Date.now().toString() })} variant="secondary" className="flex items-center text-sm bg-gray-100 dark:bg-gray-700">
               <Plus className="w-4 h-4 mr-1" /> Add Item
             </Button>
           </div>
 
           <div className="mt-8">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              GRN Remark
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">GRN Remark</label>
             <textarea
               {...register('remark')}
               rows={4}
@@ -256,8 +235,12 @@ export function GRNAdd() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-4 flex justify-end gap-3 sticky bottom-0 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] text-sm">
-          <CancelButton onClick={() => navigate('/grn')} disabled={isSubmitting}>Cancel</CancelButton>
-          <SaveButton type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save & Submit'}</SaveButton>
+          <CancelButton onClick={() => navigate('/grn')} disabled={isSubmitting}>
+            Cancel
+          </CancelButton>
+          <SaveButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save & Submit'}
+          </SaveButton>
         </div>
       </form>
 
@@ -268,51 +251,24 @@ export function GRNAdd() {
           <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                GRN Settings
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
-              >
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">GRN Settings</h3>
+              <button type="button" onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">
                 &times;
               </button>
             </div>
 
             {/* Body */}
             <div className="px-6 py-5">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                Your GRN Numbers are set to auto generate mode to save time.
-                Are you sure about changing this setting?
-              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">Your GRN Numbers are set to auto generate mode to save time. Are you sure about changing this setting?</p>
 
               <div className="space-y-3">
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="grnMode"
-                    value="auto"
-                    checked={grnMode === 'auto'}
-                    onChange={() => setGrnMode('auto')}
-                    className="mt-0.5"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Continue auto-generating GRN Number
-                  </span>
+                  <input type="radio" name="grnMode" value="auto" checked={grnMode === 'auto'} onChange={() => setGrnMode('auto')} className="mt-0.5" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Continue auto-generating GRN Number</span>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="grnMode"
-                    value="manual"
-                    checked={grnMode === 'manual'}
-                    onChange={() => setGrnMode('manual')}
-                    className="mt-0.5"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    I will add them manually each time
-                  </span>
+                  <input type="radio" name="grnMode" value="manual" checked={grnMode === 'manual'} onChange={() => setGrnMode('manual')} className="mt-0.5" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">I will add them manually each time</span>
                 </label>
               </div>
 
@@ -320,25 +276,21 @@ export function GRNAdd() {
               {grnMode === 'manual' && (
                 <div className="mt-5 flex gap-3 border-t border-gray-100 dark:border-gray-700 pt-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Prefix
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prefix</label>
                     <input
                       type="text"
                       value={grnPrefix}
-                      onChange={e => setGrnPrefix(e.target.value)}
+                      onChange={(e) => setGrnPrefix(e.target.value)}
                       placeholder="e.g. GRN"
                       className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Number
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number</label>
                     <input
                       type="text"
                       value={grnNumVal}
-                      onChange={e => setGrnNumVal(e.target.value)}
+                      onChange={(e) => setGrnNumVal(e.target.value)}
                       placeholder="e.g. 10000"
                       className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none text-sm"
                     />
@@ -364,11 +316,7 @@ export function GRNAdd() {
               >
                 Save
               </button>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(false)}
-                className="px-5 py-2 text-sm rounded-lg bg-gray-500 hover:bg-gray-600 text-white font-medium transition-colors"
-              >
+              <button type="button" onClick={() => setSettingsOpen(false)} className="px-5 py-2 text-sm rounded-lg bg-gray-500 hover:bg-gray-600 text-white font-medium transition-colors">
                 Cancel
               </button>
             </div>

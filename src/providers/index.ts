@@ -1,4 +1,3 @@
-export { default as AuthProvider, useAuth, AuthContext } from './AuthProvider';
 export { default as CustomerProvider, useCustomer, CustomerContext } from './CustomerProvider';
 export { default as ItemProvider, useItem, ItemContext } from './ItemProvider';
 export { default as SalesmanProvider, useSalesman, SalesmanContext } from './SalesmanProvider';

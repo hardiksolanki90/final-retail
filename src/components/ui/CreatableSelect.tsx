@@ -73,18 +73,9 @@ export function CreatableSelect({
         onSearchChange={onSearchChange}
         pageSize={pageSize}
         required={required}
-        createAction={{
-          label: createLabel,
-          onClick: () => setIsModalOpen(true),
-        }}
+        createAction={{ label: createLabel, onClick: () => setIsModalOpen(true) }}
       />
-      <QuickCreateModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={createLabel}
-        fields={fields}
-        onSubmit={handleSubmit}
-      />
+      <QuickCreateModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={createLabel} fields={fields} onSubmit={handleSubmit} />
     </>
   );
 }

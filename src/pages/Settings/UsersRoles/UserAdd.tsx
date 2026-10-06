@@ -4,6 +4,10 @@ import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import { CountryPhoneInput } from '../../../components/ui/CountryPhoneInput';
 import { Select } from '../../../components/ui/Select';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: First/Last Name, Email, Phone, Role.
+const USER_FORM_SKELETON: FormSkeletonField[] = ['input', 'input', 'input', 'input', 'input'];
 
 export interface UserFormData {
   firstname: string;
@@ -18,24 +22,14 @@ interface UserAddProps {
   onClose: () => void;
   onSubmit: (data: UserFormData) => void | Promise<void>;
   initialData?: UserFormData;
+  /** The record's details are still loading — a loader covers the form. */
+  isLoading?: boolean;
   rolesOptions: { value: string | number; label: string }[];
 }
 
-const initialFormData: UserFormData = {
-  firstname: '',
-  lastname: '',
-  email: '',
-  mobile: '',
-  roleId: '',
-};
+const initialFormData: UserFormData = { firstname: '', lastname: '', email: '', mobile: '', roleId: '' };
 
-export function UserAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  rolesOptions = [],
-}: UserAddProps) {
+export function UserAdd({ isOpen, onClose, onSubmit, initialData, rolesOptions = [], isLoading = false }: UserAddProps) {
   const {
     register,
     handleSubmit,
@@ -43,9 +37,7 @@ export function UserAdd({
     reset,
     setError,
     control,
-  } = useForm<UserFormData>({
-    defaultValues: initialFormData
-  });
+  } = useForm<UserFormData>({ defaultValues: initialFormData });
 
   useEffect(() => {
     if (initialData) {
@@ -60,15 +52,15 @@ export function UserAdd({
       await onSubmit(data);
       onClose();
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving user'
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving user' });
     }
   };
 
   const footerContent = (
     <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+      <CancelButton onClick={onClose} disabled={isSubmitting}>
+        Cancel
+      </CancelButton>
       <SaveButton type="submit" form="user-form" disabled={isSubmitting}>
         {isSubmitting ? 'Saving...' : initialData ? 'Update user' : 'Create user'}
       </SaveButton>
@@ -77,6 +69,8 @@ export function UserAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={USER_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit User' : 'Create User'}
@@ -93,52 +87,40 @@ export function UserAdd({
 
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              First Name <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <input
-              {...register('firstname', {
-                required: 'First name is required',
-                validate: value => value.trim() !== '' || 'First name cannot be empty'
-              })}
+              {...register('firstname', { required: 'First name is required', validate: (value) => value.trim() !== '' || 'First name cannot be empty' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter first name"
             />
-            {errors.firstname && (
-              <p className="text-red-600 text-xs mt-1">{errors.firstname.message}</p>
-            )}
+            {errors.firstname && <p className="text-red-600 text-xs mt-1">{errors.firstname.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name <span className="text-red-500 font-bold ml-0.5">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Last Name <span className="text-red-500 font-bold ml-0.5">*</span>
+            </label>
             <input
-              {...register('lastname', {
-                required: 'Last name is required',
-                validate: value => value.trim() !== '' || 'Last name cannot be empty'
-              })}
+              {...register('lastname', { required: 'Last name is required', validate: (value) => value.trim() !== '' || 'Last name cannot be empty' })}
               className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter last name"
             />
-            {errors.lastname && (
-              <p className="text-red-600 text-xs mt-1">{errors.lastname.message}</p>
-            )}
+            {errors.lastname && <p className="text-red-600 text-xs mt-1">{errors.lastname.message}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
             type="email"
-            {...register('email', {
-              required: 'Email is required',
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Invalid email address'
-              }
-            })}
+            {...register('email', { required: 'Email is required', pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' } })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter email address"
           />
-          {errors.email && (
-            <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>
-          )}
+          {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>}
         </div>
 
         <div>
@@ -146,14 +128,7 @@ export function UserAdd({
             name="mobile"
             control={control}
             rules={{ required: 'Phone number is required' }}
-            render={({ field }) => (
-              <CountryPhoneInput
-                label="Phone" required
-                value={field.value || ''}
-                onChange={field.onChange}
-                error={errors.mobile?.message}
-              />
-            )}
+            render={({ field }) => <CountryPhoneInput label="Phone" required value={field.value || ''} onChange={field.onChange} error={errors.mobile?.message} />}
           />
         </div>
 
@@ -164,7 +139,8 @@ export function UserAdd({
             rules={{ required: 'Role is required' }}
             render={({ field }) => (
               <Select
-                label="Roles" required
+                label="Roles"
+                required
                 placeholder="Select a role"
                 searchable
                 options={rolesOptions}

@@ -11,9 +11,7 @@ export function PreferencesPage() {
         </div>
       </div>
 
-      <div className="mx-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-10 text-center text-[var(--text-secondary)]">
-        Theme settings are coming soon.
-      </div>
+      <div className="mx-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-10 text-center text-[var(--text-secondary)]">Theme settings are coming soon.</div>
     </div>
   );
 }

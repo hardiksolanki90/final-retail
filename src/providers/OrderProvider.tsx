@@ -1,22 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  getOrderList,
-  deleteOrder,
-  createOrder,
-  updateOrder,
-  getOrderDetails,
-  getOrderSummary,
-  updateOrderStatus,
-  cancelOrder,
-  bulkUpdateOrderStatus,
-} from '../api/OrderApi';
+import { getOrderList, deleteOrder, createOrder, updateOrder, getOrderDetails, getOrderSummary, updateOrderStatus, cancelOrder, bulkUpdateOrderStatus, bulkOrderAction } from '../api/OrderApi';
 import { showToast } from '../lib/toast';
-import type {
-  Order,
-  OrderFormData,
-  OrderListResponse,
-} from '../types/Order';
+import type { Order, OrderFormData, OrderListResponse } from '../types/Order';
 import type { ColumnSearchStates, PaginationData } from '../types/Common';
 
 interface OrderContextType {
@@ -128,12 +114,8 @@ export default function OrderProvider({ children }: OrderProviderProps) {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState<[string, string]>(() => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
-    return [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]];
-  });
+  // Empty = no date filter; getOrderList only sends date_from/date_to when set.
+  const [dateFilter, setDateFilter] = useState<[string, string]>(['', '']);
 
   // Bulk actions
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -158,11 +140,7 @@ export default function OrderProvider({ children }: OrderProviderProps) {
     refetch: refetchOrders,
   } = useQuery({
     queryKey: ['order-list', searchTerm, currentPage, perPage, statusFilter, dateFilter],
-    queryFn: () => getOrderList(currentPage, searchTerm, perPage, {
-      status: statusFilter || undefined,
-      dateFrom: dateFilter[0],
-      dateTo: dateFilter[1],
-    }),
+    queryFn: () => getOrderList(currentPage, searchTerm, perPage, { status: statusFilter || undefined, dateFrom: dateFilter[0] || undefined, dateTo: dateFilter[1] || undefined }),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -197,8 +175,7 @@ export default function OrderProvider({ children }: OrderProviderProps) {
   });
 
   const updateOrderMutation = useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: OrderFormData }) =>
-      updateOrder(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: OrderFormData }) => updateOrder(uuid, data),
     onSuccess: () => {
       showToast.success('Order updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['order-list'] });
@@ -222,8 +199,7 @@ export default function OrderProvider({ children }: OrderProviderProps) {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ uuid, status }: { uuid: string; status: Order['status'] }) =>
-      updateOrderStatus(uuid, status),
+    mutationFn: ({ uuid, status }: { uuid: string; status: Order['status'] }) => updateOrderStatus(uuid, status),
     onSuccess: () => {
       showToast.success('Order status updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['order-list'] });
@@ -235,8 +211,7 @@ export default function OrderProvider({ children }: OrderProviderProps) {
   });
 
   const cancelOrderMutation = useMutation({
-    mutationFn: ({ uuid, reason }: { uuid: string; reason?: string }) =>
-      cancelOrder(uuid, reason),
+    mutationFn: ({ uuid, reason }: { uuid: string; reason?: string }) => cancelOrder(uuid, reason),
     onSuccess: () => {
       showToast.success('Order cancelled successfully!');
       queryClient.invalidateQueries({ queryKey: ['order-list'] });
@@ -247,9 +222,20 @@ export default function OrderProvider({ children }: OrderProviderProps) {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (uuids: string[]) => bulkOrderAction(uuids, 'delete'),
+    onSuccess: (_, uuids) => {
+      showToast.success(`${uuids.length} order(s) deleted successfully`);
+      queryClient.invalidateQueries({ queryKey: ['order-list'] });
+      setSelectedRowKeys([]);
+    },
+    onError: (error: Error) => {
+      showToast.error(error.message || 'Failed to delete orders');
+    },
+  });
+
   const bulkUpdateMutation = useMutation({
-    mutationFn: ({ uuids, status }: { uuids: string[]; status: Order['status'] }) =>
-      bulkUpdateOrderStatus(uuids, status),
+    mutationFn: ({ uuids, status }: { uuids: string[]; status: Order['status'] }) => bulkUpdateOrderStatus(uuids, status),
     onSuccess: () => {
       showToast.success('Orders updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['order-list'] });
@@ -276,40 +262,27 @@ export default function OrderProvider({ children }: OrderProviderProps) {
       return;
     }
 
-    const statusActions = {
-      'confirm': 'confirmed',
-      'process': 'processing', 
-      'ship': 'shipped',
-      'deliver': 'delivered',
-      'cancel': 'cancelled'
-    } as const;
+    const statusActions = { confirm: 'confirmed', process: 'processing', ship: 'shipped', deliver: 'delivered', cancel: 'cancelled' } as const;
 
-    if (action in statusActions) {
+    if (action === 'delete') {
+      if (window.confirm(`Delete ${selectedRowKeys.length} order(s)? This cannot be undone.`)) {
+        bulkDeleteMutation.mutate(selectedRowKeys);
+      }
+    } else if (action in statusActions) {
       const status = statusActions[action as keyof typeof statusActions] as Order['status'];
       bulkUpdateMutation.mutate({ uuids: selectedRowKeys, status });
     } else {
-      showToast.success(`${selectedRowKeys.length} order(s) ${action} successfully`);
-      setSelectedRowKeys([]);
+      showToast.error(`"${action}" is not supported`);
     }
     setBulkActionValue(undefined);
   };
 
   const handleColumnSearchToggle = (column: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: {
-        ...prev[column],
-        isOpen: !prev[column].isOpen,
-        value: prev[column].isOpen ? '' : prev[column].value,
-      },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], isOpen: !prev[column].isOpen, value: prev[column].isOpen ? '' : prev[column].value } }));
   };
 
   const handleColumnSearchChange = (column: string, value: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: { ...prev[column], value },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], value } }));
   };
 
   const handleColumnSearchConfirm = (column: string) => {
@@ -323,18 +296,12 @@ export default function OrderProvider({ children }: OrderProviderProps) {
 
       setSearchTerm(searchQuery);
       setCurrentPage(1);
-      setColumnSearchStates((prev) => ({
-        ...prev,
-        [column]: { ...prev[column], isOpen: false },
-      }));
+      setColumnSearchStates((prev) => ({ ...prev, [column]: { ...prev[column], isOpen: false } }));
     }
   };
 
   const handleColumnSearchClose = (column: string) => {
-    setColumnSearchStates((prev) => ({
-      ...prev,
-      [column]: { isOpen: false, value: '' },
-    }));
+    setColumnSearchStates((prev) => ({ ...prev, [column]: { isOpen: false, value: '' } }));
   };
 
   const handleTabChange = (tab: string) => {
@@ -397,14 +364,7 @@ export default function OrderProvider({ children }: OrderProviderProps) {
   };
 
   const pagination: PaginationData | undefined = orderData
-    ? {
-        total: orderData.total,
-        currentPage: orderData.currentPage,
-        perPage: orderData.perPage,
-        lastPage: orderData.lastPage,
-        nextPage: orderData.nextPage,
-        prevPage: orderData.prevPage,
-      }
+    ? { total: orderData.total, currentPage: orderData.currentPage, perPage: orderData.perPage, lastPage: orderData.lastPage, nextPage: orderData.nextPage, prevPage: orderData.prevPage }
     : undefined;
 
   const value: OrderContextType = {

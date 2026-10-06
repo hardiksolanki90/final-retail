@@ -2,25 +2,18 @@ export type JourneyPlanBase = 'day_wise' | 'week_wise';
 
 export type WeekNumber = 'week1' | 'week2' | 'week3' | 'week4' | 'week5';
 
-export type DayOfWeek =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday';
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 /** One customer row inside the Customers tab */
 export interface JourneyPlanCustomerRow {
-  id: string;              // local unique id
-  customerId: string;      // real customer uuid — required for save
+  id: string; // local unique id
+  customerId: string; // real customer uuid — required for save
   sequence: number;
   code: string;
   customerName: string;
   mslPerform: boolean;
-  startTime: string;       // "HH:MM"
-  endTime: string;         // "HH:MM"
+  startTime: string; // "HH:MM"
+  endTime: string; // "HH:MM"
 }
 
 /**
@@ -52,6 +45,7 @@ export interface JourneyPlanFullFormData {
 
   uuid?: string;
   merchandiserName?: string;
+  salesmanName?: string;
   status?: boolean;
 }
 

@@ -30,11 +30,31 @@ export interface Item {
   categoryName?: string;
   createdAt?: string;
   updatedAt?: string;
-  
+
   // Relationships — lean {id,uuid,name} shape as sent by ItemList/ItemView
   brand?: { id?: number; uuid?: string; name?: string };
   category?: { id?: number; uuid?: string; name?: string };
   itemUom?: ItemUom;
+  itemGroup?: { id?: number; uuid?: string; code?: string; name?: string } | null;
+  baseUomPrice?: number;
+  baseUomPurchasePrice?: number;
+  baseUomUpc?: number;
+  // Product catalog (present on the full item, not on list rows)
+  isProductCatalog?: boolean;
+  netWeight?: string | number;
+  flavor?: string;
+  shelfLifeCatalog?: string | number;
+  ingredients?: string;
+  energy?: string | number;
+  fat?: string | number;
+  protein?: string | number;
+  carbohydrate?: string | number;
+  calcium?: string | number;
+  sodium?: string | number;
+  potassium?: string | number;
+  crudeFibre?: string | number;
+  vitamin?: string | number;
+  catalogImage?: string;
 }
 
 export interface SecondaryUom {
@@ -82,7 +102,7 @@ export interface ItemFormData {
   launchStartDate?: string;
   launchEndDate?: string;
   secondaryUoms?: SecondaryUom[];
-  
+
   // New Tab Fields
   itemGroupId?: number | string;
   isPromotional?: boolean;
@@ -109,15 +129,7 @@ export interface ItemFormData {
 
 export interface ItemListResponse {
   data: Item[];
-  meta: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    last_page: number;
-    has_more_pages: boolean;
-    next_page_url?: string;
-    prev_page_url?: string;
-  };
+  meta: { current_page: number; per_page: number; total: number; last_page: number; has_more_pages: boolean; next_page_url?: string; prev_page_url?: string };
   message: string;
 }
 
@@ -154,6 +166,8 @@ export interface ItemWithStock extends Item {
 export interface ItemSelectOption {
   value: string;
   label: string;
+  /** UOMs the item is sold in (value = UOM uuid), base first. */
+  uoms: { value: string; label: string; isBase: boolean }[];
 }
 
 export interface ItemFilters {

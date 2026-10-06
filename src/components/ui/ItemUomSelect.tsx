@@ -1,4 +1,4 @@
-import { Select } from './Select';
+import { Select, type SelectOption } from './Select';
 import { getItemUomList } from '../../api/ItemApi';
 import { useInfiniteSelect } from '../../hooks';
 
@@ -10,37 +10,18 @@ export interface ItemUomSelectProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  initialOption?: SelectOption | null;
 }
 
-export function ItemUomSelect({
-  label = 'UOM',
-  value,
-  onChange,
-  onSelectOption,
-  error,
-  disabled = false,
-  required = false,
-}: ItemUomSelectProps) {
-  const {
-    options,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    onLoadMore,
-    onSearchChange,
-  } = useInfiniteSelect({
+export function ItemUomSelect({ label = 'UOM', value, onChange, onSelectOption, error, disabled = false, required = false, initialOption }: ItemUomSelectProps) {
+  const { options, isLoading, isLoadingMore, hasMore, onLoadMore, onSearchChange } = useInfiniteSelect({
     selectedValue: value,
+    initialOption,
     fetchPage: async (page, search) => {
       const res = await getItemUomList(page, 15, search || undefined);
-      return {
-        items: res?.data || [],
-        hasMore: Boolean(res?.meta?.has_more_pages),
-      };
+      return { items: res?.data || [], hasMore: Boolean(res?.meta?.has_more_pages) };
     },
-    mapItemToOption: (r: any) => ({
-      value: String(r.id),
-      label: `${r.name} (${r.code})`,
-    }),
+    mapItemToOption: (r: any) => ({ value: String(r.id), label: `${r.name} (${r.code})` }),
   });
 
   return (
@@ -55,7 +36,7 @@ export function ItemUomSelect({
           if (selected) onSelectOption(selected);
         }
       }}
-      options={options} 
+      options={options}
       placeholder="Select UOM"
       disabled={disabled}
       required={required}

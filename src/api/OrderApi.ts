@@ -5,13 +5,7 @@ export const getOrderList = async (
   page: number = 1,
   searchTerm?: string,
   perPage: number = 15,
-  filters?: {
-    status?: string;
-    customerId?: string;
-    salesmanId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }
+  filters?: { status?: string; customerId?: string; salesmanId?: string; dateFrom?: string; dateTo?: string }
 ): Promise<OrderListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
@@ -29,33 +23,34 @@ export const getOrderList = async (
     if (filters.dateTo) params.append('date_to', filters.dateTo);
   }
 
-  const response = await axiosInstance.get(`/orders?${params.toString()}`);
+  const response = await axiosInstance.get(`/order/list?${params.toString()}`);
   return response.data;
 };
 
 export const getOrderDetails = async (uuid: string): Promise<Order> => {
-  const response = await axiosInstance.get(`/orders/${uuid}`);
+  const response = await axiosInstance.get(`/order/edit/${uuid}`);
   return response.data.data || response.data;
 };
 
 export const createOrder = async (orderData: OrderFormData): Promise<Order> => {
-  const response = await axiosInstance.post('/orders', orderData);
+  const response = await axiosInstance.post('/order/add', orderData);
   return response.data.data || response.data;
 };
 
 export const updateOrder = async (uuid: string, orderData: OrderFormData): Promise<Order> => {
-  const response = await axiosInstance.put(`/orders/${uuid}`, orderData);
+  const response = await axiosInstance.post(`/order/edit/${uuid}`, orderData);
   return response.data.data || response.data;
 };
 
 export const deleteOrder = async (uuid: string): Promise<void> => {
-  await axiosInstance.delete(`/orders/${uuid}`);
+  await axiosInstance.post('/order/delete', { id: uuid });
 };
 
-export const updateOrderStatus = async (
-  uuid: string,
-  status: Order['status']
-): Promise<Order> => {
+export const bulkOrderAction = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
+  await axiosInstance.post('/order/bulk-action', { uuids, action });
+};
+
+export const updateOrderStatus = async (uuid: string, status: Order['status']): Promise<Order> => {
   const response = await axiosInstance.patch(`/orders/${uuid}/status`, { status });
   return response.data.data || response.data;
 };
@@ -70,22 +65,11 @@ export const getOrderSummary = async (uuid: string): Promise<unknown> => {
   return response.data.data || response.data;
 };
 
-export const bulkUpdateOrderStatus = async (
-  uuids: string[],
-  status: Order['status']
-): Promise<void> => {
+export const bulkUpdateOrderStatus = async (uuids: string[], status: Order['status']): Promise<void> => {
   await axiosInstance.post('/orders/bulk-status', { uuids, status });
 };
 
-export const exportOrders = async (
-  format: 'csv' | 'xlsx',
-  filters?: {
-    dateFrom?: string;
-    dateTo?: string;
-    status?: string;
-    customerId?: string;
-  }
-): Promise<Blob> => {
+export const exportOrders = async (format: 'csv' | 'xlsx', filters?: { dateFrom?: string; dateTo?: string; status?: string; customerId?: string }): Promise<Blob> => {
   const params = new URLSearchParams();
   params.append('format', format);
 
@@ -94,8 +78,6 @@ export const exportOrders = async (
   if (filters?.status) params.append('status', filters.status);
   if (filters?.customerId) params.append('customer_id', filters.customerId);
 
-  const response = await axiosInstance.get(`/orders/export?${params.toString()}`, {
-    responseType: 'blob',
-  });
+  const response = await axiosInstance.get(`/orders/export?${params.toString()}`, { responseType: 'blob' });
   return response.data;
 };

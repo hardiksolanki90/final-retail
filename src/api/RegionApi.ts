@@ -30,13 +30,13 @@ export const deleteRegion = async (uuid: string) => {
   showToast.success('Region deleted successfully');
 };
 
-export interface RegionOption { value: number; label: string; }
+export interface RegionOption {
+  value: number;
+  label: string;
+}
 
 export const getRegionOptions = async (): Promise<RegionOption[]> => {
   const response = await axiosInstance.get('/region/all');
   const data = response.data?.data ?? [];
-  return data.map((r: { id: number; regionCode?: string; regionName?: string }) => ({
-    value: r.id,
-    label: r.regionCode ? `${r.regionCode} - ${r.regionName ?? ''}` : (r.regionName ?? String(r.id)),
-  }));
+  return data.map((r: { id: number; regionCode?: string; regionName?: string }) => ({ value: r.id, label: r.regionCode ? `${r.regionCode} - ${r.regionName ?? ''}` : (r.regionName ?? String(r.id)) }));
 };

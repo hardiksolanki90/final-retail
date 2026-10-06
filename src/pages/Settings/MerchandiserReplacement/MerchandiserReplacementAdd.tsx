@@ -4,38 +4,31 @@ import { Drawer } from '../../../components/ui/Drawer';
 import { SaveButton, CancelButton } from '../../../components/ui/Button';
 import type { MerchandiserReplacementFormData } from '../../../types/MerchandiserReplacement';
 import type { SalesmanSelectOption } from '../../../types/Salesman';
+import { FormSkeleton, type FormSkeletonField } from '../../../components/ui/skeleton';
+
+// Mirrors the form below: Old/New Salesman, Type, Added On.
+const MERCHANDISER_REPLACEMENT_FORM_SKELETON: FormSkeletonField[] = ['select', 'select', 'input', 'input'];
 
 interface MerchandiserReplacementAddProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: MerchandiserReplacementFormData) => void | Promise<void>;
   initialData?: MerchandiserReplacementFormData;
+  /** The record's details are still loading — a loader covers the form. */
+  isLoading?: boolean;
   salesmanOptions: SalesmanSelectOption[];
 }
 
-const initialFormData: MerchandiserReplacementFormData = {
-  oldSalesmanId: '',
-  newSalesmanId: '',
-  type: '',
-  addedOn: '',
-};
+const initialFormData: MerchandiserReplacementFormData = { oldSalesmanId: '', newSalesmanId: '', type: '', addedOn: '' };
 
-export function MerchandiserReplacementAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  salesmanOptions,
-}: MerchandiserReplacementAddProps) {
+export function MerchandiserReplacementAdd({ isOpen, onClose, onSubmit, initialData, salesmanOptions, isLoading = false }: MerchandiserReplacementAddProps) {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
     setError,
-  } = useForm<MerchandiserReplacementFormData>({
-    defaultValues: initialFormData,
-  });
+  } = useForm<MerchandiserReplacementFormData>({ defaultValues: initialFormData });
 
   useEffect(() => {
     if (initialData) {
@@ -47,22 +40,18 @@ export function MerchandiserReplacementAdd({
 
   const onFormSubmit = async (data: MerchandiserReplacementFormData) => {
     try {
-      const payload = {
-        ...data,
-        oldSalesmanId: Number(data.oldSalesmanId),
-        newSalesmanId: Number(data.newSalesmanId),
-      };
+      const payload = { ...data, oldSalesmanId: Number(data.oldSalesmanId), newSalesmanId: Number(data.newSalesmanId) };
       await onSubmit(payload);
     } catch (error: any) {
-      setError('root', {
-        message: error.response?.data?.message || 'Error saving merchandiser replacement',
-      });
+      setError('root', { message: error.response?.data?.message || 'Error saving merchandiser replacement' });
     }
   };
 
   const footerContent = (
     <div className="flex items-center justify-end gap-3">
-      <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+      <CancelButton onClick={onClose} disabled={isSubmitting}>
+        Cancel
+      </CancelButton>
       <SaveButton type="submit" form="merchandiser-replacement-form" disabled={isSubmitting}>
         {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
       </SaveButton>
@@ -71,6 +60,8 @@ export function MerchandiserReplacementAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={MERCHANDISER_REPLACEMENT_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Replacement' : 'Add Replacement'}
@@ -86,35 +77,45 @@ export function MerchandiserReplacementAdd({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Old Salesman <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Old Salesman <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <select
             {...register('oldSalesmanId', { required: 'Old Salesman is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select old salesman</option>
-            {salesmanOptions.map(s => (
-              <option key={s.id} value={s.id}>{s.name} ({s.salesmanCode})</option>
+            {salesmanOptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.salesmanCode})
+              </option>
             ))}
           </select>
           {errors.oldSalesmanId && <p className="text-red-600 text-xs mt-1">{errors.oldSalesmanId.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Salesman <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            New Salesman <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <select
             {...register('newSalesmanId', { required: 'New Salesman is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select new salesman</option>
-            {salesmanOptions.map(s => (
-              <option key={s.id} value={s.id}>{s.name} ({s.salesmanCode})</option>
+            {salesmanOptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.salesmanCode})
+              </option>
             ))}
           </select>
           {errors.newSalesmanId && <p className="text-red-600 text-xs mt-1">{errors.newSalesmanId.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Type <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
             {...register('type', { required: 'Type is required' })}
             className="block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -124,7 +125,9 @@ export function MerchandiserReplacementAdd({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Added On <span className="text-red-500 font-bold ml-0.5">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Added On <span className="text-red-500 font-bold ml-0.5">*</span>
+          </label>
           <input
             {...register('addedOn', { required: 'Added On date is required' })}
             type="date"

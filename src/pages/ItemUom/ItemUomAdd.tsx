@@ -5,29 +5,21 @@ import { SaveButton, CancelButton } from '../../components/ui/Button';
 import type { ItemUomFormData } from '../../types/ItemUom';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
 import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
+import { FormSkeleton, type FormSkeletonField } from '../../components/ui/skeleton';
+
+// Mirrors the form below: Code, Name.
+const ITEM_UOM_FORM_SKELETON: FormSkeletonField[] = ['code', 'input'];
 
 interface ItemUomAddProps {
   isOpen: boolean;
   onClose: () => void;
-  data?: {
-    initialData?: ItemUomFormData;
-    isLoading?: boolean;
-  };
+  data?: { initialData?: ItemUomFormData; isLoading?: boolean };
   onEvent?: (event: any) => void;
 }
 
-const initialFormData: ItemUomFormData = {
-  code: '',
-  name: '',
-  status: true,
-};
+const initialFormData: ItemUomFormData = { code: '', name: '', status: true };
 
-export function ItemUomAdd({
-  isOpen,
-  onClose,
-  data,
-  onEvent,
-}: ItemUomAddProps) {
+export function ItemUomAdd({ isOpen, onClose, data, onEvent }: ItemUomAddProps) {
   const initialData = data?.initialData;
   const isLoading = data?.isLoading || false;
 
@@ -39,9 +31,7 @@ export function ItemUomAdd({
     setError,
     watch,
     setValue,
-  } = useForm<ItemUomFormData>({
-    defaultValues: initialFormData
-  });
+  } = useForm<ItemUomFormData>({ defaultValues: initialFormData });
 
   const watchedStatus = watch('status');
   const [codeLocked, setCodeLocked] = useState(false);
@@ -63,22 +53,12 @@ export function ItemUomAdd({
       }
 
       // Trim values before submission
-      const trimmedData: ItemUomFormData = {
-        code: resolvedCode ?? formData.code?.trim() ?? '',
-        name: formData.name?.trim() || '',
-        status: formData.status,
-      };
+      const trimmedData: ItemUomFormData = { code: resolvedCode ?? formData.code?.trim() ?? '', name: formData.name?.trim() || '', status: formData.status };
 
-      await onEvent?.({
-        eventType: initialData ? 'ItemUomUpdated' : 'ItemUomCreated',
-        itemUom: trimmedData,
-      });
+      await onEvent?.({ eventType: initialData ? 'ItemUomUpdated' : 'ItemUomCreated', itemUom: trimmedData });
     } catch (error: any) {
       console.error('Error saving item UOM:', error);
-      setError('root', {
-        type: 'manual',
-        message: error?.response?.data?.message || error?.message || 'Failed to save item UOM. Please try again.'
-      });
+      setError('root', { type: 'manual', message: error?.response?.data?.message || error?.message || 'Failed to save item UOM. Please try again.' });
     }
   };
 
@@ -89,17 +69,17 @@ export function ItemUomAdd({
         <button
           type="button"
           onClick={() => setValue('status', !watchedStatus)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-            }`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+            watchedStatus ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+          }`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'
-              }`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
       </div>
       <div className="flex gap-3">
-        <CancelButton onClick={onClose} disabled={isSubmitting}>Cancel</CancelButton>
+        <CancelButton onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </CancelButton>
         <SaveButton type="submit" form="item-uom-form" disabled={isSubmitting || isLoading}>
           {isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
         </SaveButton>
@@ -109,6 +89,8 @@ export function ItemUomAdd({
 
   return (
     <Drawer
+      isLoading={isLoading}
+      skeleton={<FormSkeleton fields={ITEM_UOM_FORM_SKELETON} />}
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? 'Edit Item UOM' : 'Add Item UOM'}
@@ -137,13 +119,11 @@ export function ItemUomAdd({
               border-gray-300 dark:border-gray-600
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
               disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed"
-              placeholder="Auto-generated if empty"
+              placeholder="Configure the system to auto-generate the code."
               disabled={codeLocked}
             />
             <OrderCodeSettingsIcon label="Code" value={watch('code') || ''} onChange={(v) => setValue('code', v)} entityKey="item_uom" onLockChange={setCodeLocked} />
-            {errors.code && (
-              <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>
-            )}
+            {errors.code && <p className="text-red-600 text-xs mt-1">{errors.code.message}</p>}
           </div>
         </div>
 
@@ -152,10 +132,7 @@ export function ItemUomAdd({
             Name <span className="text-red-500 font-bold ml-0.5">*</span>
           </label>
           <input
-            {...register('name', {
-              required: 'Name is required',
-              validate: value => value?.trim() ? true : 'Name is required'
-            })}
+            {...register('name', { required: 'Name is required', validate: (value) => (value?.trim() ? true : 'Name is required') })}
             className="block w-full px-3 py-2 rounded-lg border transition-colors
               bg-white dark:bg-gray-800
               text-gray-900 dark:text-gray-100
@@ -163,9 +140,7 @@ export function ItemUomAdd({
               focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             placeholder="Enter name"
           />
-          {errors.name && (
-            <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
         </div>
       </form>
     </Drawer>

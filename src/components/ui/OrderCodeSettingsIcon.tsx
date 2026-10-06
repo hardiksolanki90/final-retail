@@ -39,11 +39,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
 
   const handleSave = async () => {
     if (entityKey) {
-      await save({
-        isCodeAuto: mode === 'auto',
-        prefixCode: mode === 'auto' ? (prefix || undefined) : undefined,
-        startCode: mode === 'auto' ? (num || undefined) : undefined,
-      });
+      await save({ isCodeAuto: mode === 'auto', prefixCode: mode === 'auto' ? prefix || undefined : undefined, startCode: mode === 'auto' ? num || undefined : undefined });
     }
 
     // Auto/manual is a preference only — the code itself is reserved right
@@ -77,21 +73,13 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleOpen}
-        className={`text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors ${className}`}
-        title={`Configure ${label || 'Code'}`}
-      >
+      <button type="button" onClick={handleOpen} className={`text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors ${className}`} title={`Configure ${label || 'Code'}`}>
         <Settings className="w-5 h-5" />
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
           <div
             className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-800 overflow-hidden"
@@ -111,9 +99,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
                   <Settings className="w-[18px] h-[18px]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
-                    {label || 'Order Code'}
-                  </h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{label || 'Order Code'}</h3>
                   <p className="text-xs text-gray-400 dark:text-gray-500">Numbering settings</p>
                 </div>
               </div>
@@ -140,9 +126,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
                   onClick={() => !isLocked && setMode('auto')}
                   disabled={isLocked}
                   className={`relative z-10 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
-                    mode === 'auto'
-                      ? 'text-primary-600 dark:text-primary-400'
-                      : 'text-gray-500 dark:text-gray-400'
+                    mode === 'auto' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -153,9 +137,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
                   onClick={() => !isLocked && setMode('manual')}
                   disabled={isLocked}
                   className={`relative z-10 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
-                    mode === 'manual'
-                      ? 'text-primary-600 dark:text-primary-400'
-                      : 'text-gray-500 dark:text-gray-400'
+                    mode === 'manual' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   <Keyboard className="w-3.5 h-3.5" />
@@ -176,9 +158,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
                   {/* Joined prefix + number capsule */}
                   <div className="flex items-stretch rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
                     <div className="flex-1 min-w-0">
-                      <span className="block px-3 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                        Prefix
-                      </span>
+                      <span className="block px-3 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Prefix</span>
                       <input
                         type="text"
                         value={prefix}
@@ -190,9 +170,7 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
                     </div>
                     <div className="flex items-center px-1 text-gray-300 dark:text-gray-600 font-mono select-none">–</div>
                     <div className="flex-1 min-w-0 border-l border-gray-200 dark:border-gray-700">
-                      <span className="block px-3 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                        Number
-                      </span>
+                      <span className="block px-3 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Number</span>
                       <input
                         type="text"
                         value={num}
@@ -206,12 +184,8 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
 
                   {/* Live preview */}
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-900/20">
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-primary-500 dark:text-primary-400/80">
-                      Preview
-                    </span>
-                    <span className="font-mono text-sm font-semibold text-primary-700 dark:text-primary-300 truncate">
-                      {previewCode || 'e.g. ORD-10000'}
-                    </span>
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-primary-500 dark:text-primary-400/80">Preview</span>
+                    <span className="font-mono text-sm font-semibold text-primary-700 dark:text-primary-300 truncate">{previewCode || 'e.g. ORD-10000'}</span>
                   </div>
                 </div>
               )}

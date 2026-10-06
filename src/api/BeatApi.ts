@@ -8,12 +8,7 @@ export interface BeatOption {
   label: string;
 }
 
-export const getBeatList = async (
-  page = 1,
-  perPage = 15,
-  searchTerm?: string,
-  areaId?: number | string
-): Promise<BeatListResponse> => {
+export const getBeatList = async (page = 1, perPage = 15, searchTerm?: string, areaId?: number | string): Promise<BeatListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -55,8 +50,6 @@ export const getBeatOptions = async (areaId?: number | string): Promise<BeatOpti
   const data = response.data?.data ?? [];
   return data.map((b: { id: number; beatCode?: string; code?: string; beatName?: string; name?: string }) => ({
     value: b.id,
-    label: (b.beatCode ?? b.code)
-      ? `${b.beatCode ?? b.code} - ${b.beatName ?? b.name ?? ''}`
-      : (b.beatName ?? b.name ?? String(b.id)),
+    label: (b.beatCode ?? b.code) ? `${b.beatCode ?? b.code} - ${b.beatName ?? b.name ?? ''}` : (b.beatName ?? b.name ?? String(b.id)),
   }));
 };

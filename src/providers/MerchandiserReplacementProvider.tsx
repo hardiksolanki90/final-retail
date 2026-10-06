@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidateEntity } from '../hooks/useEntityDetail';
 import { getMerchandiserReplacementList, deleteMerchandiserReplacement, type MerchandiserReplacementFilters } from '../api/MerchandiserReplacementApi';
 import { getAllSalesmen } from '../api/SalesmanApi';
 import { showToast } from '../lib/toast';
@@ -40,22 +41,23 @@ export default function MerchandiserReplacementProvider({ children }: { children
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MerchandiserReplacement | null>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['merchandiser-replacement-list', currentPage, perPage, filters],
-    queryFn: () => getMerchandiserReplacementList(currentPage, perPage, filters),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['merchandiser-replacement-list', currentPage, perPage, filters], queryFn: () => getMerchandiserReplacementList(currentPage, perPage, filters), staleTime: 5 * 60 * 1000 });
 
-  const { data: salesmanData, isLoading: salesmanLoading } = useQuery({
-    queryKey: ['salesman-all'],
-    queryFn: () => getAllSalesmen(),
-    staleTime: 10 * 60 * 1000,
-  });
+  const { data: salesmanData, isLoading: salesmanLoading } = useQuery({ queryKey: ['salesman-all'], queryFn: () => getAllSalesmen(), staleTime: 10 * 60 * 1000 });
 
   const deleteMutation = useMutation({
     mutationFn: deleteMerchandiserReplacement,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['merchandiser-replacement-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
+    onSuccess: () => {
+      invalidateEntity(queryClient, 'merchandiser-replacement-list', 'merchandiser-replacement');
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to delete');
+    },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {

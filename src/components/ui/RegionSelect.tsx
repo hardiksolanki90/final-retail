@@ -1,41 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { CreatableSelect } from './CreatableSelect';
 import { getRegionList, createRegion } from '../../api/RegionApi';
 import { getAllCountries, getAllCountryMasters } from '../../api/CountryApi';
 import type { SelectOption } from './Select';
 import { useInfiniteSelect } from '../../hooks';
 
-let cachedCountryOptions: SelectOption[] | null = null;
-let countryOptionsPromise: Promise<SelectOption[]> | null = null;
-
-async function getCachedCountryOptions(): Promise<SelectOption[]> {
-  if (cachedCountryOptions) return cachedCountryOptions;
-  if (!countryOptionsPromise) {
-    countryOptionsPromise = (async () => {
-      try {
-        let countries = await getAllCountries();
-        if (!countries || countries.length === 0) {
-          const masters = await getAllCountryMasters();
-          countries = masters.map((m) => ({
-            id: m.id,
-            uuid: String(m.id),
-            name: m.name,
-            countryCode: m.countryCode ?? '',
-          }));
-        }
-        cachedCountryOptions = countries.map((c) => ({
-          value: c.id,
-          label: c.countryCode ? `${c.countryCode} - ${c.name}` : c.name,
-        }));
-        return cachedCountryOptions;
-      } catch {
-        return [];
-      } finally {
-        countryOptionsPromise = null;
-      }
-    })();
+// Countries for the "create region" form; falls back to the global country list when the organisation has none yet.
+async function fetchCountryOptions(): Promise<SelectOption[]> {
+  let countries = await getAllCountries();
+  if (!countries || countries.length === 0) {
+    const masters = await getAllCountryMasters();
+    countries = masters.map((m) => ({ id: m.id, uuid: String(m.id), name: m.name, countryCode: m.countryCode ?? '' }));
   }
-  return countryOptionsPromise;
+  return countries.map((c) => ({ value: c.id, label: c.countryCode ? `${c.countryCode} - ${c.name}` : c.name }));
 }
 
 export interface RegionSelectProps {
@@ -47,49 +24,21 @@ export interface RegionSelectProps {
   className?: string;
   disabled?: boolean;
   required?: boolean;
+  /** Label for the saved `value` when it may not be on the first fetched page (an edit form). */
+  initialOption?: SelectOption | null;
 }
 
-export function RegionSelect({
-  value,
-  onChange,
-  placeholder = 'Select region',
-  label,
-  error,
-  className,
-  disabled = false,
-  required = false,
-}: RegionSelectProps) {
-  const [countryOptions, setCountryOptions] = useState<SelectOption[]>(cachedCountryOptions || []);
+export function RegionSelect({ value, onChange, placeholder = 'Select region', label, error, className, disabled = false, required = false, initialOption }: RegionSelectProps) {
+  const { data: countryOptions = [] } = useQuery({ queryKey: ['region-country-options'], queryFn: fetchCountryOptions, staleTime: 30 * 60 * 1000 });
 
-  useEffect(() => {
-    if (!cachedCountryOptions) {
-      getCachedCountryOptions().then(setCountryOptions);
-    }
-  }, []);
-
-  const {
-    options,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    onLoadMore,
-    onSearchChange,
-    addOption,
-  } = useInfiniteSelect({
+  const { options, isLoading, isLoadingMore, hasMore, onLoadMore, onSearchChange, addOption } = useInfiniteSelect({
     selectedValue: value,
+    initialOption,
     fetchPage: async (page, search) => {
       const res = await getRegionList(page, 15, search || undefined);
-      return {
-        items: res?.data || [],
-        hasMore: Boolean(res?.meta?.has_more_pages),
-      };
+      return { items: res?.data || [], hasMore: Boolean(res?.meta?.has_more_pages) };
     },
-    mapItemToOption: (r: any) => ({
-      value: r.id,
-      label: (r.regionCode ?? r.code)
-        ? `${r.regionCode ?? r.code} - ${r.regionName ?? r.name}`
-        : (r.regionName ?? r.name ?? String(r.id)),
-    }),
+    mapItemToOption: (r: any) => ({ value: r.id, label: (r.regionCode ?? r.code) ? `${r.regionCode ?? r.code} - ${r.regionName ?? r.name}` : (r.regionName ?? r.name ?? String(r.id)) }),
   });
 
   const handleCreate = async (values: Record<string, any>): Promise<SelectOption> => {
@@ -104,9 +53,7 @@ export function RegionSelect({
     const created = res.data ?? res;
     const newOption: SelectOption = {
       value: String(created.id ?? ''),
-      label: (created.regionCode ?? created.code)
-        ? `${created.regionCode ?? created.code} - ${created.regionName ?? created.name}`
-        : (created.regionName ?? created.name),
+      label: (created.regionCode ?? created.code) ? `${created.regionCode ?? created.code} - ${created.regionName ?? created.name}` : (created.regionName ?? created.name),
     };
     addOption(newOption);
     return newOption;

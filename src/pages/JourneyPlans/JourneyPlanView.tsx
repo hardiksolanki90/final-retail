@@ -1,19 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  ChevronDown,
-  Loader2,
-  Pencil,
-  Map,
-  ShieldAlert,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  XCircle,
-} from 'lucide-react';
-import { getJourneyPlanByUuid } from '../../api/JourneyPlanApi';
+import { ChevronDown, Pencil, Map, ShieldAlert, Calendar, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { useJourneyPlanDetail } from '../../hooks/JourneyPlans/useJourneyPlans';
 import { Tabs } from '../../components/ui/Tabs';
 import { Card, CardContent, CardHeader } from '../../components/ui/Card';
+import { Skeleton, SkeletonRegion } from '../../components/ui/skeleton';
 
 function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -24,14 +15,93 @@ function DetailItem({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
+function SkeletonDetailItem({ tall = false }: { tall?: boolean }) {
+  // Same 16px label + 4px gap + 20px value (24px for a badge) as the real DetailItem.
+  return (
+    <div>
+      <div className="mb-1 flex h-4 items-center">
+        <Skeleton className="h-3 w-24" />
+      </div>
+      <div className={`flex items-center ${tall ? 'h-6' : 'h-5'}`}>
+        <Skeleton className="h-4 w-32" />
+      </div>
+    </div>
+  );
+}
+
+/** Shown while the plan loads: toolbar, header (avatar, name, base / merchandiser, customer count), tab bar and Overview cards. */
+function JourneyPlanViewSkeleton() {
+  return (
+    <SkeletonRegion label="Loading journey plan details" className="min-h-[calc(100vh-64px)] bg-gray-50 pb-12 dark:bg-gray-900/50">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white/80 px-6 py-3 dark:border-gray-800 dark:bg-gray-900/80">
+        <div className="text-sm font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Journey Plan Details</div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-[34px] w-16 rounded-lg" />
+          <Skeleton className="h-[34px] w-20 rounded-lg" />
+        </div>
+      </div>
+
+      <div className="border-b border-gray-200 bg-white pb-0 pt-8 dark:border-gray-800 dark:bg-gray-800">
+        <div className="mx-auto mb-8 max-w-7xl px-6">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+            <div className="flex items-center gap-6">
+              <Skeleton className="h-20 w-20 shrink-0 rounded-2xl" />
+              <div className="space-y-3">
+                <Skeleton className="h-8 w-56" />
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-7 w-24 rounded-md" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </div>
+            </div>
+            <Skeleton className="h-[62px] w-28 rounded-lg" />
+          </div>
+        </div>
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            {['w-16', 'w-40'].map((w) => (
+              <div key={w} className="flex h-11 items-center px-5">
+                <Skeleton className={`h-4 ${w}`} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <Card>
+                <CardHeader title="General Details" />
+                <CardContent className="grid grid-cols-1 gap-6 pb-2 sm:grid-cols-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <SkeletonDetailItem key={i} tall={i === 4} />
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader title="Timing Details" />
+                <CardContent className="space-y-6 pb-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <SkeletonDetailItem key={i} />
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    </SkeletonRegion>
+  );
+}
+
 export function JourneyPlanView() {
   const navigate = useNavigate();
   const { uuid } = useParams<{ uuid: string }>();
-  
-  const [data, setData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-  const [error, setError] = useState<any>(null);
+
+  const query = useJourneyPlanDetail(uuid);
+  const data = query.data ?? null;
+  const isLoading = query.isLoading;
+  const isError = query.isError;
+  const error = query.error as { response?: { data?: { message?: string } } } | null;
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -45,35 +115,7 @@ export function JourneyPlanView() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (uuid) {
-      const fetchDetails = async () => {
-        setIsLoading(true);
-        setIsError(false);
-        try {
-          const response = await getJourneyPlanByUuid(uuid);
-          setData(response);
-        } catch (err) {
-          setIsError(true);
-          setError(err);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchDetails();
-    }
-  }, [uuid]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900/50">
-        <div className="flex flex-col items-center gap-4 text-gray-500 dark:text-gray-400">
-          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-          <p className="text-sm font-medium">Loading journey plan details…</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <JourneyPlanViewSkeleton />;
 
   if (isError || !data) {
     return (
@@ -81,9 +123,7 @@ export function JourneyPlanView() {
         <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
           <ShieldAlert className="w-8 h-8" />
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {error?.response?.data?.message || 'Failed to load details.'}
-        </p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{error?.response?.data?.message || 'Failed to load details.'}</p>
         <button
           onClick={() => navigate('/journey-plan')}
           className="mt-2 px-5 py-2 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
@@ -108,14 +148,16 @@ export function JourneyPlanView() {
                 <DetailItem label="Description" value={data.description || '—'} />
                 <DetailItem label="Plan Base" value={data.journeyPlanBase?.replace('_', ' ') || '—'} />
                 <DetailItem label="Merchandiser" value={data.merchandiserName || '—'} />
-                <DetailItem 
-                  label="Status" 
+                <DetailItem
+                  label="Status"
                   value={
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${data.status ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${data.status ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}
+                    >
                       {data.status ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                       {data.status ? 'Active' : 'Inactive'}
                     </span>
-                  } 
+                  }
                 />
                 <DetailItem label="Enforced Sequence" value={data.enforceFlag ? 'Yes' : 'No'} />
               </CardContent>
@@ -127,14 +169,14 @@ export function JourneyPlanView() {
               <CardHeader title="Timing Details" />
               <CardContent className="space-y-6 pb-2">
                 <DetailItem label="Start Date" value={data.startDate || '—'} />
-                <DetailItem label="End Date" value={data.noEnd ? 'No End Date' : (data.endDate || '—')} />
+                <DetailItem label="End Date" value={data.noEnd ? 'No End Date' : data.endDate || '—'} />
                 <DetailItem label="Start Time" value={data.startTime || '—'} />
                 <DetailItem label="End Time" value={data.endTime || '—'} />
               </CardContent>
             </Card>
           </div>
         </div>
-      )
+      ),
     },
     {
       key: 'schedule',
@@ -145,7 +187,7 @@ export function JourneyPlanView() {
             <div className="space-y-6">
               {Object.entries(data.dayCustomers).map(([dayKey, customers]: [string, any]) => {
                 if (!customers || customers.length === 0) return null;
-                
+
                 let displayDay = dayKey;
                 if (dayKey.includes('-')) {
                   const [week, day] = dayKey.split('-');
@@ -161,9 +203,7 @@ export function JourneyPlanView() {
                         <Calendar className="w-4 h-4 text-primary-500" />
                         {displayDay}
                       </h3>
-                      <span className="text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-400 px-3 py-1 rounded-full">
-                        {customers.length} Customers
-                      </span>
+                      <span className="text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-400 px-3 py-1 rounded-full">{customers.length} Customers</span>
                     </div>
                     <div className="divide-y divide-gray-100 dark:divide-gray-800">
                       {customers.map((c: any, index: number) => (
@@ -192,13 +232,13 @@ export function JourneyPlanView() {
                   </Card>
                 );
               })}
-              
+
               {!Object.values(data.dayCustomers).some((arr: any) => arr && arr.length > 0) && (
-                  <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
-                    <Map className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No Schedule</h3>
-                    <p>There are no customers scheduled in this plan yet.</p>
-                  </div>
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
+                  <Map className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No Schedule</h3>
+                  <p>There are no customers scheduled in this plan yet.</p>
+                </div>
               )}
             </div>
           ) : (
@@ -209,25 +249,23 @@ export function JourneyPlanView() {
             </div>
           )}
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-gray-900/50 pb-12">
       {/* Top Toolbar */}
       <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
-        <div className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          Journey Plan Details
-        </div>
+        <div className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Journey Plan Details</div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(`/journey-plan/edit/${data.id || uuid}`)}
+            onClick={() => navigate(`/journey-plan/edit/${uuid}`)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
           >
             <Pencil className="w-4 h-4" /> Edit
           </button>
-          
+
           <div className="relative" ref={moreRef}>
             <button
               onClick={() => setIsMoreOpen(!isMoreOpen)}
@@ -237,16 +275,10 @@ export function JourneyPlanView() {
             </button>
             {isMoreOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1 overflow-hidden">
-                <button
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  onClick={() => setIsMoreOpen(false)}
-                >
+                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setIsMoreOpen(false)}>
                   Mark Active
                 </button>
-                <button
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  onClick={() => setIsMoreOpen(false)}
-                >
+                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setIsMoreOpen(false)}>
                   Mark Inactive
                 </button>
               </div>
@@ -276,18 +308,16 @@ export function JourneyPlanView() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-4">
               <div className="text-center px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
                 <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Customers</div>
-                <div className="text-xl font-bold text-gray-900 dark:text-white">
-                  {Object.values(data.dayCustomers || {}).reduce((acc: number, arr: any) => acc + (arr?.length || 0), 0)}
-                </div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">{Object.values(data.dayCustomers || {}).reduce((acc: number, arr: any) => acc + (arr?.length || 0), 0)}</div>
               </div>
             </div>
           </div>
         </div>
-        
+
         {/* Tabs inside Header */}
         <div className="px-6 max-w-7xl mx-auto">
           <Tabs tabs={tabs} defaultActiveKey="overview" />

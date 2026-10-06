@@ -18,27 +18,9 @@ interface SalesmanLoadAddProps {
   warehouses?: SelectOption[];
 }
 
-const defaultValues: SalesmanLoadFormData = {
-  loadCode: '',
-  salesmanId: '',
-  vanId: '',
-  warehouseId: '',
-  loadDate: new Date().toISOString().split('T')[0],
-  items: [],
-  notes: '',
-  status: 'pending',
-};
+const defaultValues: SalesmanLoadFormData = { loadCode: '', salesmanId: '', vanId: '', warehouseId: '', loadDate: new Date().toISOString().split('T')[0], items: [], notes: '', status: 'pending' };
 
-export function SalesmanLoadAdd({
-  isOpen,
-  onClose,
-  onSubmit,
-  initialData,
-  isLoading = false,
-  salesman = [],
-  vans = [],
-  warehouses = [],
-}: SalesmanLoadAddProps) {
+export function SalesmanLoadAdd({ isOpen, onClose, onSubmit, initialData, isLoading = false, salesman = [], vans = [], warehouses = [] }: SalesmanLoadAddProps) {
   const {
     register,
     handleSubmit,
@@ -57,27 +39,18 @@ export function SalesmanLoadAdd({
     onClose();
   };
 
-  const selectClass = 'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
+  const selectClass =
+    'block w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Salesman Load' : 'Add Salesman Load'}
-      width="w-[600px]"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Salesman Load' : 'Add Salesman Load'} width="w-[600px]">
       <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Load Code</label>
           </div>
           <div className="flex items-center gap-2 relative">
-            <Input
-              {...register('loadCode', { required: 'Load Code is required' })}
-              error={errors.loadCode?.message}
-              placeholder="Enter load code"
-              required
-            />
+            <Input {...register('loadCode', { required: 'Load Code is required' })} error={errors.loadCode?.message} placeholder="Configure the system to auto-generate the code." required />
             <OrderCodeSettingsIcon label="Load Code" value={watch('loadCode') || ''} onChange={(v) => setValue('loadCode', v)} />
           </div>
         </div>
@@ -88,7 +61,11 @@ export function SalesmanLoadAdd({
           </label>
           <select {...register('salesmanId', { required: 'Salesman is required' })} className={selectClass}>
             <option value="">Select salesman</option>
-            {salesman.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {salesman.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
           {errors.salesmanId && <p className="text-sm text-red-500 mt-1">{errors.salesmanId.message}</p>}
         </div>
@@ -100,7 +77,11 @@ export function SalesmanLoadAdd({
             </label>
             <select {...register('vanId', { required: 'Van is required' })} className={selectClass}>
               <option value="">Select van</option>
-              {vans.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {vans.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.vanId && <p className="text-sm text-red-500 mt-1">{errors.vanId.message}</p>}
           </div>
@@ -110,19 +91,17 @@ export function SalesmanLoadAdd({
             </label>
             <select {...register('warehouseId', { required: 'Warehouse is required' })} className={selectClass}>
               <option value="">Select warehouse</option>
-              {warehouses.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {warehouses.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
             {errors.warehouseId && <p className="text-sm text-red-500 mt-1">{errors.warehouseId.message}</p>}
           </div>
         </div>
 
-        <Input
-          label="Load Date"
-          type="date"
-          {...register('loadDate', { required: 'Load Date is required' })}
-          error={errors.loadDate?.message}
-          required
-        />
+        <Input label="Load Date" type="date" {...register('loadDate', { required: 'Load Date is required' })} error={errors.loadDate?.message} required />
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
@@ -143,7 +122,9 @@ export function SalesmanLoadAdd({
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>Cancel</CancelButton>
+          <CancelButton onClick={onClose} disabled={isLoading || isSubmitting}>
+            Cancel
+          </CancelButton>
           <SaveButton type="submit" disabled={isLoading || isSubmitting}>
             {isLoading || isSubmitting ? 'Saving...' : initialData ? 'Update' : 'Save'}
           </SaveButton>

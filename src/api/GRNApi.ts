@@ -1,11 +1,7 @@
 import axiosInstance from '../lib/axios';
 import type { GRN, GRNFormData, GRNListResponse } from '../types/GRN';
 
-export const getGRNList = async (
-  page: number = 1,
-  searchTerm?: string,
-  perPage: number = 15,
-): Promise<GRNListResponse> => {
+export const getGRNList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<GRNListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
@@ -14,13 +10,7 @@ export const getGRNList = async (
   const response = await axiosInstance.get(`/grn/list?${params.toString()}`);
   const payload = response.data;
 
-  return {
-    data: payload.goodReceiptNotes ?? [],
-    total: payload.total ?? 0,
-    currentPage: payload.currentPage ?? page,
-    perPage,
-    lastPage: payload.lastPage ?? 1,
-  };
+  return { data: payload.goodReceiptNotes ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
 };
 
 export const getGRNByUuid = async (uuid: string): Promise<GRN> => {
@@ -42,9 +32,6 @@ export const deleteGRN = async (uuid: string): Promise<void> => {
   await axiosInstance.post('/grn/delete', { id: uuid });
 };
 
-export const bulkActionGRN = async (
-  uuids: string[],
-  action: 'activate' | 'deactivate' | 'delete',
-): Promise<void> => {
+export const bulkActionGRN = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/grn/bulk-action', { uuids, action });
 };

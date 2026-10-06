@@ -1,9 +1,4 @@
-import {
-  MapPin,
-  ClipboardCheck,
-  LayoutGrid,
-  Megaphone,
-} from 'lucide-react';
+import { MapPin, ClipboardCheck, LayoutGrid, Megaphone } from 'lucide-react';
 import { Card, CardHeader, CardContent, StatCard } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 
@@ -88,30 +83,10 @@ export function MerchandisingDashboard() {
     <div className="space-y-6">
       {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Store Visits (This Week)"
-          value={`${totalCompleted}/${totalPlanned}`}
-          icon={<MapPin className="w-6 h-6" />}
-          trend={{ value: 5.4, isPositive: true }}
-        />
-        <StatCard
-          title="Planogram Compliance"
-          value="87.3%"
-          icon={<ClipboardCheck className="w-6 h-6" />}
-          trend={{ value: 3.2, isPositive: true }}
-        />
-        <StatCard
-          title="Share of Shelf"
-          value="34.2%"
-          icon={<LayoutGrid className="w-6 h-6" />}
-          trend={{ value: 2.1, isPositive: true }}
-        />
-        <StatCard
-          title="Active Campaigns"
-          value="12"
-          icon={<Megaphone className="w-6 h-6" />}
-          trend={{ value: 4, isPositive: true }}
-        />
+        <StatCard title="Store Visits (This Week)" value={`${totalCompleted}/${totalPlanned}`} icon={<MapPin className="w-6 h-6" />} trend={{ value: 5.4, isPositive: true }} />
+        <StatCard title="Planogram Compliance" value="87.3%" icon={<ClipboardCheck className="w-6 h-6" />} trend={{ value: 3.2, isPositive: true }} />
+        <StatCard title="Share of Shelf" value="34.2%" icon={<LayoutGrid className="w-6 h-6" />} trend={{ value: 2.1, isPositive: true }} />
+        <StatCard title="Active Campaigns" value="12" icon={<Megaphone className="w-6 h-6" />} trend={{ value: 4, isPositive: true }} />
       </div>
 
       {/* Visit Completion + Planogram Compliance */}
@@ -144,11 +119,7 @@ export function MerchandisingDashboard() {
                       style={{ height: `${(item.completed / maxPlanned) * 100}%` }}
                       title={`Completed: ${item.completed}`}
                     />
-                    <div
-                      className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-t-sm"
-                      style={{ height: `${(item.planned / maxPlanned) * 100}%` }}
-                      title={`Planned: ${item.planned}`}
-                    />
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-t-sm" style={{ height: `${(item.planned / maxPlanned) * 100}%` }} title={`Planned: ${item.planned}`} />
                   </div>
                   <span className="text-xs text-gray-500 dark:text-gray-400">{item.day}</span>
                 </div>
@@ -165,15 +136,10 @@ export function MerchandisingDashboard() {
               <div key={item.category}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-gray-700 dark:text-gray-300">{item.category}</span>
-                  <span className={`text-sm font-semibold ${getComplianceTextColor(item.compliance)}`}>
-                    {item.compliance}%
-                  </span>
+                  <span className={`text-sm font-semibold ${getComplianceTextColor(item.compliance)}`}>{item.compliance}%</span>
                 </div>
                 <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                  <div
-                    className={`${getComplianceColor(item.compliance)} h-2 rounded-full transition-all`}
-                    style={{ width: `${item.compliance}%` }}
-                  />
+                  <div className={`${getComplianceColor(item.compliance)} h-2 rounded-full transition-all`} style={{ width: `${item.compliance}%` }} />
                 </div>
               </div>
             ))}
@@ -190,12 +156,7 @@ export function MerchandisingDashboard() {
             {/* Stacked bar */}
             <div className="flex rounded-full h-5 overflow-hidden mb-5">
               {shareOfShelf.map((item) => (
-                <div
-                  key={item.brand}
-                  className={`${item.color} transition-all`}
-                  style={{ width: `${item.percentage}%` }}
-                  title={`${item.brand}: ${item.percentage}%`}
-                />
+                <div key={item.brand} className={`${item.color} transition-all`} style={{ width: `${item.percentage}%` }} title={`${item.brand}: ${item.percentage}%`} />
               ))}
             </div>
             <div className="space-y-3">
@@ -206,13 +167,10 @@ export function MerchandisingDashboard() {
                     <span className="text-sm text-gray-700 dark:text-gray-300">{item.brand}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {item.percentage}%
-                    </span>
-                    <span
-                      className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                    >
-                      {item.change >= 0 ? '+' : ''}{item.change}%
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{item.percentage}%</span>
+                    <span className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {item.change >= 0 ? '+' : ''}
+                      {item.change}%
                     </span>
                   </div>
                 </div>
@@ -240,10 +198,7 @@ export function MerchandisingDashboard() {
                 </thead>
                 <tbody>
                   {campaigns.map((campaign) => (
-                    <tr
-                      key={campaign.name}
-                      className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                    >
+                    <tr key={campaign.name} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-6 py-3">
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{campaign.name}</p>
@@ -253,21 +208,16 @@ export function MerchandisingDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-3">
-                        <Badge variant="primary" size="sm">{campaign.type}</Badge>
+                        <Badge variant="primary" size="sm">
+                          {campaign.type}
+                        </Badge>
                       </td>
-                      <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {campaign.stores}
-                      </td>
+                      <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{campaign.stores}</td>
                       <td className="text-right px-6 py-3">
-                        <span className={`text-sm font-semibold ${getComplianceTextColor(campaign.compliance)}`}>
-                          {campaign.compliance}%
-                        </span>
+                        <span className={`text-sm font-semibold ${getComplianceTextColor(campaign.compliance)}`}>{campaign.compliance}%</span>
                       </td>
                       <td className="text-center px-6 py-3">
-                        <Badge
-                          variant={campaign.status === 'Active' ? 'success' : 'warning'}
-                          size="sm"
-                        >
+                        <Badge variant={campaign.status === 'Active' ? 'success' : 'warning'} size="sm">
                           {campaign.status}
                         </Badge>
                       </td>
@@ -301,15 +251,15 @@ export function MerchandisingDashboard() {
                 </thead>
                 <tbody>
                   {merchandiserPerformance.map((person) => (
-                    <tr
-                      key={person.name}
-                      className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                    >
+                    <tr key={person.name} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                             <span className="text-xs font-bold text-primary-600 dark:text-primary-400">
-                              {person.name.split(' ').map((n) => n[0]).join('')}
+                              {person.name
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')}
                             </span>
                           </div>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">{person.name}</span>
@@ -322,17 +272,21 @@ export function MerchandisingDashboard() {
                         </span>
                       </td>
                       <td className="text-center px-6 py-3">
-                        <span className={`text-sm font-semibold ${getComplianceTextColor(person.compliance)}`}>
-                          {person.compliance}%
-                        </span>
+                        <span className={`text-sm font-semibold ${getComplianceTextColor(person.compliance)}`}>{person.compliance}%</span>
                       </td>
                       <td className="text-center px-6 py-3">
                         {person.issues > 3 ? (
-                          <Badge variant="danger" size="sm">{person.issues}</Badge>
+                          <Badge variant="danger" size="sm">
+                            {person.issues}
+                          </Badge>
                         ) : person.issues > 0 ? (
-                          <Badge variant="warning" size="sm">{person.issues}</Badge>
+                          <Badge variant="warning" size="sm">
+                            {person.issues}
+                          </Badge>
                         ) : (
-                          <Badge variant="success" size="sm">0</Badge>
+                          <Badge variant="success" size="sm">
+                            0
+                          </Badge>
                         )}
                       </td>
                     </tr>
@@ -348,14 +302,9 @@ export function MerchandisingDashboard() {
           <CardHeader title="Competitor Activity" subtitle="Recent intelligence" />
           <CardContent className="mt-4 space-y-4">
             {competitorActivity.map((item, index) => (
-              <div
-                key={index}
-                className="pb-4 border-b border-gray-100 dark:border-gray-800/50 last:border-0 last:pb-0"
-              >
+              <div key={index} className="pb-4 border-b border-gray-100 dark:border-gray-800/50 last:border-0 last:pb-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {item.competitor}
-                  </span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{item.competitor}</span>
                   <Badge variant={getImpactVariant(item.impact)} size="sm">
                     {item.impact}
                   </Badge>

@@ -47,9 +47,12 @@ export function usePagination(options: UsePaginationOptions = {}): UsePagination
   const hasNextPage = currentPage < totalPages;
   const hasPrevPage = currentPage > 1;
 
-  const setPage = useCallback((page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  }, [totalPages]);
+  const setPage = useCallback(
+    (page: number) => {
+      setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    },
+    [totalPages]
+  );
 
   const setPerPage = useCallback((newPerPage: number) => {
     setPerPageState(newPerPage);
@@ -85,24 +88,7 @@ export function usePagination(options: UsePaginationOptions = {}): UsePagination
     setPerPageState(initialPerPage);
   }, [initialPage, initialPerPage]);
 
-  return {
-    currentPage,
-    perPage,
-    totalPages,
-    total,
-    startIndex,
-    endIndex,
-    hasNextPage,
-    hasPrevPage,
-    setPage,
-    setPerPage,
-    setTotal,
-    nextPage,
-    prevPage,
-    firstPage,
-    lastPage,
-    reset,
-  };
+  return { currentPage, perPage, totalPages, total, startIndex, endIndex, hasNextPage, hasPrevPage, setPage, setPerPage, setTotal, nextPage, prevPage, firstPage, lastPage, reset };
 }
 
 export default usePagination;

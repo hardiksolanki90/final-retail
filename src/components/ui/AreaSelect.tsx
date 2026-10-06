@@ -14,54 +14,22 @@ export interface AreaSelectProps {
   required?: boolean;
 }
 
-export function AreaSelect({
-  value,
-  onChange,
-  placeholder = 'Select area',
-  label,
-  error,
-  className,
-  disabled = false,
-  required = false,
-}: AreaSelectProps) {
-  const {
-    options,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    onLoadMore,
-    onSearchChange,
-    addOption,
-  } = useInfiniteSelect({
+export function AreaSelect({ value, onChange, placeholder = 'Select area', label, error, className, disabled = false, required = false }: AreaSelectProps) {
+  const { options, isLoading, isLoadingMore, hasMore, onLoadMore, onSearchChange, addOption } = useInfiniteSelect({
     selectedValue: value,
     fetchPage: async (page, search) => {
       const res = await getAreaList(page, 15, search || undefined);
-      return {
-        items: res?.data || [],
-        hasMore: Boolean(res?.meta?.has_more_pages),
-      };
+      return { items: res?.data || [], hasMore: Boolean(res?.meta?.has_more_pages) };
     },
-    mapItemToOption: (a: any) => ({
-      value: a.id,
-      label: (a.areaCode ?? a.code)
-        ? `${a.areaCode ?? a.code} - ${a.areaName ?? a.name}`
-        : (a.areaName ?? a.name ?? String(a.id)),
-    }),
+    mapItemToOption: (a: any) => ({ value: a.id, label: (a.areaCode ?? a.code) ? `${a.areaCode ?? a.code} - ${a.areaName ?? a.name}` : (a.areaName ?? a.name ?? String(a.id)) }),
   });
 
   const handleCreate = async (values: Record<string, any>): Promise<SelectOption> => {
-    const res = await createArea({
-      areaName: values.name,
-      areaCode: values.code || undefined,
-      parentId: values.parentId ? Number(values.parentId) : undefined,
-      status: values.status ?? true,
-    });
+    const res = await createArea({ areaName: values.name, areaCode: values.code || undefined, parentId: values.parentId ? Number(values.parentId) : undefined, status: values.status ?? true });
     const created = res.data ?? res;
     const newOption: SelectOption = {
       value: String(created.id ?? ''),
-      label: (created.areaCode ?? created.code)
-        ? `${created.areaCode ?? created.code} - ${created.areaName ?? created.name}`
-        : (created.areaName ?? created.name),
+      label: (created.areaCode ?? created.code) ? `${created.areaCode ?? created.code} - ${created.areaName ?? created.name}` : (created.areaName ?? created.name),
     };
     addOption(newOption);
     return newOption;

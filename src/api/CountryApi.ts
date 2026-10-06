@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import { queryClient } from '../lib/queryClient';
 import { showToast } from '../lib/toast';
 import type { CountryMaster } from '../types/Country';
 import { unwrapPaginated, type NormalizedListResponse } from '../lib/paginatedResponse';
@@ -30,28 +31,30 @@ export interface CountrySelectOption {
 
 // Tenant-scoped: countries an org has already selected (Settings > Country list).
 // Backend paginates now, default per_page=50.
-export const getAllCountries = async (): Promise<CountrySelectOption[]> => {
-  const response = await axiosInstance.get('/country/all?per_page=50');
-  return response.data?.countries ?? [];
-};
+// Shared by every caller (the Customer form and its Region dropdown, Region and Salesman forms):
+// one request while it's in flight or cached; country changes invalidate 'country-list'.
+export const getAllCountries = (): Promise<CountrySelectOption[]> =>
+  queryClient.fetchQuery({ queryKey: ['country-list', 'all'], queryFn: async (): Promise<CountrySelectOption[]> => (await axiosInstance.get('/country/all?per_page=50')).data?.countries ?? [] });
 
 // Global ISO reference (country_masters) — feeds "pick a country" selects,
 // e.g. the Organisation profile form and Settings > Country's add drawer.
-// Backend paginates now; this asks for a page big enough to cover every
-// country_masters row in one call, since useCountryMasters()'s consumers
-// (currency dedup, tax profiles, phone codes) all need the full set.
+// Backend paginates; useCountryMasters()'s consumers (country picker, currency
+// dedup, tax profiles, phone codes) need the full set, so follow every page.
 export const getAllCountryMasters = async (): Promise<CountryMaster[]> => {
-  const response = await axiosInstance.get('/country-master/all?per_page=50');
-  return response.data?.countryMasters ?? [];
+  const all: CountryMaster[] = [];
+  let page: number | null = 1;
+  while (page) {
+    const { data }: { data: { countryMasters?: CountryMaster[]; nextPage?: number | null } } = await axiosInstance.get(`/country-master/all?per_page=250&page=${page}`);
+    all.push(...(data?.countryMasters ?? []));
+    // Only advance forward — a repeated/stale nextPage must not loop forever.
+    page = data?.nextPage && data.nextPage > page ? data.nextPage : null;
+  }
+  return all;
 };
 
 export type CountryMasterListResponse = NormalizedListResponse<CountryMaster>;
 
-export const getCountryMasterList = async (
-  page = 1,
-  perPage = 20,
-  searchTerm?: string
-): Promise<CountryMasterListResponse> => {
+export const getCountryMasterList = async (page = 1, perPage = 20, searchTerm?: string): Promise<CountryMasterListResponse> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());

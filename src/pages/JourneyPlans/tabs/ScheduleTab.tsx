@@ -1,9 +1,5 @@
 import { Controller, type Control, type FieldErrors, type UseFormWatch, type UseFormSetValue } from 'react-hook-form';
-import type {
-  JourneyPlanFullFormData,
-  WeekNumber,
-  DayOfWeek,
-} from '../../../types/JourneyPlan';
+import type { JourneyPlanFullFormData, WeekNumber, DayOfWeek } from '../../../types/JourneyPlan';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import { TwoOptionToggle } from '../../../components/ui/TwoOptionToggle';
 import { SectionLabel } from '../../../components/ui/SectionLabel';
@@ -59,7 +55,10 @@ export function ScheduleTab({
 
   function toggleWeek(week: WeekNumber) {
     if (selectedWeeks.includes(week)) {
-      setValue('selectedWeeks', selectedWeeks.filter((w) => w !== week));
+      setValue(
+        'selectedWeeks',
+        selectedWeeks.filter((w) => w !== week)
+      );
     } else {
       setValue('selectedWeeks', [...selectedWeeks, week]);
     }
@@ -70,12 +69,7 @@ export function ScheduleTab({
       {/* Recurrence base */}
       <div className="space-y-3">
         <SectionLabel title="Recurrence" />
-        <TwoOptionToggle
-          value={journeyPlanBase === 'day_wise'}
-          onChange={(v) => setValue('journeyPlanBase', v ? 'day_wise' : 'week_wise')}
-          trueLabel="Day Wise"
-          falseLabel="Week Wise"
-        />
+        <TwoOptionToggle value={journeyPlanBase === 'day_wise'} onChange={(v) => setValue('journeyPlanBase', v ? 'day_wise' : 'week_wise')} trueLabel="Day Wise" falseLabel="Week Wise" />
       </div>
 
       {/* Weeks of month — Week Wise only */}
@@ -84,12 +78,7 @@ export function ScheduleTab({
           <SectionLabel title="Weeks of a Month" />
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             {WEEKS.map(({ key, label }) => (
-              <Checkbox
-                key={key}
-                label={label}
-                checked={selectedWeeks.includes(key)}
-                onChange={() => toggleWeek(key)}
-              />
+              <Checkbox key={key} label={label} checked={selectedWeeks.includes(key)} onChange={() => toggleWeek(key)} />
             ))}
           </div>
         </div>
@@ -107,10 +96,11 @@ export function ScheduleTab({
                 type="button"
                 onClick={() => setValue('firstDayOfWeek', key)}
                 title={label}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${isActive
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  isActive
                     ? 'bg-primary-600 border-primary-600 text-white'
                     : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary-400 hover:text-primary-600'
-                  }`}
+                }`}
               >
                 {short}
               </button>
@@ -122,12 +112,7 @@ export function ScheduleTab({
       {/* Enforce flag */}
       <div className="space-y-3">
         <SectionLabel title="Enforce Visit" />
-        <TwoOptionToggle
-          value={enforceFlag === true}
-          onChange={(v) => setValue('enforceFlag', v)}
-          trueLabel="Yes"
-          falseLabel="No"
-        />
+        <TwoOptionToggle value={enforceFlag === true} onChange={(v) => setValue('enforceFlag', v)} trueLabel="Yes" falseLabel="No" />
       </div>
 
       {/* Merchandiser */}
@@ -139,7 +124,8 @@ export function ScheduleTab({
           rules={{ required: 'Merchandiser is required' }}
           render={({ field }) => (
             <Select
-              label="Select Salesman" required
+              label="Select Salesman"
+              required
               value={field.value}
               onChange={(e) => field.onChange(String(e.target.value))}
               options={merchandisers}

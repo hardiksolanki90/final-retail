@@ -1,20 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  Filter,
-  Plus,
-  Columns3,
-  Download,
-  Upload,
-  ChevronDown,
-  Check,
-  Trash2,
-  Archive,
-  Menu,
-  X,
-  BarChart3,
-} from 'lucide-react';
+import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Menu, X, BarChart3 } from 'lucide-react';
 import { ShareOfShelfAdd } from './ShareOfShelfAdd';
 import { Pagination } from '../../components/ui/Pagination';
+import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
 
 // Sample share of shelf data
 const shareOfShelfData = [
@@ -59,6 +47,7 @@ export function ShareOfShelfList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -112,13 +101,32 @@ export function ShareOfShelfList() {
   const endIndex = startIndex + rowsPerPage;
 
   // Apply filters
-  const filteredData = shareOfShelfData.filter(c =>
-    (!appliedFilter.code || String(c.code ?? '').toLowerCase().includes(appliedFilter.code.toLowerCase())) &&
-    (!appliedFilter.customerName || String(c.customerName ?? '').toLowerCase().includes(appliedFilter.customerName.toLowerCase())) &&
-    (!appliedFilter.merchandiserName || String(c.merchandiserName ?? '').toLowerCase().includes(appliedFilter.merchandiserName.toLowerCase())) &&
-    (!appliedFilter.date || String(c.date ?? '').toLowerCase().includes(appliedFilter.date.toLowerCase())) &&
-    (!appliedFilter.category || String(c.category ?? '').toLowerCase().includes(appliedFilter.category.toLowerCase())) &&
-    (!appliedFilter.brandName || String(c.brandName ?? '').toLowerCase().includes(appliedFilter.brandName.toLowerCase()))
+  const filteredData = shareOfShelfData.filter(
+    (c) =>
+      (!appliedFilter.code ||
+        String(c.code ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.code.toLowerCase())) &&
+      (!appliedFilter.customerName ||
+        String(c.customerName ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.customerName.toLowerCase())) &&
+      (!appliedFilter.merchandiserName ||
+        String(c.merchandiserName ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.merchandiserName.toLowerCase())) &&
+      (!appliedFilter.date ||
+        String(c.date ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.date.toLowerCase())) &&
+      (!appliedFilter.category ||
+        String(c.category ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.category.toLowerCase())) &&
+      (!appliedFilter.brandName ||
+        String(c.brandName ?? '')
+          .toLowerCase()
+          .includes(appliedFilter.brandName.toLowerCase()))
   );
   const currentData = filteredData.slice(startIndex, endIndex);
 
@@ -131,15 +139,11 @@ export function ShareOfShelfList() {
   };
 
   const handleSelectRow = (id: number) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    );
+    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
   const toggleColumn = (key: string) => {
-    setColumns((prev) =>
-      prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col))
-    );
+    setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   };
 
   const visibleColumns = columns.filter((col) => col.visible);
@@ -149,12 +153,7 @@ export function ShareOfShelfList() {
   };
 
   const handleExportSubmit = () => {
-    console.log('Exporting share of shelf data...', {
-      type: exportType,
-      fromDate: exportFromDate,
-      toDate: exportToDate,
-      format: exportFormat,
-    });
+    console.log('Exporting share of shelf data...', { type: exportType, fromDate: exportFromDate, toDate: exportToDate, format: exportFormat });
     setExportModalOpen(false);
     setExportType('specific');
     setExportFromDate('');
@@ -191,9 +190,7 @@ export function ShareOfShelfList() {
           <BarChart3 className="w-6 h-6 text-[var(--text-primary)]" />
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">Share of Shelf</h1>
-            <p className="text-[var(--text-secondary)] mt-1">
-              Track brand shelf space performance
-            </p>
+            <p className="text-[var(--text-secondary)] mt-1">Track brand shelf space performance</p>
           </div>
         </div>
 
@@ -207,9 +204,7 @@ export function ShareOfShelfList() {
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
                 Bulk Action
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">
-                  {selectedRows.length}
-                </span>
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRows.length}</span>
                 <ChevronDown className="w-4 h-4" />
               </button>
               {bulkActionOpen && (
@@ -236,18 +231,17 @@ export function ShareOfShelfList() {
 
           {/* Filter Button */}
           <button
-            onClick={() => setFilterOpen(prev => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
-              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-              }`}
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
+              filterOpen || Object.values(appliedFilter).some(Boolean)
+                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+            }`}
           >
             <Filter className="w-4 h-4" />
             Filter
             {Object.values(appliedFilter).some(Boolean) && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">
-                {Object.values(appliedFilter).filter(Boolean).length}
-              </span>
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">{Object.values(appliedFilter).filter(Boolean).length}</span>
             )}
           </button>
 
@@ -331,20 +325,22 @@ export function ShareOfShelfList() {
       {filterOpen && (
         <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-3">
-            {([
-              { key: 'code', label: 'Code' },
-              { key: 'customerName', label: 'Customer Name' },
-              { key: 'merchandiserName', label: 'Merchandiser Name' },
-              { key: 'date', label: 'Date' },
-              { key: 'category', label: 'Category' },
-              { key: 'brandName', label: 'Brand Name' },
-            ] as { key: keyof typeof filterDraft; label: string }[]).map(({ key, label }) => (
+            {(
+              [
+                { key: 'code', label: 'Code' },
+                { key: 'customerName', label: 'Customer Name' },
+                { key: 'merchandiserName', label: 'Merchandiser Name' },
+                { key: 'date', label: 'Date' },
+                { key: 'category', label: 'Category' },
+                { key: 'brandName', label: 'Brand Name' },
+              ] as { key: keyof typeof filterDraft; label: string }[]
+            ).map(({ key, label }) => (
               <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
                 <input
                   type="text"
                   value={filterDraft[key]}
-                  onChange={e => setFilterDraft(prev => ({ ...prev, [key]: e.target.value }))}
+                  onChange={(e) => setFilterDraft((prev) => ({ ...prev, [key]: e.target.value }))}
                   placeholder={`Filter by ${label.toLowerCase()}...`}
                   className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
@@ -352,7 +348,9 @@ export function ShareOfShelfList() {
             ))}
             <div className="flex items-end gap-2 pb-0.5">
               <button
-                onClick={() => { setAppliedFilter({ ...filterDraft }); }}
+                onClick={() => {
+                  setAppliedFilter({ ...filterDraft });
+                }}
                 className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
               >
                 Apply
@@ -388,53 +386,48 @@ export function ShareOfShelfList() {
                   />
                 </th>
                 {visibleColumns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
-                  >
+                  <th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {column.label}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {currentData.map((record) => (
-                <tr
-                  key={record.id}
-                  className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(record.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                    }`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(record.id)}
-                      onChange={() => handleSelectRow(record.id)}
-                      className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                    />
-                  </td>
-                  {visibleColumns.map((column) => (
-                    <td
-                      key={column.key}
-                      className="px-4 py-3 text-sm text-[var(--text-primary)]"
-                    >
-                      {column.key === 'status' ? (
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${record.status === 'completed'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                            }`}
-                        >
-                          {record.status}
-                        </span>
-                      ) : column.key === 'sharePercentage' ? (
-                        `${record.sharePercentage}%`
-                      ) : (
-                        record[column.key as keyof typeof record]
-                      )}
+              {isLoading ? (
+                <TableSkeletonRows rows={rowsPerPage} label="Loading share of shelf records" columns={['check', ...colsByKey(visibleColumns, { date: 'date', status: 'badge' })]} dense />
+              ) : (
+                currentData.map((record) => (
+                  <tr key={record.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(record.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(record.id)}
+                        onChange={() => handleSelectRow(record.id)}
+                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                      />
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    {visibleColumns.map((column) => (
+                      <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
+                        {column.key === 'status' ? (
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              record.status === 'completed'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            }`}
+                          >
+                            {record.status}
+                          </span>
+                        ) : column.key === 'sharePercentage' ? (
+                          `${record.sharePercentage}%`
+                        ) : (
+                          record[column.key as keyof typeof record]
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -445,26 +438,16 @@ export function ShareOfShelfList() {
       {/* Export Modal */}
       {exportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={handleExportCancel}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={handleExportCancel} />
           <div className="relative bg-[var(--bg-card)] rounded-lg shadow-xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
-              <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-                Export Share of Shelf
-              </h2>
-              <button
-                onClick={handleExportCancel}
-                className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors"
-              >
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Export Share of Shelf</h2>
+              <button onClick={handleExportCancel} className="p-1 cursor-pointer rounded hover:bg-[var(--bg-secondary)] transition-colors">
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
             </div>
             <div className="px-6 py-4 space-y-6">
-              <p className="text-[var(--text-secondary)]">
-                Export share of shelf data in CSV or XLS format.
-              </p>
+              <p className="text-[var(--text-secondary)]">Export share of shelf data in CSV or XLS format.</p>
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -474,9 +457,7 @@ export function ShareOfShelfList() {
                     onChange={() => setExportType('all')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)] font-medium">
-                    All Records
-                  </span>
+                  <span className="text-[var(--text-primary)] font-medium">All Records</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -486,17 +467,13 @@ export function ShareOfShelfList() {
                     onChange={() => setExportType('specific')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)] font-medium">
-                    Specific Records
-                  </span>
+                  <span className="text-[var(--text-primary)] font-medium">Specific Records</span>
                 </label>
               </div>
               {exportType === 'specific' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                      From
-                    </label>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">From</label>
                     <input
                       type="date"
                       value={exportFromDate}
@@ -505,9 +482,7 @@ export function ShareOfShelfList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                      To
-                    </label>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">To</label>
                     <input
                       type="date"
                       value={exportToDate}
@@ -518,9 +493,7 @@ export function ShareOfShelfList() {
                 </div>
               )}
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-[var(--text-secondary)]">
-                  Export As :
-                </label>
+                <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As :</label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="radio"
@@ -529,9 +502,7 @@ export function ShareOfShelfList() {
                     onChange={() => setExportFormat('csv')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)]">
-                    CSV (Comma Separated Value)
-                  </span>
+                  <span className="text-[var(--text-primary)]">CSV (Comma Separated Value)</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -541,17 +512,12 @@ export function ShareOfShelfList() {
                     onChange={() => setExportFormat('xls')}
                     className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500"
                   />
-                  <span className="text-[var(--text-primary)]">
-                    XLS (Microsoft Excel Compatible)
-                  </span>
+                  <span className="text-[var(--text-primary)]">XLS (Microsoft Excel Compatible)</span>
                 </label>
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border-color)]">
-              <button
-                onClick={handleExportSubmit}
-                className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
-              >
+              <button onClick={handleExportSubmit} className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors">
                 Export
               </button>
               <button
@@ -565,11 +531,7 @@ export function ShareOfShelfList() {
         </div>
       )}
 
-      <ShareOfShelfAdd
-        isOpen={addDrawerOpen}
-        onClose={() => setAddDrawerOpen(false)}
-        onSubmit={() => setAddDrawerOpen(false)}
-      />
+      <ShareOfShelfAdd isOpen={addDrawerOpen} onClose={() => setAddDrawerOpen(false)} onSubmit={() => setAddDrawerOpen(false)} />
     </div>
   );
 }

@@ -4,14 +4,24 @@ import { getOutletProductCodeList, deleteOutletProductCode } from '../api/Outlet
 import { showToast } from '../lib/toast';
 
 interface OutletProductCodeContextType {
-  data: any[]; meta: any; isLoading: boolean; error: Error | null;
-  searchTerm: string; setSearchTerm: (term: string) => void;
-  currentPage: number; setCurrentPage: (page: number) => void;
-  perPage: number; setPerPage: (perPage: number) => void;
-  selectedRowKeys: string[]; setSelectedRowKeys: (keys: string[]) => void;
-  addDrawerOpen: boolean; setAddDrawerOpen: (open: boolean) => void;
-  editingItem: any; setEditingItem: (item: any) => void;
-  handleDeleteWithConfirmation: (uuid: string) => void; refetch: () => void;
+  data: any[];
+  meta: any;
+  isLoading: boolean;
+  error: Error | null;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  currentPage: number;
+  setCurrentPage: (page: number) => void;
+  perPage: number;
+  setPerPage: (perPage: number) => void;
+  selectedRowKeys: string[];
+  setSelectedRowKeys: (keys: string[]) => void;
+  addDrawerOpen: boolean;
+  setAddDrawerOpen: (open: boolean) => void;
+  editingItem: any;
+  setEditingItem: (item: any) => void;
+  handleDeleteWithConfirmation: (uuid: string) => void;
+  refetch: () => void;
 }
 
 export const OutletProductCodeContext = createContext<OutletProductCodeContextType | undefined>(undefined);
@@ -25,16 +35,21 @@ export default function OutletProductCodeProvider({ children }: { children: Reac
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['outlet-product-code-list', currentPage, perPage, searchTerm],
-    queryFn: () => getOutletProductCodeList(currentPage, perPage, searchTerm),
-    staleTime: 5 * 60 * 1000,
-  });
+  const {
+    data: responseData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({ queryKey: ['outlet-product-code-list', currentPage, perPage, searchTerm], queryFn: () => getOutletProductCodeList(currentPage, perPage, searchTerm), staleTime: 5 * 60 * 1000 });
 
   const deleteMutation = useMutation({
     mutationFn: deleteOutletProductCode,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['outlet-product-code-list'] }); },
-    onError: (err: Error) => { showToast.error(err.message || 'Failed to delete'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outlet-product-code-list'] });
+    },
+    onError: (err: Error) => {
+      showToast.error(err.message || 'Failed to delete');
+    },
   });
 
   const handleDeleteWithConfirmation = (uuid: string) => {
@@ -45,10 +60,24 @@ export default function OutletProductCodeProvider({ children }: { children: Reac
   const meta = responseData?.meta ?? null;
 
   const value: OutletProductCodeContextType = {
-    data: items, meta, isLoading, error: error as Error | null,
-    searchTerm, setSearchTerm, currentPage, setCurrentPage, perPage, setPerPage,
-    selectedRowKeys, setSelectedRowKeys, addDrawerOpen, setAddDrawerOpen,
-    editingItem, setEditingItem, handleDeleteWithConfirmation, refetch: () => refetch(),
+    data: items,
+    meta,
+    isLoading,
+    error: error as Error | null,
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    perPage,
+    setPerPage,
+    selectedRowKeys,
+    setSelectedRowKeys,
+    addDrawerOpen,
+    setAddDrawerOpen,
+    editingItem,
+    setEditingItem,
+    handleDeleteWithConfirmation,
+    refetch: () => refetch(),
   };
 
   return <OutletProductCodeContext.Provider value={value}>{children}</OutletProductCodeContext.Provider>;

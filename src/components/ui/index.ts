@@ -3,16 +3,7 @@ export { Button, SaveButton, CancelButton, DeleteButton, AddButton, type ButtonP
 export { Input, type InputProps } from './Input';
 export { Select, type SelectProps, type SelectOption } from './Select';
 export { Modal, type ModalProps } from './Modal';
-export {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  TableEmpty,
-  TableLoading,
-} from './Table';
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty } from './Table';
 export { Tabs, TabPanel, type Tab, type TabsProps } from './Tabs';
 export { Badge, StatusBadge, type BadgeProps, type StatusBadgeProps } from './Badge';
 export { Pagination, type PaginationProps } from './Pagination';
@@ -26,11 +17,4 @@ export { VanTypeSelect, type VanTypeSelectProps } from './VanTypeSelect';
 export { VanCategorySelect, type VanCategorySelectProps } from './VanCategorySelect';
 export { DepotSelect, type DepotSelectProps } from './DepotSelect';
 export { CreatableSelect, type CreatableSelectProps } from './CreatableSelect';
-export {
-  CountryPhoneInput,
-  CountryPhoneInput as PhoneInput,
-  validate10DigitPhone,
-  type CountryPhoneInputProps,
-  type CountryFormatInfo,
-} from './CountryPhoneInput';
-
+export { CountryPhoneInput, CountryPhoneInput as PhoneInput, validate10DigitPhone, type CountryPhoneInputProps, type CountryFormatInfo } from './CountryPhoneInput';

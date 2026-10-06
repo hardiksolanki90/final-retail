@@ -19,20 +19,8 @@ export interface Order {
   billingAddress?: string;
   createdAt?: string;
   updatedAt?: string;
-  customer?: {
-    id?: number;
-    uuid?: string;
-    firstName: string;
-    lastName: string;
-    shopName?: string;
-    customerCode: string;
-  };
-  salesman?: {
-    id?: number;
-    uuid?: string;
-    firstName: string;
-    lastName: string;
-  };
+  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string; customerCode: string };
+  salesman?: { id?: number; uuid?: string; firstName: string; lastName: string };
   orderDetails?: OrderDetail[];
 }
 
@@ -49,35 +37,38 @@ export interface OrderDetail {
   taxPercent?: number;
   taxAmount?: number;
   totalAmount: number;
-  item?: {
-    id?: number;
-    uuid?: string;
-    name: string;
-    itemCode: string;
-  };
-  uom?: {
-    id?: number;
-    uuid?: string;
-    name: string;
-  };
+  item?: { id?: number; uuid?: string; name: string; itemCode: string };
+  uom?: { id?: number; uuid?: string; name: string };
 }
 
+/** One line of an order payload — mirrors StoreOrderRequest's items.* rules. */
+export interface OrderLinePayload {
+  uuid?: string;
+  itemId: string;
+  itemUomId?: string;
+  quantity: number;
+  /** Ignored by the server when a Pricing plan matches — manual fallback only. */
+  price?: number;
+  /** Ignored by the server when a Discount plan matches — manual fallback only. */
+  discount?: number;
+  vat?: number;
+  excise?: number;
+  isFree?: boolean;
+}
+
+/** Order create/update payload — mirrors StoreOrderRequest. */
 export interface OrderFormData {
   customerId: string;
+  /** See constants/documentTypes. */
+  orderTypeId?: number;
   salesmanId?: string;
-  orderDate: string;
+  paymentTermId?: string;
+  orderNumber?: string;
+  orderDate?: string;
   deliveryDate?: string;
+  dueDate?: string;
   notes?: string;
-  shippingAddress?: string;
-  billingAddress?: string;
-  orderDetails: Array<{
-    itemId: string;
-    itemUomId?: string;
-    quantity: number;
-    unitPrice: number;
-    discountPercent?: number;
-    taxPercent?: number;
-  }>;
+  items: OrderLinePayload[];
 }
 
 export interface OrderListResponse {

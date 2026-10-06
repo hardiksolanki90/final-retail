@@ -14,6 +14,7 @@ export interface Organisation {
   org_contact_person?: string;
   org_contact_person_number?: string;
   org_currency?: string;
+  default_currency?: { code: string; symbol: string; decimalDigits: number } | null;
   org_fasical_year?: string;
   is_batch_enabled?: boolean;
   is_credit_limit_enabled?: boolean;

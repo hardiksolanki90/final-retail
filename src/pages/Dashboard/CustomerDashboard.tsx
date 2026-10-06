@@ -1,13 +1,7 @@
-import {
-  Users,
-  UserPlus,
-  Percent,
-  Banknote,
-  ArrowUpRight,
-  ArrowDownRight,
-} from 'lucide-react';
+import { Users, UserPlus, Percent, Banknote, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Card, CardHeader, CardContent, StatCard } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { useMoney } from '../../hooks/Currency/useMoney';
 
 const customerByChannel = [
   { channel: 'Supermarket', count: 482, revenue: 1240000, percentage: 34 },
@@ -56,23 +50,17 @@ const topRoutes = [
 ];
 
 const recentActivity = [
-  { customer: 'Al Madina Supermarket', action: 'New order placed', value: '$2,480', time: '15 min ago', type: 'order' },
-  { customer: 'City Fresh Mart', action: 'Payment received', value: '$5,200', time: '42 min ago', type: 'payment' },
-  { customer: 'Green Valley Store', action: 'New customer registered', value: null, time: '1 hour ago', type: 'registration' },
-  { customer: 'Royal Grocery Chain', action: 'Credit limit exceeded', value: '$38,000', time: '2 hours ago', type: 'alert' },
-  { customer: 'Quick Stop Express', action: 'Order delivered', value: '$1,840', time: '3 hours ago', type: 'delivery' },
-  { customer: 'Sunrise Grocery', action: 'Return requested', value: '$420', time: '4 hours ago', type: 'return' },
-  { customer: 'Metro Mart Plus', action: 'Payment overdue notice', value: '$28,400', time: '5 hours ago', type: 'alert' },
+  { customer: 'Al Madina Supermarket', action: 'New order placed', amount: 2480, time: '15 min ago', type: 'order' },
+  { customer: 'City Fresh Mart', action: 'Payment received', amount: 5200, time: '42 min ago', type: 'payment' },
+  { customer: 'Green Valley Store', action: 'New customer registered', amount: null, time: '1 hour ago', type: 'registration' },
+  { customer: 'Royal Grocery Chain', action: 'Credit limit exceeded', amount: 38000, time: '2 hours ago', type: 'alert' },
+  { customer: 'Quick Stop Express', action: 'Order delivered', amount: 1840, time: '3 hours ago', type: 'delivery' },
+  { customer: 'Sunrise Grocery', action: 'Return requested', amount: 420, time: '4 hours ago', type: 'return' },
+  { customer: 'Metro Mart Plus', action: 'Payment overdue notice', amount: 28400, time: '5 hours ago', type: 'alert' },
 ];
 
 const maxWeeklyOrders = Math.max(...weeklyOrders.map((w) => w.orders));
 const maxChannelPercentage = Math.max(...customerByChannel.map((c) => c.percentage));
-
-function formatCurrency(value: number): string {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-  return `$${value.toFixed(0)}`;
-}
 
 function getActivityBadgeVariant(type: string): 'primary' | 'success' | 'warning' | 'danger' | 'info' {
   const map: Record<string, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
@@ -87,46 +75,21 @@ function getActivityBadgeVariant(type: string): 'primary' | 'success' | 'warning
 }
 
 function getActivityLabel(type: string): string {
-  const map: Record<string, string> = {
-    order: 'Order',
-    payment: 'Payment',
-    registration: 'New',
-    alert: 'Alert',
-    delivery: 'Delivery',
-    return: 'Return',
-  };
+  const map: Record<string, string> = { order: 'Order', payment: 'Payment', registration: 'New', alert: 'Alert', delivery: 'Delivery', return: 'Return' };
   return map[type] || type;
 }
 
 export function CustomerDashboard() {
+  const { format, formatCompact } = useMoney();
+  const formatCurrency = (value: number) => formatCompact(value);
   return (
     <div className="space-y-6">
       {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Customers"
-          value="1,856"
-          icon={<Users className="w-6 h-6" />}
-          trend={{ value: 8.3, isPositive: true }}
-        />
-        <StatCard
-          title="New Customers (Month)"
-          value="124"
-          icon={<UserPlus className="w-6 h-6" />}
-          trend={{ value: 22.5, isPositive: true }}
-        />
-        <StatCard
-          title="Order Conversion Rate"
-          value="68.4%"
-          icon={<Percent className="w-6 h-6" />}
-          trend={{ value: 3.1, isPositive: true }}
-        />
-        <StatCard
-          title="Outstanding Collection"
-          value="$1.12M"
-          icon={<Banknote className="w-6 h-6" />}
-          trend={{ value: 8.6, isPositive: false }}
-        />
+        <StatCard title="Total Customers" value="1,856" icon={<Users className="w-6 h-6" />} trend={{ value: 8.3, isPositive: true }} />
+        <StatCard title="New Customers (Month)" value="124" icon={<UserPlus className="w-6 h-6" />} trend={{ value: 22.5, isPositive: true }} />
+        <StatCard title="Order Conversion Rate" value="68.4%" icon={<Percent className="w-6 h-6" />} trend={{ value: 3.1, isPositive: true }} />
+        <StatCard title="Outstanding Collection" value={formatCompact(1_120_000, 2)} icon={<Banknote className="w-6 h-6" />} trend={{ value: 8.6, isPositive: false }} />
       </div>
 
       {/* Customer by Channel + Weekly Orders */}
@@ -142,15 +105,10 @@ export function CustomerDashboard() {
                     <span className="text-sm text-gray-700 dark:text-gray-300">{item.channel}</span>
                     <span className="text-xs text-gray-400">({item.count})</span>
                   </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {formatCurrency(item.revenue)}
-                  </span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(item.revenue)}</span>
                 </div>
                 <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                  <div
-                    className="bg-primary-500 h-2 rounded-full transition-all"
-                    style={{ width: `${(item.percentage / maxChannelPercentage) * 100}%` }}
-                  />
+                  <div className="bg-primary-500 h-2 rounded-full transition-all" style={{ width: `${(item.percentage / maxChannelPercentage) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -162,19 +120,13 @@ export function CustomerDashboard() {
           <CardHeader
             title="Weekly Order Trends"
             subtitle="Order count over last 8 weeks"
-            action={
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Total: {weeklyOrders.reduce((s, w) => s + w.orders, 0).toLocaleString()} orders
-              </span>
-            }
+            action={<span className="text-xs text-gray-500 dark:text-gray-400">Total: {weeklyOrders.reduce((s, w) => s + w.orders, 0).toLocaleString()} orders</span>}
           />
           <CardContent className="mt-6">
             <div className="flex items-end gap-2 h-44">
               {weeklyOrders.map((item) => (
                 <div key={item.week} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-medium text-gray-900 dark:text-white">
-                    {item.orders}
-                  </span>
+                  <span className="text-[10px] font-medium text-gray-900 dark:text-white">{item.orders}</span>
                   <div className="w-full flex items-end h-32">
                     <div
                       className="w-full bg-primary-500 rounded-t-sm transition-all hover:bg-primary-600"
@@ -199,12 +151,7 @@ export function CustomerDashboard() {
             {/* Stacked bar */}
             <div className="flex rounded-full h-4 overflow-hidden mb-4">
               {collectionStatus.map((item) => (
-                <div
-                  key={item.status}
-                  className={`${item.color} transition-all`}
-                  style={{ width: `${item.percentage}%` }}
-                  title={`${item.status}: ${formatCurrency(item.amount)}`}
-                />
+                <div key={item.status} className={`${item.color} transition-all`} style={{ width: `${item.percentage}%` }} title={`${item.status}: ${formatCurrency(item.amount)}`} />
               ))}
             </div>
             <div className="space-y-3">
@@ -215,9 +162,7 @@ export function CustomerDashboard() {
                     <span className="text-sm text-gray-600 dark:text-gray-400">{item.status}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {formatCurrency(item.amount)}
-                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(item.amount)}</span>
                     <span className="text-xs text-gray-500 w-8 text-right">{item.percentage}%</span>
                   </div>
                 </div>
@@ -228,9 +173,7 @@ export function CustomerDashboard() {
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(collectionStatus.reduce((s, c) => s + c.amount, 0))}
-                </span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(collectionStatus.reduce((s, c) => s + c.amount, 0))}</span>
               </div>
             </div>
           </CardContent>
@@ -241,25 +184,18 @@ export function CustomerDashboard() {
           <CardHeader title="Recent Activity" subtitle="Latest customer interactions" />
           <CardContent className="mt-4 space-y-3">
             {recentActivity.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-800/50 last:border-0"
-              >
+              <div key={index} className="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-800/50 last:border-0">
                 <div className="flex items-center gap-3">
                   <Badge variant={getActivityBadgeVariant(item.type)} size="sm">
                     {getActivityLabel(item.type)}
                   </Badge>
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {item.customer}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.customer}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{item.action}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  {item.value && (
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.value}</p>
-                  )}
+                  {item.amount != null && <p className="text-sm font-medium text-gray-900 dark:text-white">{format(item.amount)}</p>}
                   <p className="text-xs text-gray-500 dark:text-gray-400">{item.time}</p>
                 </div>
               </div>
@@ -297,46 +233,32 @@ export function CustomerDashboard() {
                 {creditUtilization.map((item) => {
                   const utilPercent = Math.round((item.used / item.creditLimit) * 100);
                   return (
-                    <tr
-                      key={item.code}
-                      className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                    >
+                    <tr key={item.code} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-6 py-3">
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{item.customer}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{item.code}</p>
                         </div>
                       </td>
-                      <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {formatCurrency(item.creditLimit)}
-                      </td>
+                      <td className="text-right px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{formatCurrency(item.creditLimit)}</td>
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-20 bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${
-                                utilPercent >= 90 ? 'bg-red-500' : utilPercent >= 75 ? 'bg-amber-500' : 'bg-green-500'
-                              }`}
-                              style={{ width: `${utilPercent}%` }}
-                            />
+                            <div className={`h-2 rounded-full ${utilPercent >= 90 ? 'bg-red-500' : utilPercent >= 75 ? 'bg-amber-500' : 'bg-green-500'}`} style={{ width: `${utilPercent}%` }} />
                           </div>
-                          <span className={`text-xs font-medium ${
-                            utilPercent >= 90 ? 'text-red-600' : utilPercent >= 75 ? 'text-amber-600' : 'text-green-600'
-                          }`}>
-                            {utilPercent}%
-                          </span>
+                          <span className={`text-xs font-medium ${utilPercent >= 90 ? 'text-red-600' : utilPercent >= 75 ? 'text-amber-600' : 'text-green-600'}`}>{utilPercent}%</span>
                         </div>
                       </td>
-                      <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        {formatCurrency(item.outstanding)}
-                      </td>
+                      <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(item.outstanding)}</td>
                       <td className="text-center px-6 py-3">
                         {item.daysOverdue > 0 ? (
                           <Badge variant={item.daysOverdue >= 15 ? 'danger' : 'warning'} size="sm">
                             {item.daysOverdue} days
                           </Badge>
                         ) : (
-                          <Badge variant="success" size="sm">Current</Badge>
+                          <Badge variant="success" size="sm">
+                            Current
+                          </Badge>
                         )}
                       </td>
                     </tr>
@@ -368,43 +290,27 @@ export function CustomerDashboard() {
               </thead>
               <tbody>
                 {topRoutes.map((item) => (
-                  <tr
-                    key={item.route}
-                    className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                  >
-                    <td className="px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                      {item.route}
-                    </td>
+                  <tr key={item.route} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                    <td className="px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">{item.route}</td>
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                           <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400">
-                            {item.salesman.split(' ').map((n) => n[0]).join('')}
+                            {item.salesman
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')}
                           </span>
                         </div>
                         <span className="text-sm text-gray-600 dark:text-gray-400">{item.salesman}</span>
                       </div>
                     </td>
-                    <td className="text-center px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
-                      {item.customers}
-                    </td>
-                    <td className="text-center px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
-                      {item.orders}
-                    </td>
-                    <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                      {formatCurrency(item.revenue)}
-                    </td>
+                    <td className="text-center px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{item.customers}</td>
+                    <td className="text-center px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{item.orders}</td>
+                    <td className="text-right px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(item.revenue)}</td>
                     <td className="text-right px-6 py-3">
-                      <span
-                        className={`inline-flex items-center gap-0.5 text-sm font-medium ${
-                          item.growth >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      >
-                        {item.growth >= 0 ? (
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        ) : (
-                          <ArrowDownRight className="w-3.5 h-3.5" />
-                        )}
+                      <span className={`inline-flex items-center gap-0.5 text-sm font-medium ${item.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {item.growth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                         {Math.abs(item.growth)}%
                       </span>
                     </td>

@@ -49,9 +49,7 @@ export function QuickCreateModal({ isOpen, onClose, title, fields, onSubmit }: Q
   const setValue = (name: string, value: any) => setValues((v) => ({ ...v, [name]: value }));
 
   const handleSave = async () => {
-    const missing = fields.find(
-      (field) => field.type === 'text' && field.required && !String(values[field.name] ?? '').trim()
-    );
+    const missing = fields.find((field) => field.type === 'text' && field.required && !String(values[field.name] ?? '').trim());
     if (missing) {
       setError(`${missing.label} is required`);
       return;
@@ -88,9 +86,7 @@ export function QuickCreateModal({ isOpen, onClose, title, fields, onSubmit }: Q
       }
     >
       <div className="space-y-4">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">{error}</div>
-        )}
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">{error}</div>}
 
         {fields.map((field) => {
           if (field.type === 'text' || field.type === 'number') {
@@ -110,16 +106,13 @@ export function QuickCreateModal({ isOpen, onClose, title, fields, onSubmit }: Q
                 <div key={field.name}>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {field.label}{field.required ? '*' : ''}
+                      {field.label}
+                      {field.required ? '*' : ''}
                     </label>
                   </div>
                   <div className="flex items-center gap-2 relative">
                     {inputElement}
-                    <OrderCodeSettingsIcon 
-                      label={field.label} 
-                      value={values[field.name] || ''} 
-                      onChange={(v) => setValue(field.name, v)} 
-                    />
+                    <OrderCodeSettingsIcon label={field.label} value={values[field.name] || ''} onChange={(v) => setValue(field.name, v)} />
                   </div>
                 </div>
               );
@@ -151,11 +144,7 @@ export function QuickCreateModal({ isOpen, onClose, title, fields, onSubmit }: Q
                   values[field.name] ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                    values[field.name] ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${values[field.name] ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
           );

@@ -9,11 +9,7 @@ interface BaseTableProps {
 
 // Utility function for alignment styles
 const getAlignClass = (align: 'left' | 'center' | 'right' = 'left'): string => {
-  const alignStyles = {
-    left: 'text-left',
-    center: 'text-center',
-    right: 'text-right',
-  };
+  const alignStyles = { left: 'text-left', center: 'text-center', right: 'text-right' };
   return alignStyles[align];
 };
 
@@ -38,11 +34,7 @@ export interface TableHeaderProps {
 }
 
 export function TableHeader({ children, className = '' }: TableHeaderProps) {
-  return (
-    <thead className={`bg-gray-50 dark:bg-gray-800 ${className}`}>
-      {children}
-    </thead>
-  );
+  return <thead className={`bg-gray-50 dark:bg-gray-800 ${className}`}>{children}</thead>;
 }
 
 // Table Body
@@ -52,11 +44,7 @@ export interface TableBodyProps {
 }
 
 export function TableBody({ children, className = '' }: TableBodyProps) {
-  return (
-    <tbody className={`divide-y divide-gray-200 dark:divide-gray-700 ${className}`}>
-      {children}
-    </tbody>
-  );
+  return <tbody className={`divide-y divide-gray-200 dark:divide-gray-700 ${className}`}>{children}</tbody>;
 }
 
 // Table Row
@@ -68,13 +56,7 @@ export interface TableRowProps {
   hoverable?: boolean;
 }
 
-export function TableRow({
-  children,
-  className = '',
-  onClick,
-  selected = false,
-  hoverable = true,
-}: TableRowProps) {
+export function TableRow({ children, className = '', onClick, selected = false, hoverable = true }: TableRowProps) {
   return (
     <tr
       onClick={onClick}
@@ -98,12 +80,7 @@ export interface TableHeadProps extends BaseTableProps {
   width?: string | number;
 }
 
-export function TableHead({
-  children,
-  className = '',
-  align = 'left',
-  width,
-}: TableHeadProps) {
+export function TableHead({ children, className = '', align = 'left', width }: TableHeadProps) {
   return (
     <th
       className={`
@@ -124,12 +101,7 @@ export interface TableCellProps extends BaseTableProps {
   colSpan?: number;
 }
 
-export function TableCell({
-  children,
-  className = '',
-  align = 'left',
-  colSpan,
-}: TableCellProps) {
+export function TableCell({ children, className = '', align = 'left', colSpan }: TableCellProps) {
   return (
     <td
       className={`
@@ -151,11 +123,7 @@ export interface TableEmptyProps {
   icon?: ReactNode;
 }
 
-export function TableEmpty({
-  colSpan,
-  message = 'No data available',
-  icon,
-}: TableEmptyProps) {
+export function TableEmpty({ colSpan, message = 'No data available', icon }: TableEmptyProps) {
   return (
     <tr>
       <td colSpan={colSpan} className="px-4 py-12 text-center">
@@ -165,27 +133,5 @@ export function TableEmpty({
         </div>
       </td>
     </tr>
-  );
-}
-
-// Loading State
-export interface TableLoadingProps {
-  colSpan: number;
-  rows?: number;
-}
-
-export function TableLoading({ colSpan, rows = 5 }: TableLoadingProps) {
-  return (
-    <>
-      {Array.from({ length: rows }).map((_, index) => (
-        <tr key={index}>
-          {Array.from({ length: colSpan }).map((_, cellIndex) => (
-            <td key={cellIndex} className="px-4 py-3">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-            </td>
-          ))}
-        </tr>
-      ))}
-    </>
   );
 }

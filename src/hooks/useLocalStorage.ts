@@ -2,10 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 type SetValue<T> = T | ((prevValue: T) => T);
 
-export function useLocalStorage<T>(
-  key: string,
-  initialValue: T
-): [T, (value: SetValue<T>) => void, () => void] {
+export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: SetValue<T>) => void, () => void] {
   // Get initial value from localStorage or use provided initial value
   const readValue = useCallback((): T => {
     if (typeof window === 'undefined') {

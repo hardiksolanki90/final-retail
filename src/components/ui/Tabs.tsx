@@ -17,17 +17,8 @@ export interface TabsProps {
   className?: string;
 }
 
-export function Tabs({
-  tabs,
-  defaultActiveKey,
-  activeKey: controlledActiveKey,
-  onChange,
-  variant = 'line',
-  className = '',
-}: TabsProps) {
-  const [internalActiveKey, setInternalActiveKey] = useState(
-    defaultActiveKey || tabs[0]?.key || ''
-  );
+export function Tabs({ tabs, defaultActiveKey, activeKey: controlledActiveKey, onChange, variant = 'line', className = '' }: TabsProps) {
+  const [internalActiveKey, setInternalActiveKey] = useState(defaultActiveKey || tabs[0]?.key || '');
 
   const activeKey = controlledActiveKey ?? internalActiveKey;
 
@@ -57,15 +48,9 @@ export function Tabs({
     return `${base} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200`;
   }
 
-  const lineStyles = {
-    container: 'border-b border-gray-200 dark:border-gray-700 overflow-x-auto',
-    tab: getLineTabClass,
-  };
+  const lineStyles = { container: 'border-b border-gray-200 dark:border-gray-700 overflow-x-auto', tab: getLineTabClass };
 
-  const pillStyles = {
-    container: 'bg-gray-100 dark:bg-gray-800 rounded-lg p-1',
-    tab: getPillTabClass,
-  };
+  const pillStyles = { container: 'bg-gray-100 dark:bg-gray-800 rounded-lg p-1', tab: getPillTabClass };
 
   const styles = variant === 'line' ? lineStyles : pillStyles;
 
@@ -73,12 +58,7 @@ export function Tabs({
     <div className={className}>
       <div className={`flex ${styles.container}`}>
         {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => !tab.disabled && handleTabClick(tab.key)}
-            disabled={tab.disabled}
-            className={styles.tab(tab.key === activeKey, !!tab.disabled)}
-          >
+          <button key={tab.key} onClick={() => !tab.disabled && handleTabClick(tab.key)} disabled={tab.disabled} className={styles.tab(tab.key === activeKey, !!tab.disabled)}>
             <span className="flex items-center gap-2">
               {tab.icon}
               {tab.label}
@@ -87,9 +67,7 @@ export function Tabs({
         ))}
       </div>
 
-      <div className="mt-4">
-        {activeTab?.content}
-      </div>
+      <div className="mt-4">{activeTab?.content}</div>
     </div>
   );
 }

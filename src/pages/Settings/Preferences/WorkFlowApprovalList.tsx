@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, SlidersHorizontal } from 'lucide-react';
 import { Pagination } from '../../../components/ui/Pagination';
 import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
-import { TableLoadingRow } from '../../../components/ui/TableLoadingRow';
+import { TableSkeletonRows } from '../../../components/ui/skeleton';
 import { useWorkFlowRules } from '../../../hooks/Preferences/useWorkFlowRules';
 import type { WorkFlowRule } from '../../../types/WorkFlowRule';
 
@@ -47,57 +47,45 @@ export function WorkFlowApprovalList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableLoadingRow colSpan={4} label="Loading workflow rules…" />
+                <TableSkeletonRows rows={15} label="Loading workflow rules" columns={['text', 'text', 'text', 'actions']} />
               ) : rules.length === 0 ? (
                 <TableEmptyRow colSpan={4} label="No workflow rules found." />
-              ) : rules.map((rule: WorkFlowRule) => (
-                <tr key={rule.uuid} className="hover:bg-[var(--bg-secondary)] transition-colors">
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/settings/work-flow-approval/edit/${rule.uuid}`)}
-                      className="text-sm font-medium text-primary-600 hover:underline"
-                    >
-                      {rule.name}
-                    </button>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">{rule.module}</td>
-                  <td className="px-4 py-4 text-sm text-[var(--text-secondary)] max-w-[320px] truncate">
-                    {rule.description || '—'}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/settings/work-flow-approval/edit/${rule.uuid}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                      >
-                        <Pencil size={14} strokeWidth={2.5} />
-                        Edit
+              ) : (
+                rules.map((rule: WorkFlowRule) => (
+                  <tr key={rule.uuid} className="hover:bg-[var(--bg-secondary)] transition-colors">
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <button type="button" onClick={() => navigate(`/settings/work-flow-approval/edit/${rule.uuid}`)} className="text-sm font-medium text-primary-600 hover:underline">
+                        {rule.name}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteWithConfirmation(rule.uuid)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
-                      >
-                        <Trash2 size={14} strokeWidth={2.5} />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">{rule.module}</td>
+                    <td className="px-4 py-4 text-sm text-[var(--text-secondary)] max-w-[320px] truncate">{rule.description || '—'}</td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/settings/work-flow-approval/edit/${rule.uuid}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                        >
+                          <Pencil size={14} strokeWidth={2.5} />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWithConfirmation(rule.uuid)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                        >
+                          <Trash2 size={14} strokeWidth={2.5} />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={lastPage}
-            total={total}
-            perPage={15}
-            onPageChange={setCurrentPage}
-            onPerPageChange={() => { }}
-            hasLoaded={!isLoading}
-          />
+          <Pagination currentPage={currentPage} totalPages={lastPage} total={total} perPage={15} onPageChange={setCurrentPage} onPerPageChange={() => {}} hasLoaded={!isLoading} />
         </div>
       </div>
     </div>

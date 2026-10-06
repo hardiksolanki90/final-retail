@@ -32,11 +32,7 @@ export interface PortfolioManagementFormData {
   targetRevenue: number;
   startDate: string;
   endDate: string;
-  items: Array<{
-    itemId: string;
-    targetQuantity: number;
-    targetValue: number;
-  }>;
+  items: Array<{ itemId: string; targetQuantity: number; targetValue: number }>;
   notes?: string;
   status: 'active' | 'inactive' | 'completed';
 }
