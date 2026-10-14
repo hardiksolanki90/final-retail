@@ -36,6 +36,7 @@ import { CreditNoteAdd } from '../pages/CreditNotes/CreditNoteAdd';
 import { DebitNoteList } from '../pages/DebitNotes/debitNoteList';
 import { DebitNoteAdd } from '../pages/DebitNotes/DebitNoteAdd';
 import { ReturnList } from '../pages/Returns/ReturnList';
+import { ReturnAdd } from '../pages/Returns/ReturnAdd';
 import { CampaignList } from '../pages/Campaign/CampaignList';
 import { PlanogramList } from '../pages/Planogram/PlanogramList';
 import { ShelfDisplayList } from '../pages/ShelfDisplay/ShelfDisplayList';
@@ -114,6 +115,7 @@ import OrganisationAddGuard from '../components/OrganisationAddGuard';
 import { OrganisationView } from '../pages/Organisation/OrganisationView';
 import { OrganisationEdit } from '../pages/Organisation/OrganisationEdit';
 import BeatList from '../pages/Settings/Beats/BeatList';
+import { pageTitle } from '../utils/pageTitles';
 // import { OrderAdd } from "../pages/Orders/orderAdd";
 // import { OrderList } from "../pages/Orders/orderList";
 
@@ -352,6 +354,16 @@ export const router = createBrowserRouter([
         ),
     },
     {
+        path: '/order/edit/:uuid',
+        element: (
+            <Layout>
+                <OrderProvider>
+                    <OrderAdd />
+                </OrderProvider>
+            </Layout>
+        ),
+    },
+    {
         path: '/delivery',
         element: (
             <Layout>
@@ -363,6 +375,16 @@ export const router = createBrowserRouter([
     },
     {
         path: '/delivery/add',
+        element: (
+            <Layout>
+                <DeliveryProvider>
+                    <DeliveryAdd />
+                </DeliveryProvider>
+            </Layout>
+        ),
+    },
+    {
+        path: '/delivery/edit/:uuid',
         element: (
             <Layout>
                 <DeliveryProvider>
@@ -392,6 +414,16 @@ export const router = createBrowserRouter([
         ),
     },
     {
+        path: '/invoice/edit/:uuid',
+        element: (
+            <Layout>
+                <InvoiceProvider>
+                    <InvoiceAdd />
+                </InvoiceProvider>
+            </Layout>
+        ),
+    },
+    {
         path: '/credit-note',
         element: (
             <Layout>
@@ -406,6 +438,16 @@ export const router = createBrowserRouter([
         element: (
             <Layout>
                 <RequirePermission permission="credit-notes.create">
+                    <CreditNoteAdd />
+                </RequirePermission>
+            </Layout>
+        ),
+    },
+    {
+        path: '/credit-note/edit/:uuid',
+        element: (
+            <Layout>
+                <RequirePermission permission="credit-notes.edit">
                     <CreditNoteAdd />
                 </RequirePermission>
             </Layout>
@@ -428,10 +470,34 @@ export const router = createBrowserRouter([
         ),
     },
     {
+        path: '/debit-note/edit/:uuid',
+        element: (
+            <Layout>
+                <DebitNoteAdd />
+            </Layout>
+        ),
+    },
+    {
         path: '/return',
         element: (
             <Layout>
                 <ReturnList />
+            </Layout>
+        ),
+    },
+    {
+        path: '/return/add',
+        element: (
+            <Layout>
+                <ReturnAdd />
+            </Layout>
+        ),
+    },
+    {
+        path: '/return/edit/:uuid',
+        element: (
+            <Layout>
+                <ReturnAdd />
             </Layout>
         ),
     },
@@ -568,6 +634,14 @@ export const router = createBrowserRouter([
         ),
     },
     {
+        path: '/salesman-unload/edit/:uuid',
+        element: (
+            <Layout>
+                <SalesmanUnloadAdd />
+            </Layout>
+        ),
+    },
+    {
         path: '/grn',
         element: (
             <Layout>
@@ -577,6 +651,14 @@ export const router = createBrowserRouter([
     },
     {
         path: '/grn/add',
+        element: (
+            <Layout>
+                <GRNAdd />
+            </Layout>
+        ),
+    },
+    {
+        path: '/grn/edit/:uuid',
         element: (
             <Layout>
                 <GRNAdd />
@@ -934,3 +1016,8 @@ export const router = createBrowserRouter([
         ),
     },
 ]);
+
+// Browser-tab title follows the matched route (first load and every navigation).
+const syncTitle = ({ matches, location }: typeof router.state) => { document.title = pageTitle(matches.at(-1)?.route.path, location.pathname); };
+syncTitle(router.state);
+router.subscribe(syncTitle);

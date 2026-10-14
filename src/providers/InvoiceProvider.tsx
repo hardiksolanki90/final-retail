@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getInvoiceList, deleteInvoice, createInvoice, updateInvoice, getInvoiceDetails, getInvoiceSummary, updateInvoiceStatus, markInvoiceAsPaid, bulkUpdateInvoiceStatus } from '../api/InvoiceApi';
+import { getInvoiceList, deleteInvoice, createInvoice, updateInvoice, getInvoiceDetails, updateInvoiceStatus, markInvoiceAsPaid, bulkUpdateInvoiceStatus } from '../api/InvoiceApi';
 import { showToast } from '../lib/toast';
+import type { InvoiceView } from '../types/DocumentView';
 import type { Invoice, InvoiceFormData, InvoiceListResponse } from '../types/Invoice';
 import type { ColumnSearchStates, PaginationData } from '../types/Common';
 
@@ -42,15 +43,10 @@ interface InvoiceContextType {
   closeInvoiceDrawer: () => void;
 
   // Drawer data
-  invoiceDetails: Invoice | undefined;
+  invoiceDetails: InvoiceView | undefined;
   isLoadingDetails: boolean;
-  invoiceSummaryData: unknown;
-  isLoadingSummary: boolean;
 
   // Tab state
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  handleTabChange: (tab: string) => void;
 
   // Bulk actions
   selectedRowKeys: string[];
@@ -129,7 +125,6 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   });
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('details');
 
   // Invoice list query with filters
   const {
@@ -147,16 +142,9 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
   const { data: invoiceDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['invoice-details', selectedInvoiceForDrawer?.uuid],
     queryFn: () => getInvoiceDetails(selectedInvoiceForDrawer?.uuid!),
-    enabled: !!selectedInvoiceForDrawer?.uuid && activeTab === 'details',
+    enabled: !!selectedInvoiceForDrawer?.uuid,
     staleTime: 5 * 60 * 1000,
-  });
-
-  // Invoice summary query
-  const { data: invoiceSummaryData, isLoading: isLoadingSummary } = useQuery({
-    queryKey: ['invoice-summary', selectedInvoiceForDrawer?.uuid],
-    queryFn: () => getInvoiceSummary(selectedInvoiceForDrawer?.uuid!),
-    enabled: !!selectedInvoiceForDrawer?.uuid && activeTab === 'summary',
-    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Mutations
@@ -288,14 +276,9 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
     setColumnSearchStates((prev) => ({ ...prev, [column]: { isOpen: false, value: '' } }));
   };
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-
   const openInvoiceDrawer = (invoice: Invoice) => {
     setSelectedInvoiceForDrawer(invoice);
     setIsInvoiceDrawerVisible(true);
-    setActiveTab('details');
   };
 
   const closeInvoiceDrawer = () => {
@@ -380,11 +363,6 @@ export default function InvoiceProvider({ children }: InvoiceProviderProps) {
     closeInvoiceDrawer,
     invoiceDetails,
     isLoadingDetails,
-    invoiceSummaryData,
-    isLoadingSummary,
-    activeTab,
-    setActiveTab,
-    handleTabChange,
     selectedRowKeys,
     setSelectedRowKeys,
     bulkActionValue,

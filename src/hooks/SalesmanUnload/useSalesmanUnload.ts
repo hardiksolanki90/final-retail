@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSalesmanUnloadList, createSalesmanUnload, bulkActionSalesmanUnloads } from '../../api/SalesmanUnloadApi';
+import { getSalesmanUnloadList, createSalesmanUnload, updateSalesmanUnload, bulkActionSalesmanUnloads } from '../../api/SalesmanUnloadApi';
 import { getAllSalesmen } from '../../api/SalesmanApi';
 import { getAllItems } from '../../api/ItemApi';
 import { getRouteOptions } from '../../api/RouteApi';
@@ -53,12 +53,12 @@ export function useSalesmanUnloadFormOptions() {
     return {
         // salesman_id is a straight FK to users, so the option value must be the
         // salesman's underlying userId, not SalesmanInfo's own uuid.
-        salesman: (salesmenQuery.data ?? []).map((s) => ({ value: String(s.userId), label: s.name })),
+        salesman: (salesmenQuery.data ?? []).map((s) => ({ value: s.userUuid ?? String(s.userId), label: s.name })),
         items: itemsQuery.data ?? [],
-        routes: (routesQuery.data ?? []).map((r) => ({ value: String(r.value), label: r.label })),
-        vans: (vansQuery.data ?? []).map((v) => ({ value: String(v.value), label: v.label })),
+        routes: (routesQuery.data ?? []).map((r) => ({ value: r.uuid, label: r.label })),
+        vans: (vansQuery.data ?? []).map((v) => ({ value: v.uuid, label: v.label })),
         warehouses: warehousesQuery.data ?? [],
-        reasons: reasonsQuery.data ?? [],
+        reasons: (reasonsQuery.data ?? []).map((r) => ({ value: r.uuid, label: r.label })),
         isLoading: salesmenQuery.isLoading || itemsQuery.isLoading || routesQuery.isLoading || vansQuery.isLoading || warehousesQuery.isLoading || reasonsQuery.isLoading,
     };
 }
@@ -77,5 +77,17 @@ export function useSalesmanUnloadMutations() {
         },
     });
 
-    return { createMutation };
+    const updateMutation = useMutation({
+        mutationFn: ({ uuid, data }: { uuid: string; data: SalesmanUnloadFormData }) => updateSalesmanUnload(uuid, data),
+        onSuccess: () => {
+            showToast.success('Salesman unload updated');
+            queryClient.invalidateQueries({ queryKey: ['salesman-unloads'] });
+            queryClient.invalidateQueries({ queryKey: ['salesman-unload-detail'] });
+        },
+        onError: (error: { response?: { data?: { message?: string } } }) => {
+            showToast.error(error.response?.data?.message || 'Failed to update salesman unload');
+        },
+    });
+
+    return { createMutation, updateMutation };
 }

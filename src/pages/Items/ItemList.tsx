@@ -28,6 +28,7 @@ export function ItemList() {
     perPage,
     setPerPage,
     searchTerm,
+    filters,
     setSearchTerm,
     selectedRowKeys,
     setSelectedRowKeys,
@@ -213,11 +214,10 @@ export function ItemList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen((prev) => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-              filterOpen || searchTerm
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm
                 ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
                 : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -357,7 +357,7 @@ export function ItemList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading items" columns={['check', 'text', 'text', 'text', 'text', 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading items" columns={['check', 'text', 'text', 'text', 'text', 'actions']} />
               ) : items.length === 0 ? (
                 <TableEmptyRow colSpan={7} label="No items found." />
               ) : (
@@ -442,6 +442,9 @@ export function ItemList() {
           setViewItem(null);
         }}
         data={viewItem}
+        onSelect={setViewItem}
+        pageSize={perPage}
+        seed={itemData && currentPage === 1 && !searchTerm && !Object.values(filters).some(Boolean) ? { items, hasMore: Boolean(meta?.has_more_pages) } : null}
         onEdit={() => {
           setIsViewOpen(false);
           if (viewItem) handleEditClick(viewItem);

@@ -7,6 +7,10 @@ import type {
   CustomerFormData,
   CustomerListResponse,
   CustomerSalesData,
+  CustomerActivityFilters,
+  CustomerTransaction,
+  CustomerLedger,
+  CustomerItemReport,
   CustomerType,
   CustomerCategory,
   CustomerGroup,
@@ -159,6 +163,18 @@ export const getCustomerSales = async (uuid: string, startDate?: string, endDate
   const response = await axiosInstance.get(`/customer/${uuid}/sales?${params.toString()}`);
   return response.data.data || response.data;
 };
+
+const activityParams = (filters: CustomerActivityFilters, page?: number) => Object.fromEntries(Object.entries({ ...filters, page }).filter(([, v]) => v !== undefined && v !== ''));
+
+/** One page of the customer's documents (orders, deliveries, invoices, credit / debit notes), newest first unless sorted. */
+export const getCustomerTransactions = async (uuid: string, filters: CustomerActivityFilters, page: number = 1): Promise<NormalizedListResponse<CustomerTransaction>> =>
+  unwrapPaginated((await axiosInstance.get(`/customer/${uuid}/transactions`, { params: { ...activityParams(filters, page), per_page: 25 } })).data, 'transactions', 25);
+
+export const getCustomerLedger = async (uuid: string, filters: CustomerActivityFilters): Promise<CustomerLedger> =>
+  (await axiosInstance.get(`/customer/${uuid}/ledger`, { params: activityParams(filters) })).data.data;
+
+export const getCustomerItemReport = async (uuid: string, filters: CustomerActivityFilters): Promise<CustomerItemReport> =>
+  (await axiosInstance.get(`/customer/${uuid}/item-report`, { params: activityParams(filters) })).data.data;
 
 export const getCustomersBySalesman = async (salesmanId: number): Promise<Customer[]> => {
   const response = await axiosInstance.get(`/customer/salesman/${salesmanId}`);

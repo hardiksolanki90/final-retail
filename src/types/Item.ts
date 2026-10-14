@@ -32,7 +32,11 @@ export interface Item {
   updatedAt?: string;
 
   // Relationships — lean {id,uuid,name} shape as sent by ItemList/ItemView
-  brand?: { id?: number; uuid?: string; name?: string };
+  brand?: { id?: number; uuid?: string; name?: string; brandName?: string };
+  /** Full item (GET /item/edit) names its category and brand as categoryName / brandName. */
+  itemCategory?: { id?: number; uuid?: string; categoryName?: string } | null;
+  /** List rows carry the item's units (base first): code, name, per-base quantity. */
+  uoms?: { id?: string; code?: string; name?: string; upc?: number; isBase?: boolean }[];
   category?: { id?: number; uuid?: string; name?: string };
   itemUom?: ItemUom;
   itemGroup?: { id?: number; uuid?: string; code?: string; name?: string } | null;

@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import type { CreditNoteView } from '../types/DocumentView';
 import type { CreditNote, CreditNoteFormData, CreditNoteListResponse } from '../types/CreditNote';
 import type { SelectOption } from '../components/ui/Select';
 
@@ -14,7 +15,7 @@ export const getCreditNoteList = async (page: number = 1, searchTerm?: string, p
   return { data: payload.creditNotes ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
 };
 
-export const getCreditNoteByUuid = async (uuid: string): Promise<CreditNote> => {
+export const getCreditNoteByUuid = async (uuid: string): Promise<CreditNoteView> => {
   const response = await axiosInstance.get(`/credit-note/edit/${uuid}`);
   return response.data.data;
 };

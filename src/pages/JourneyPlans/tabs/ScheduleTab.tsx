@@ -96,11 +96,10 @@ export function ScheduleTab({
                 type="button"
                 onClick={() => setValue('firstDayOfWeek', key)}
                 title={label}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  isActive
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${isActive
                     ? 'bg-primary-600 border-primary-600 text-white'
                     : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary-400 hover:text-primary-600'
-                }`}
+                  }`}
               >
                 {short}
               </button>

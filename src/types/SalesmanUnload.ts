@@ -1,5 +1,6 @@
 export interface SalesmanUnloadItem {
   id: string;
+  uuid?: string;
   itemId: string;
   itemName: string;
   uom: string;

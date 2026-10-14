@@ -46,7 +46,8 @@ export function OrderCodeSettingsIcon({ label, value, onChange, className = '', 
     // when the parent form's Create/Update button is clicked (see
     // reserveCodeIfAuto in CodeSettingApi.ts), not here.
     onLockChange?.(false);
-    onChange('');
+    // Manual keeps whatever was already typed in the field; Auto clears it so a fresh code is reserved on submit.
+    if (mode === 'auto') onChange('');
     setOpen(false);
   };
 

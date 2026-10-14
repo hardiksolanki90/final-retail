@@ -1,46 +1,59 @@
-import { Search } from 'lucide-react';
+import { useMemo } from 'react';
+import { Package } from 'lucide-react';
+import type { StockInStoreRecord } from '../../../types/StockInStore';
 
-const DUMMY_DATA = [
-  { itemCode: 'GU2003', itemName: 'Safa LL Lban Plain 180mL8X4', uom: 'CT', capacity: '20.00' },
-  { itemCode: 'GU1001', itemName: 'Safa LL Milk FC 1L4X3', uom: 'CT', capacity: '1180.00' },
-];
+interface AssignInventoryTabProps {
+  selectedItem?: StockInStoreRecord | null;
+}
 
-export function AssignInventoryTab() {
+export function AssignInventoryTab({ selectedItem }: AssignInventoryTabProps) {
+  const items = useMemo(() => {
+    return selectedItem?.items ?? [];
+  }, [selectedItem]);
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2">
+    <div className="mt-5 space-y-4 animate-in fade-in duration-200">
       <div className="rounded-xl overflow-hidden shadow-sm border border-[var(--border-color)]">
         <table className="w-full text-left">
-          <thead className="bg-[#0f0f0f] text-white">
+          <thead className="bg-[#111827] text-white">
             <tr>
-              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">
-                <div className="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition-colors">
-                  Item Code
-                  <Search className="w-3 h-3 ml-1" />
-                </div>
+              {/* Item Code Header */}
+              <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider w-1/4">
+                Item Code
               </th>
-              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">
-                <div className="flex items-center gap-1 cursor-pointer hover:text-gray-300 transition-colors">
-                  Item Name
-                  <Search className="w-3 h-3 ml-1" />
-                </div>
+
+              {/* Item Name Header */}
+              <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider w-1/2">
+                Item Name
               </th>
-              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">Item Uom</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">Capacity</th>
+
+              {/* Item Uom Header */}
+              <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider w-32">
+                Item Uom
+              </th>
+
+              {/* Capacity Header */}
+              <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider w-36 text-right">
+                Capacity
+              </th>
             </tr>
           </thead>
           <tbody className="bg-[var(--bg-card)] divide-y divide-[var(--border-color)]">
-            {DUMMY_DATA.map((row, idx) => (
-              <tr key={idx} className="hover:bg-[var(--bg-secondary)] transition-colors">
-                <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{row.itemCode}</td>
-                <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{row.itemName}</td>
-                <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{row.uom}</td>
-                <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{row.capacity}</td>
+            {items.map((row, idx) => (
+              <tr key={row.id || idx} className="hover:bg-[var(--bg-secondary)]/60 transition-colors">
+                <td className="px-4 py-3.5 text-sm font-mono text-[var(--text-primary)]">{row.itemCode}</td>
+                <td className="px-4 py-3.5 text-sm font-medium text-[var(--text-primary)]">{row.itemName}</td>
+                <td className="px-4 py-3.5 text-sm text-[var(--text-secondary)]">{row.itemUom}</td>
+                <td className="px-4 py-3.5 text-sm text-[var(--text-primary)] font-mono text-right">{row.capacity}</td>
               </tr>
             ))}
-            {DUMMY_DATA.length === 0 && (
+            {items.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-[var(--text-muted)] text-sm">
-                  No inventory assigned yet.
+                <td colSpan={4} className="px-4 py-12 text-center text-[var(--text-muted)] text-sm">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Package className="w-7 h-7 opacity-40" />
+                    <span>No items assigned yet.</span>
+                  </div>
                 </td>
               </tr>
             )}

@@ -53,3 +53,5 @@ export const getBeatOptions = async (areaId?: number | string): Promise<BeatOpti
     label: (b.beatCode ?? b.code) ? `${b.beatCode ?? b.code} - ${b.beatName ?? b.name ?? ''}` : (b.beatName ?? b.name ?? String(b.id)),
   }));
 };
+
+export const getBeatDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/beat/view/${uuid}`)).data.data;

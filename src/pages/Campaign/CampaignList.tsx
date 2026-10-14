@@ -1,17 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
 import { Pagination } from '../../components/ui/Pagination';
 import { useMoney } from '../../hooks/Currency/useMoney';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
-
-const campaignsData = [
-  { id: 1, code: 'CAM001', name: 'Summer Sale 2024', type: 'Seasonal', startDate: '2024-06-01', endDate: '2024-08-31', budget: 50000, status: 'Active' },
-  { id: 2, code: 'CAM002', name: 'New Product Launch', type: 'Launch', startDate: '2024-07-15', endDate: '2024-08-15', budget: 75000, status: 'Active' },
-  { id: 3, code: 'CAM003', name: 'Holiday Promo', type: 'Holiday', startDate: '2024-12-01', endDate: '2024-12-31', budget: 100000, status: 'Scheduled' },
-  { id: 4, code: 'CAM004', name: 'Back to School', type: 'Seasonal', startDate: '2024-08-15', endDate: '2024-09-30', budget: 35000, status: 'Scheduled' },
-  { id: 5, code: 'CAM005', name: 'Spring Collection', type: 'Launch', startDate: '2024-03-01', endDate: '2024-05-31', budget: 45000, status: 'Completed' },
-  { id: 6, code: 'CAM006', name: 'Flash Sale Week', type: 'Promotional', startDate: '2024-07-01', endDate: '2024-07-07', budget: 20000, status: 'Active' },
-];
+import { CampaignAdd } from './CampaignAdd';
+import { CampaignViewDrawer } from './CampaignViewDrawer';
+import {
+  getCampaignList,
+  createCampaign,
+  updateCampaign,
+  deleteCampaign,
+  type CampaignPayload,
+} from '../../api/CampaignApi';
+import { useCampaignDetail } from '../../hooks/Campaign/useCampaignDetail';
+import { showToast } from '../../lib/toast';
+import type { CampaignFormData } from '../../types/Campaign';
 
 interface Column {
   key: string;
@@ -23,7 +26,21 @@ export function CampaignList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
-  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isAddLoading, setIsAddLoading] = useState(false);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // View & Edit Drawer State
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [viewUuid, setViewUuid] = useState<string | null>(null);
+  const [viewRow, setViewRow] = useState<any | null>(null);
+  const viewQuery = useCampaignDetail(viewUuid);
+  const viewCampaign = viewUuid ? (viewQuery.data ?? null) : null;
+  const [editingCampaign, setEditingCampaign] = useState<CampaignFormData | undefined>(undefined);
+  const [editingUuid, setEditingUuid] = useState<string | null>(null);
+
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -37,12 +54,30 @@ export function CampaignList() {
   const [exportToDate, setExportToDate] = useState('');
   const [exportFormat, setExportFormat] = useState<'csv' | 'xls' | ''>('');
 
+function formatDateTime(val?: string | null): string {
+  if (!val) return '—';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return val;
+  }
+}
+
   const [columns, setColumns] = useState<Column[]>([
     { key: 'code', label: 'Code', visible: true },
     { key: 'name', label: 'Name', visible: true },
     { key: 'type', label: 'Type', visible: true },
-    { key: 'startDate', label: 'Start Date', visible: true },
-    { key: 'endDate', label: 'End Date', visible: true },
+    { key: 'startDate', label: 'Start Date & Time', visible: true },
+    { key: 'endDate', label: 'End Date & Time', visible: true },
     { key: 'budget', label: 'Budget', visible: true },
     { key: 'status', label: 'Status', visible: true },
   ]);
@@ -51,6 +86,134 @@ export function CampaignList() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterDraft, setFilterDraft] = useState({ code: '', name: '', type: '', startDate: '', endDate: '', budget: '' });
   const [appliedFilter, setAppliedFilter] = useState({ code: '', name: '', type: '', startDate: '', endDate: '', budget: '' });
+
+  const fetchCampaigns = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await getCampaignList(currentPage, rowsPerPage);
+      if (res && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped = res.data.map((c: any, index: number) => {
+          const rawStart = c.start_date || c.startDate || c.date || c.created_at;
+          const rawEnd = c.end_date || c.endDate;
+          return {
+            id: c.id ?? index + 1,
+            code: c.campaign_id || c.code || `CAM-${c.id}`,
+            name: [c.customer?.firstname, c.customer?.lastname].filter(Boolean).join(' ') || c.customer?.shop_name || c.name || '—',
+            type: c.type || '—',
+            salesman: c.salesman?.name || [c.salesman?.firstname, c.salesman?.lastname].filter(Boolean).join(' ') || '—',
+            startDate: formatDateTime(rawStart),
+            endDate: formatDateTime(rawEnd),
+            budget: c.budget !== null && c.budget !== undefined && c.budget !== '' ? c.budget : '—',
+            status: c.status ? (c.status === '1' || c.status === 1 || c.status === 'active' ? 'Active' : 'Inactive') : 'Active',
+            raw: c,
+          };
+        });
+        setCampaigns(mapped);
+        setTotalCount(res.total || mapped.length);
+      } else {
+        setCampaigns([]);
+        setTotalCount(0);
+      }
+    } catch {
+      setCampaigns([]);
+      setTotalCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, rowsPerPage]);
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
+
+  const handleViewClick = (item: any) => {
+    const rawUuid = String(item.raw?.uuid || item.raw?.id || item.uuid || item.id);
+    setViewUuid(rawUuid);
+    setViewRow(item.raw || item);
+    setIsViewOpen(true);
+  };
+
+  const handleEditCampaign = (campaign: any) => {
+    const targetUuid = String(campaign.uuid || campaign.id);
+    setEditingUuid(targetUuid);
+    setEditingCampaign({
+      campaignCode: campaign.campaign_id || campaign.code || '',
+      type: campaign.type || 'Seasonal',
+      budget: campaign.budget,
+      startDate: campaign.start_date || campaign.startDate || campaign.date,
+      endDate: campaign.end_date || campaign.endDate || '',
+      date: campaign.start_date || campaign.startDate || campaign.date,
+      salesmanId: String(campaign.salesman_id || campaign.salesman?.id || campaign.salesmanId || ''),
+      customerId: String(campaign.customer_id || campaign.customer?.id || campaign.customerId || ''),
+      feedback: campaign.feedback || '',
+      status: campaign.status === 'inactive' || campaign.status === '0' || campaign.status === 0 ? 'inactive' : 'active',
+      image: campaign.images?.[0] || campaign.campaign_picture_image?.[0]?.image_string || null,
+    });
+    setIsAddOpen(true);
+  };
+
+  const handleDeleteCampaign = async (campaign: any) => {
+    const targetUuid = String(campaign.uuid || campaign.id);
+    if (!window.confirm('Are you sure you want to delete this campaign?')) return;
+    try {
+      await deleteCampaign(targetUuid);
+      showToast.success('Campaign deleted successfully');
+      setIsViewOpen(false);
+      setViewUuid(null);
+      fetchCampaigns();
+    } catch (error: any) {
+      showToast.error(error?.response?.data?.message || error?.message || 'Failed to delete campaign');
+    }
+  };
+
+  const handleSaveCampaign = async (data: CampaignFormData) => {
+    setIsAddLoading(true);
+    try {
+      let base64Image: string | undefined;
+      if (data.image instanceof File) {
+        base64Image = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(data.image as File);
+        });
+      }
+
+      const payload: CampaignPayload = {
+        campaign_id: data.campaignCode,
+        type: data.type,
+        budget: data.budget,
+        salesman_id: data.salesmanId,
+        customer_id: data.customerId,
+        feedback: data.feedback,
+        date: data.startDate || data.date,
+        start_date: data.startDate || data.date,
+        startDate: data.startDate || data.date,
+        end_date: data.endDate || undefined,
+        endDate: data.endDate || undefined,
+        status: data.status || 'active',
+        images: base64Image ? [base64Image] : [],
+      };
+
+      if (editingUuid) {
+        await updateCampaign(editingUuid, payload);
+        showToast.success('Campaign updated successfully');
+      } else {
+        await createCampaign(payload);
+        showToast.success('Campaign added successfully');
+      }
+      setIsAddOpen(false);
+      setEditingUuid(null);
+      setEditingCampaign(undefined);
+      fetchCampaigns();
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to save campaign';
+      showToast.error(msg);
+      throw error;
+    } finally {
+      setIsAddLoading(false);
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -62,12 +225,12 @@ export function CampaignList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(campaignsData.length / rowsPerPage);
+  const totalPages = Math.ceil(totalCount / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
 
   // Apply filters
-  const filteredData = campaignsData.filter(
+  const filteredData = campaigns.filter(
     (c) =>
       (!appliedFilter.code ||
         String(c.code ?? '')
@@ -218,7 +381,11 @@ export function CampaignList() {
             )}
           </div>
           <button
-            onClick={() => console.log('Creating...')}
+            onClick={() => {
+              setEditingUuid(null);
+              setEditingCampaign(undefined);
+              setIsAddOpen(true);
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -268,8 +435,8 @@ export function CampaignList() {
                 { key: 'code', label: 'Code' },
                 { key: 'name', label: 'Name' },
                 { key: 'type', label: 'Type' },
-                { key: 'startDate', label: 'Start Date' },
-                { key: 'endDate', label: 'End Date' },
+                { key: 'startDate', label: 'Start Date & Time' },
+                { key: 'endDate', label: 'End Date & Time' },
                 { key: 'budget', label: 'Budget' },
               ] as { key: keyof typeof filterDraft; label: string }[]
             ).map(({ key, label }) => (
@@ -332,14 +499,28 @@ export function CampaignList() {
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
                 <TableSkeletonRows rows={rowsPerPage} label="Loading campaigns" columns={['check', ...colsByKey(visibleColumns, { startDate: 'date', endDate: 'date', status: 'badge' })]} dense />
+              ) : currentData.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="px-4 py-12 text-center text-sm text-[var(--text-muted)]">
+                    No campaigns found
+                  </td>
+                </tr>
               ) : (
                 currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                    <td className="px-4 py-3">
+                  <tr
+                    key={item.id}
+                    onClick={() => handleViewClick(item)}
+                    className={`hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
+                  >
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(item.id)}
-                        onChange={() => handleSelectRow(item.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectRow(item.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                         className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
                       />
                     </td>
@@ -348,7 +529,7 @@ export function CampaignList() {
                         {column.key === 'status' ? (
                           <span className={getStatusBadge(item.status)}>{item.status}</span>
                         ) : column.key === 'budget' ? (
-                          formatCurrency(item.budget)
+                          item.budget !== null && item.budget !== undefined && item.budget !== '—' && item.budget !== '' ? formatCurrency(item.budget) : '—'
                         ) : (
                           item[column.key as keyof typeof item]
                         )}
@@ -360,7 +541,7 @@ export function CampaignList() {
             </tbody>
           </table>
         </div>
-        <Pagination currentPage={currentPage} totalPages={totalPages} total={campaignsData.length} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={totalCount} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
       {exportModalOpen && (
@@ -457,6 +638,46 @@ export function CampaignList() {
           </div>
         </div>
       )}
+
+      {/* Campaign View Drawer */}
+      <CampaignViewDrawer
+        isOpen={isViewOpen}
+        onClose={() => {
+          setIsViewOpen(false);
+          setViewUuid(null);
+        }}
+        uuid={viewUuid}
+        onSelect={(nextUuid, nextRow) => {
+          setViewUuid(nextUuid);
+          setViewRow(nextRow);
+        }}
+        row={viewRow}
+        data={viewCampaign}
+        pageSize={rowsPerPage}
+        seed={
+          campaigns.length > 0 && currentPage === 1
+            ? { items: campaigns.map((c) => c.raw || c), hasMore: totalPages > 1 }
+            : null
+        }
+        onEdit={(camp) => {
+          setIsViewOpen(false);
+          handleEditCampaign(camp);
+        }}
+        onDelete={handleDeleteCampaign}
+      />
+
+      {/* Campaign Add / Edit Drawer */}
+      <CampaignAdd
+        isOpen={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false);
+          setEditingUuid(null);
+          setEditingCampaign(undefined);
+        }}
+        onSubmit={handleSaveCampaign}
+        initialData={editingCampaign}
+        isLoading={isAddLoading}
+      />
     </div>
   );
 }

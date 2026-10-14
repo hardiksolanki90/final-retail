@@ -17,7 +17,10 @@ export interface Delivery {
   createdAt?: string;
   updatedAt?: string;
   order?: { id?: number; uuid?: string; orderNumber: string; totalAmount: number };
-  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string };
+  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string; name?: string };
+  /** List rows (GET …/list) also carry the document date and grand total. */
+  date?: string | null;
+  total?: number | null;
   driver?: { id?: number; uuid?: string; firstName: string; lastName: string };
   deliveryItems?: DeliveryItem[];
 }

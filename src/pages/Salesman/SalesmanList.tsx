@@ -328,14 +328,14 @@ export function SalesmanList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading salesman" columns={['check', 'text', 'text', 'text', 'text', 'text', 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading salesman" columns={['check', 'text', 'text', 'text', 'text', 'text', 'actions']} />
               ) : salesman.length === 0 ? (
                 <TableEmptyRow colSpan={7} label="No salesman found." />
               ) : (
                 salesman.map((salesman: any) => (
                   <tr
                     key={salesman?.uuid}
-                    onClick={() => navigate(`/salesman/view/${salesman?.uuid}`)}
+                    onClick={() => navigate(`/salesman/view/${salesman?.uuid}`, { state: { row: salesman } })}
                     className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
                   >
                     <td className="px-4 py-4 whitespace-nowrap">

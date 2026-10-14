@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCreditNotes } from '../../hooks/CreditNotes/useCreditNotes';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
 import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
+import { DocumentViewDrawer } from '../shared/DocumentViewDrawer';
+import { API_PAGE_SIZE } from '../shared/RecordView/RecordRail';
+import { useEntityDetail } from '../../hooks/useEntityDetail';
+import { getCreditNoteByUuid } from '../../api/CreditNoteApi';
+import { creditNoteSheet } from '../../utils/documentSheets';
+import { creditNoteRail } from '../../utils/documentRails';
 import { useMoney } from '../../hooks/Currency/useMoney';
 
 interface Column {
@@ -14,7 +20,11 @@ interface Column {
 }
 
 export function CreditNoteList() {
+  const navigate = useNavigate();
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  // The row whose details are open in the view drawer (its uuid), and that document's full record.
+  const [viewUuid, setViewUuid] = useState<string | null>(null);
+  const { data: viewed, isLoading: isViewing } = useEntityDetail('credit-note', getCreditNoteByUuid, viewUuid);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
@@ -183,7 +193,8 @@ export function CreditNoteList() {
                 onClick={() => setBulkActionOpen(!bulkActionOpen)}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
               >
-                Bulk Action<span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRows.length}</span>
+                Bulk Action
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded">{selectedRows.length}</span>
                 <ChevronDown className="w-4 h-4" />
               </button>
               {bulkActionOpen && (
@@ -372,11 +383,16 @@ export function CreditNoteList() {
                 <TableEmptyRow colSpan={visibleColumns.length + 1} label="No credit notes yet." />
               ) : (
                 currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                  <tr
+                    key={item.id}
+                    onClick={() => setViewUuid(item.id)}
+                    className={`cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
+                  >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(item.id)}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={() => handleSelectRow(item.id)}
                         className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
                       />
@@ -495,6 +511,18 @@ export function CreditNoteList() {
           </div>
         </div>
       )}
+
+      <DocumentViewDrawer
+        isOpen={viewUuid !== null}
+        onClose={() => setViewUuid(null)}
+        title="Credit note"
+        rail={{ ...creditNoteRail(formatCurrency, API_PAGE_SIZE), seed: !isLoading && currentPage === 1 && !search && creditNotes.length > 0 ? { items: creditNotes, hasMore: total > creditNotes.length } : null, selectedKey: viewUuid, onSelect: (row) => setViewUuid(row.uuid ?? null) }}
+        sheet={viewed && creditNoteSheet(viewed)}
+        isLoading={isViewing}
+        editPermission="credit-notes.edit"
+        onEdit={() => viewUuid && navigate(`/credit-note/edit/${viewUuid}`)}
+        number={creditNotes.find((r) => r.uuid === viewUuid)?.creditNoteNumber}
+      />
     </div>
   );
 }

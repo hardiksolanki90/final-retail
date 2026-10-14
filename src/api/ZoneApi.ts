@@ -29,3 +29,5 @@ export const deleteZone = async (uuid: string) => {
   await axiosInstance.post('/zone/delete', { id: uuid });
   showToast.success('Zone deleted successfully');
 };
+
+export const getZoneDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/zone/edit/${uuid}`)).data.data;

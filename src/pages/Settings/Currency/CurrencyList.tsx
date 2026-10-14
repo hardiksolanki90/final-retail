@@ -5,6 +5,8 @@ import { Pagination } from '../../../components/ui/Pagination';
 import { TableSkeletonRows, colsByKey } from '../../../components/ui/skeleton';
 import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { useCurrency } from '../../../providers/CurrencyProvider';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { currencyView } from '../settingViews';
 
 interface Column {
   key: string;
@@ -13,6 +15,7 @@ interface Column {
 }
 
 export function CurrencyList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const {
     data: currencies,
     meta,
@@ -278,15 +281,15 @@ export function CurrencyList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading currencies" columns={['check', ...colsByKey(visibleColumns), 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading currencies" columns={['check', ...colsByKey(visibleColumns), 'actions']} />
               ) : currencies.length === 0 ? (
                 <TableEmptyRow colSpan={visibleColumns.length + 2} label="No currencies found." />
               ) : (
                 currencies.map((item: any) => {
                   const id = item.uuid ?? String(item.id);
                   return (
-                    <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                      <td className="px-4 py-4 whitespace-nowrap">
+                    <tr key={id} onClick={() => setViewing(item)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedRowKeys.includes(id)}
@@ -299,7 +302,7 @@ export function CurrencyList() {
                           {getCellValue(item, col.key)}
                         </td>
                       ))}
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
@@ -327,8 +330,19 @@ export function CurrencyList() {
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
 
-      <CurrencyAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} data={{ initialData: editingItem }} onEvent={handleCurrencyEvent} />
+      <SettingViewDrawer
+        config={currencyView} pageSize={perPage} seed={meta && currentPage === 1 && !searchTerm ? { items: currencies, hasMore: totalPages > 1 } : null}
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        data={viewing}
+        onSelect={setViewing}
+        onEdit={() => {
+          if (viewing) handleEditClick(viewing);
+          setViewing(null);
+        }}
+      />
 
+      <CurrencyAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} data={{ initialData: editingItem }} onEvent={handleCurrencyEvent} />
       {exportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setExportModalOpen(false)} />

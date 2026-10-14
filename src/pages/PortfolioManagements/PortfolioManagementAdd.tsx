@@ -1,260 +1,638 @@
 import { useEffect, useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
-import { Select, type SelectOption } from '../../components/ui/Select';
+import { Select } from '../../components/ui/Select';
+import { MultiSelect } from '../../components/ui/MultiSelect';
+import { DatePicker } from '../../components/ui/DatePicker';
+import { format, parse, isValid } from 'date-fns';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
-import type { PortfolioManagementFormData } from '../../types/PortfolioManagement';
-import { X, Plus } from 'lucide-react';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
-import { useMoney } from '../../hooks/Currency/useMoney';
+import { FormSkeleton } from '../../components/ui/skeleton';
+import { getCustomerOptions } from '../../api/CustomerApi';
+import { getStockItemOptions } from '../../api/StockApi';
+import { useInfiniteSelect } from '../../hooks/useInfiniteSelect';
+import { usePortfolioManagement, usePortfolioManagementActions } from '../../hooks/PortfolioManagements/usePortfolioManagements';
+import { showToast } from '../../lib/toast';
+import type { CustomerSelectOption } from '../../types/Customer';
+import type { StockItemOption } from '../../types/Stock';
+import type { PortfolioManagementItem } from '../../types/PortfolioManagement';
 
-interface PortfolioManagementAddProps {
-    isOpen: boolean;
-    onClose: () => void;
-    data?: any;
-    onEvent?: (data: any) => void;
+function parseDateValue(value: string | undefined | null): Date | null {
+  if (!value) return null;
+  const raw = value.slice(0, 10);
+  const parsed = parse(raw, 'yyyy-MM-dd', new Date());
+  if (isValid(parsed)) return parsed;
+  const fallback = new Date(value);
+  return isValid(fallback) ? fallback : null;
 }
 
-export function PortfolioManagementAdd({ isOpen, onClose, data, onEvent }: PortfolioManagementAddProps) {
-    const { format } = useMoney();
-    const initialData = data?.initialData;
-    const isLoading = data?.isLoading || false;
-    const salesman = data?.salesman || [];
-    const customers = data?.customers || [];
-    const items = data?.items || [];
+interface PortfolioManagementAddProps {
+  isOpen?: boolean;
+  onClose: () => void;
+  editUuid?: string | null;
+}
 
-    const defaultValues: PortfolioManagementFormData = { salesmanId: '', customerId: '', portfolioName: '', targetRevenue: 0, startDate: '', endDate: '', items: [], notes: '', status: 'active' };
+export function PortfolioManagementAdd({ isOpen = true, onClose, editUuid }: PortfolioManagementAddProps) {
+  const isEdit = Boolean(editUuid);
+  const { data: existing, isLoading: isLoadingExisting } = usePortfolioManagement(isOpen ? (editUuid ?? null) : null);
+  const { create, update } = usePortfolioManagementActions();
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors, isSubmitting },
-        reset,
-        setValue,
-        watch,
-        setError,
-        clearErrors,
-        control,
-    } = useForm<PortfolioManagementFormData>({ defaultValues, mode: 'onBlur' });
+  // Header form states
+  const [code, setCode] = useState('');
+  const [codeLocked, setCodeLocked] = useState(false);
+  const [name, setName] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [status, setStatus] = useState(true);
+  const [customerIds, setCustomerIds] = useState<string[]>([]);
 
-    const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  // Items table state
+  const [items, setItems] = useState<PortfolioManagementItem[]>([]);
 
-    const [currentItem, setCurrentItem] = useState({ itemId: '', targetQuantity: 0, targetValue: 0 });
+  // Item entry box states ("Add Item" card)
+  const [selectedItemId, setSelectedItemId] = useState('');
+  const [selectedItemOption, setSelectedItemOption] = useState<StockItemOption | null>(null);
+  const [listingFees, setListingFees] = useState('');
+  const [storePrice, setStorePrice] = useState('');
+  const [customerItemCode, setCustomerItemCode] = useState('');
+  const [uomId, setUomId] = useState('');
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
-    const watchedItems = watch('items');
+  // Customer dropdown
+  const customerSelect = useInfiniteSelect({
+    fetchPage: async (page, search, perPage) => {
+      const res = await getCustomerOptions(page, search || undefined, perPage);
+      return { items: res.data, hasMore: res.meta.has_more_pages };
+    },
+    mapItemToOption: (c: CustomerSelectOption) => ({
+      value: String(c.value),
+      label: [c.code, c.label].filter(Boolean).join(' - '),
+    }),
+  });
 
-    useEffect(() => {
-        if (initialData && isOpen) {
-            reset(initialData);
-        } else if (isOpen && !initialData) {
-            reset(defaultValues);
+  // Item dropdown
+  const itemSelect = useInfiniteSelect({
+    fetchPage: async (page, search) => {
+      const res = await getStockItemOptions(page, search || undefined);
+      return { items: res.data, hasMore: res.meta.has_more_pages };
+    },
+    mapItemToOption: (opt: StockItemOption) => opt,
+  });
+
+  // Pre-fill existing record when editing
+  useEffect(() => {
+    if (existing) {
+      setCode(existing.code || '');
+      setName(existing.name || '');
+      setStartDate(existing.startDate || '');
+      setEndDate(existing.endDate || '');
+      setStatus(existing.status ?? true);
+
+      const ids: string[] = [];
+      if (existing.customers && existing.customers.length > 0) {
+        existing.customers.forEach((cust) => {
+          const val = String(cust.customerId || cust.userId);
+          if (val) {
+            ids.push(val);
+            const label = [cust.customerCode, cust.customerName].filter(Boolean).join(' - ') || val;
+            customerSelect.addOption({ value: val, label });
+          }
+        });
+      } else if (existing.customerId) {
+        const val = String(existing.customerId);
+        ids.push(val);
+        const label = [existing.customerCode, existing.customerName].filter(Boolean).join(' - ') || val;
+        customerSelect.addOption({ value: val, label });
+      }
+      setCustomerIds(ids);
+
+      setItems(existing.items || []);
+    } else if (!isEdit) {
+      setCode('');
+      setName('');
+      setStartDate('');
+      setEndDate('');
+      setStatus(true);
+      setCustomerIds([]);
+      setItems([]);
+      resetItemForm();
+    }
+  }, [existing, isEdit]);
+
+  const resetItemForm = () => {
+    setSelectedItemId('');
+    setSelectedItemOption(null);
+    setListingFees('');
+    setStorePrice('');
+    setCustomerItemCode('');
+    setUomId('');
+    setEditingItemIndex(null);
+  };
+
+  // Handle item pick in "Select Item" box
+  const handleItemSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedItemId(val);
+    const opt = (itemSelect.options as StockItemOption[]).find((o) => String(o.value) === String(val)) ?? null;
+    setSelectedItemOption(opt);
+    if (opt?.uoms && opt.uoms.length > 0) {
+      const base = opt.uoms.find((u) => u.isBase) ?? opt.uoms[0];
+      setUomId(String(base.value));
+    } else {
+      setUomId('');
+    }
+  };
+
+  // Add / Update item row
+  const handleAddOrUpdateItem = () => {
+    if (!selectedItemId) {
+      showToast.error('Please select an item');
+      return;
+    }
+    if (!storePrice || Number(storePrice) < 0) {
+      showToast.error('Please enter a valid store price');
+      return;
+    }
+
+    const numericItemId = Number(selectedItemId);
+    const existingIndex = items.findIndex((it) => it.itemId === numericItemId);
+
+    if (editingItemIndex === null && existingIndex !== -1) {
+      showToast.error('This item is already added to the portfolio');
+      return;
+    }
+
+    let itemCode = selectedItemOption?.label?.split(' - ')[0] || '';
+    let itemName = selectedItemOption?.label?.split(' - ').slice(1).join(' - ') || selectedItemOption?.label || '';
+
+    // If editing existing item where option might not have been re-selected
+    if (!itemName && editingItemIndex !== null && items[editingItemIndex]) {
+      itemCode = items[editingItemIndex].itemCode || itemCode;
+      itemName = items[editingItemIndex].itemName || itemName;
+    }
+
+    const selectedUom = selectedItemOption?.uoms?.find((u) => String(u.value) === String(uomId));
+
+    const newItem: PortfolioManagementItem = {
+      itemId: numericItemId,
+      itemCode,
+      itemName,
+      storePrice: Number(storePrice),
+      listingFees: listingFees ? Number(listingFees) : 0,
+      customerItemCode: customerItemCode.trim() || null,
+      uomId: uomId ? Number(uomId) : null,
+      uomName: selectedUom?.label || (editingItemIndex !== null ? items[editingItemIndex]?.uomName : null) || null,
+    };
+
+    if (editingItemIndex !== null) {
+      const updated = [...items];
+      updated[editingItemIndex] = newItem;
+      setItems(updated);
+    } else {
+      setItems((prev) => [...prev, newItem]);
+    }
+
+    resetItemForm();
+  };
+
+  // Load item into form for editing
+  const handleEditItemRow = (index: number) => {
+    const item = items[index];
+    setEditingItemIndex(index);
+    setSelectedItemId(String(item.itemId));
+    const opt = (itemSelect.options as StockItemOption[]).find((o) => String(o.value) === String(item.itemId)) ?? null;
+    setSelectedItemOption(opt);
+    setStorePrice(String(item.storePrice));
+    setListingFees(item.listingFees != null ? String(item.listingFees) : '');
+    setCustomerItemCode(item.customerItemCode || '');
+    setUomId(item.uomId ? String(item.uomId) : '');
+  };
+
+  // Remove item row
+  const handleRemoveItemRow = (index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+    if (editingItemIndex === index) {
+      resetItemForm();
+    }
+  };
+
+  // Save Portfolio
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      showToast.error('Please enter portfolio name');
+      return;
+    }
+    if (!startDate) {
+      showToast.error('Please select Valid From date');
+      return;
+    }
+    if (!endDate) {
+      showToast.error('Please select Valid To date');
+      return;
+    }
+    if (new Date(endDate) < new Date(startDate)) {
+      showToast.error('Valid To date must be on or after Valid From date');
+      return;
+    }
+    if (customerIds.length === 0) {
+      showToast.error('Please select at least one customer');
+      return;
+    }
+
+    const payload = {
+      code: code.trim() || undefined,
+      name: name.trim(),
+      startDate,
+      endDate,
+      status,
+      customerId: customerIds[0] ?? null,
+      customers: customerIds.map((id) => ({ customerId: id })),
+      items: items.map((it) => ({
+        itemId: it.itemId,
+        storePrice: it.storePrice,
+        listingFees: it.listingFees,
+        customerItemCode: it.customerItemCode,
+        uomId: it.uomId,
+      })),
+    };
+
+    if (isEdit && editUuid) {
+      update.mutate(
+        { uuid: editUuid, payload },
+        {
+          onSuccess: () => onClose(),
         }
-    }, [initialData, isOpen, reset]);
+      );
+    } else {
+      create.mutate(payload, {
+        onSuccess: () => onClose(),
+      });
+    }
+  };
 
-    const handleSelectChange = (field: keyof PortfolioManagementFormData, value: string) => {
-        setValue(field, value);
-        clearErrors(field);
-    };
+  const isSaving = create.isPending || update.isPending;
 
-    const handleAddItem = () => {
-        if (!currentItem.itemId || currentItem.targetQuantity <= 0 || currentItem.targetValue <= 0) {
-            return;
-        }
+  // UOM Options for the Item Picker
+  const uomOptions =
+    selectedItemOption?.uoms && selectedItemOption.uoms.length > 0
+      ? selectedItemOption.uoms
+      : uomId
+        ? [{ value: uomId, label: items[editingItemIndex ?? -1]?.uomName || 'Selected UOM' }]
+        : [];
 
-        append({ ...currentItem });
-        setCurrentItem({ itemId: '', targetQuantity: 0, targetValue: 0 });
-        clearErrors('items');
-    };
+  const footer = (
+    <div className="flex items-center justify-between gap-3">
+      {/* Status Switch (Footer Left) */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-[var(--text-secondary)]">Status:</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={status}
+          aria-label="Status"
+          onClick={() => setStatus((prev) => !prev)}
+          className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${status ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${status ? 'translate-x-6' : 'translate-x-1'
+              }`}
+          />
+        </button>
+        <span
+          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${status
+            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+            }`}
+        >
+          {status ? 'Active' : 'Inactive'}
+        </span>
+      </div>
 
-    const handleRemoveItem = (index: number) => {
-        remove(index);
-        clearErrors('items');
-    };
+      {/* Buttons (Footer Right) */}
+      <div className="flex items-center gap-3">
+        <CancelButton onClick={onClose} disabled={isSaving}>
+          Cancel
+        </CancelButton>
+        <SaveButton type="submit" form="portfolio-form" disabled={isSaving}>
+          {isSaving ? 'Saving…' : isEdit ? 'Update Portfolio' : 'Save Portfolio'}
+        </SaveButton>
+      </div>
+    </div>
+  );
 
-    const onFormSubmit = async (data: PortfolioManagementFormData) => {
-        try {
-            // Validate that at least one item is added
-            if (!data.items || data.items.length === 0) {
-                setError('items', { type: 'required', message: 'At least one item is required' });
-                return;
-            }
+  return (
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? 'Edit Portfolio' : 'Add Portfolio'}
+      width="w-[740px] max-w-full"
+      footer={footer}
+      isLoading={isEdit && isLoadingExisting}
+      skeleton={<FormSkeleton fields={['code', 'input', ['input', 'input'], 'select', 'section', 'input']} />}
+    >
+      <form id="portfolio-form" onSubmit={handleSubmit} className="space-y-6 p-6">
+        {/* Section 1: Portfolio Information */}
+        <div className="space-y-4">
+          <div className="border-b border-[var(--border-color)] pb-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+              General Information
+            </h3>
+          </div>
 
-            onEvent?.({ eventType: initialData ? 'PortfolioManagementUpdated' : 'PortfolioManagementCreated', portfolioManagement: data });
-        } catch (error: any) {
-            console.error('Error saving portfolio management:', error);
-            if (error.response?.data?.errors) {
-                Object.entries(error.response.data.errors).forEach(([field, message]) => {
-                    setError(field as keyof PortfolioManagementFormData, { type: 'server', message: Array.isArray(message) ? message[0] : message });
-                });
-            }
-        }
-    };
+          {/* Portfolio Code */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+              Portfolio Code
+            </label>
+            <div className="relative flex items-center gap-2">
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                disabled={codeLocked}
+                placeholder="Auto-generated if left blank"
+                className="block w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+              />
+              <OrderCodeSettingsIcon
+                label="Portfolio Code"
+                value={code}
+                onChange={setCode}
+                entityKey="portfolio_management"
+                onLockChange={setCodeLocked}
+              />
+            </div>
+          </div>
 
-    const statusOptions: SelectOption[] = [
-        { value: 'active', label: 'Active' },
-        { value: 'inactive', label: 'Inactive' },
-        { value: 'completed', label: 'Completed' },
-    ];
+          {/* Portfolio Name */}
+          <Input
+            label="Portfolio Name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Modern Trade Key Accounts"
+          />
 
-    return (
-        <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Portfolio Management' : 'Add Portfolio Management'} width="w-[700px]">
-            <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-                <div>
-                    <div className="flex items-center justify-between mb-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Portfolio Name</label>
-                        <OrderCodeSettingsIcon label="Portfolio Name" value="" onChange={() => {}} />
-                    </div>
-                    <Input
-                        label="Portfolio Name"
-                        {...register('portfolioName', { required: 'Portfolio Name is required', validate: (value) => value?.trim() || 'Portfolio Name is required' })}
-                        error={errors.portfolioName?.message}
-                        placeholder="Enter portfolio name"
-                        required
-                    />
-                </div>
+          {/* Validity Dates */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <DatePicker
+              label="Valid From"
+              required
+              selected={parseDateValue(startDate)}
+              onChange={(date) => {
+                const nextStart = date ? format(date, 'yyyy-MM-dd') : '';
+                setStartDate(nextStart);
+                if (nextStart && endDate && nextStart > endDate) {
+                  setEndDate('');
+                }
+              }}
+              placeholderText="Select start date"
+              dateFormat="MMM d, yyyy"
+            />
+            <DatePicker
+              label="Valid To"
+              required
+              selected={parseDateValue(endDate)}
+              onChange={(date) => setEndDate(date ? format(date, 'yyyy-MM-dd') : '')}
+              placeholderText="Select end date"
+              dateFormat="MMM d, yyyy"
+              minDate={parseDateValue(startDate) ?? undefined}
+            />
+          </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <Select
-                        label="Salesman"
-                        {...register('salesmanId', { required: 'Salesman is required' })}
-                        onChange={(e) => handleSelectChange('salesmanId', e.target.value)}
-                        options={salesman}
-                        placeholder="Select salesman"
-                        error={errors.salesmanId?.message}
-                        required
-                    />
-                    <Select
-                        label="Customer"
-                        {...register('customerId', { required: 'Customer is required' })}
-                        onChange={(e) => handleSelectChange('customerId', e.target.value)}
-                        options={customers}
-                        placeholder="Select customer"
-                        error={errors.customerId?.message}
-                        required
-                    />
-                </div>
+          {/* Customer Selection */}
+          <MultiSelect
+            label="Customers"
+            required
+            value={customerIds}
+            onChange={setCustomerIds}
+            options={customerSelect.options}
+            isLoading={customerSelect.isLoading}
+            isLoadingMore={customerSelect.isLoadingMore}
+            isLoadingAll={customerSelect.isLoadingAll}
+            hasMore={customerSelect.hasMore}
+            onLoadMore={customerSelect.onLoadMore}
+            onSearchChange={customerSelect.onSearchChange}
+            onLoadAll={customerSelect.loadAll}
+            placeholder="Select customers"
+            searchable
+            searchPlaceholder="Search customer by name or code…"
+          />
+        </div>
 
-                <Input
-                    label="Target Revenue"
-                    type="number"
-                    {...register('targetRevenue', { required: 'Target Revenue is required', valueAsNumber: true, min: { value: 0, message: 'Target revenue must be 0 or greater' } })}
-                    placeholder="Enter target revenue"
-                    min="0"
-                    step="0.01"
-                    error={errors.targetRevenue?.message}
-                    required
-                />
+        {/* Section 2: Item Entry Card */}
+        <div className="space-y-4">
+          <div className="border-b border-[var(--border-color)] pb-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+              Product Pricing & Items
+            </h3>
+          </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <Input label="Start Date" type="date" {...register('startDate', { required: 'Start Date is required' })} error={errors.startDate?.message} required />
-                    <Input label="End Date" type="date" {...register('endDate', { required: 'End Date is required' })} error={errors.endDate?.message} required />
-                </div>
+          {/* Item Picker Card */}
+          <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/40 p-4 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 text-xs font-bold">
+                  {editingItemIndex !== null ? '✎' : '+'}
+                </span>
+                <span className="text-sm font-bold text-[var(--text-primary)]">
+                  {editingItemIndex !== null ? `Edit Item #${editingItemIndex + 1}` : 'Add Item to Portfolio'}
+                </span>
+              </div>
+              {editingItemIndex !== null && (
+                <button
+                  type="button"
+                  onClick={resetItemForm}
+                  className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Cancel Edit
+                </button>
+              )}
+            </div>
 
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[var(--text-secondary)]">Items {errors.items && <span className="text-red-500 ml-1">*</span>}</label>
+            {/* Item Dropdown */}
+            <div>
+              <Select
+                label="Stock Item"
+                value={selectedItemId}
+                onChange={handleItemSelect}
+                options={itemSelect.options}
+                isLoading={itemSelect.isLoading}
+                isLoadingMore={itemSelect.isLoadingMore}
+                hasMore={itemSelect.hasMore}
+                onLoadMore={itemSelect.onLoadMore}
+                onSearchChange={itemSelect.onSearchChange}
+                placeholder="Search and select item…"
+                searchPlaceholder="Type item code or name…"
+              />
+            </div>
 
-                    <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-6">
-                            <Select
-                                value={currentItem.itemId}
-                                onChange={(e) => setCurrentItem((prev) => ({ ...prev, itemId: e.target.value }))}
-                                options={items.filter((item: any) => !watchedItems?.some((i: any) => i.itemId === item.value))}
-                                placeholder="Select item"
-                            />
-                        </div>
-                        <div className="col-span-2">
-                            <Input
-                                type="number"
-                                value={currentItem.targetQuantity.toString()}
-                                onChange={(e) => setCurrentItem((prev) => ({ ...prev, targetQuantity: parseFloat(e.target.value) || 0 }))}
-                                placeholder="Qty"
-                                min="0"
-                            />
-                        </div>
-                        <div className="col-span-3">
-                            <Input
-                                type="number"
-                                value={currentItem.targetValue.toString()}
-                                onChange={(e) => setCurrentItem((prev) => ({ ...prev, targetValue: parseFloat(e.target.value) || 0 }))}
-                                placeholder="Value"
-                                min="0"
-                                step="0.01"
-                            />
-                        </div>
-                        <div className="col-span-1">
-                            <button
-                                type="button"
-                                onClick={handleAddItem}
-                                className="w-full cursor-pointer h-full px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                            >
-                                <Plus className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
+            {/* Inputs Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <Input
+                label="Store Price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={storePrice}
+                onChange={(e) => setStorePrice(e.target.value)}
+                placeholder="0.00"
+              />
+              <Input
+                label="Listing Fees"
+                type="number"
+                step="0.01"
+                min="0"
+                value={listingFees}
+                onChange={(e) => setListingFees(e.target.value)}
+                placeholder="0.00"
+              />
+              <Input
+                label="Customer Item Code"
+                value={customerItemCode}
+                onChange={(e) => setCustomerItemCode(e.target.value)}
+                placeholder="SKU / Barcode"
+              />
+              <Select
+                label="UOM"
+                value={uomId}
+                onChange={(e) => setUomId(e.target.value)}
+                options={uomOptions}
+                placeholder="Select UOM"
+                searchPlaceholder="Search UOM…"
+              />
+            </div>
 
-                    {errors.items && <p className="text-sm text-red-500">{errors.items?.message}</p>}
-
-                    {fields.length > 0 && (
-                        <div className="mt-3 border border-[var(--border-color)] rounded-lg overflow-hidden">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
-                                        <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Item</th>
-                                        <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Target Quantity</th>
-                                        <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Target Value</th>
-                                        <th className="px-3 py-2 w-12"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[var(--border-color)]">
-                                    {fields.map((field, index) => {
-                                        const itemOption = items.find((i: any) => i.value === field.itemId);
-                                        return (
-                                            <tr key={field.id} className="bg-[var(--bg-card)]">
-                                                <td className="px-3 py-2 text-sm text-[var(--text-primary)]">{itemOption?.label || field.itemId}</td>
-                                                <td className="px-3 py-2 text-sm text-[var(--text-primary)]">{field.targetQuantity}</td>
-                                                <td className="px-3 py-2 text-sm text-[var(--text-primary)]">{format(field.targetValue)}</td>
-                                                <td className="px-3 py-2">
-                                                    <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 transition-colors">
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-
-                <Input label="Notes" {...register('notes')} placeholder="Enter notes" error={errors.notes?.message} />
-
-                <Select
-                    label="Status"
-                    {...register('status', { required: 'Status is required' })}
-                    onChange={(e) => handleSelectChange('status', e.target.value)}
-                    options={statusOptions}
-                    placeholder="Select status"
-                    error={errors.status?.message}
-                    required
-                />
-
-                {errors.root && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-600">{errors.root.message}</p>
-                    </div>
+            {/* Add / Update Item Button */}
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={handleAddOrUpdateItem}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs transition-colors cursor-pointer"
+              >
+                {editingItemIndex !== null ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Update Item
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Add Item
+                  </>
                 )}
+              </button>
+            </div>
+          </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <CancelButton onClick={onClose} disabled={isSubmitting}>
-                        Cancel
-                    </CancelButton>
-                    <SaveButton type="submit" disabled={isSubmitting || isLoading}>
-                        {isSubmitting || isLoading ? 'Saving...' : initialData ? 'Update' : 'Save'}
-                    </SaveButton>
-                </div>
-            </form>
-        </Drawer>
-    );
+          {/* Section 3: Added Items Table - Only visible once at least one item is added */}
+          {items.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-[var(--text-primary)]">
+                  Items in Portfolio{' '}
+                  <span className="ml-1 text-xs font-normal text-[var(--text-muted)]">
+                    ({items.length} {items.length === 1 ? 'item' : 'items'})
+                  </span>
+                </h4>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-[var(--border-color)] shadow-xs">
+                <table className="min-w-full divide-y divide-[var(--border-color)] text-xs">
+                  <thead className="bg-[var(--bg-secondary)]/80">
+                    <tr>
+                      <th className="px-3 py-2.5 text-left font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        Item
+                      </th>
+                      <th className="px-3 py-2.5 text-right font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        Store Price
+                      </th>
+                      <th className="px-3 py-2.5 text-right font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        Listing Fees
+                      </th>
+                      <th className="px-3 py-2.5 text-left font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        Customer Code
+                      </th>
+                      <th className="px-3 py-2.5 text-center font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        UOM
+                      </th>
+                      <th className="px-3 py-2.5 text-center font-bold text-[var(--text-muted)] uppercase tracking-wider w-20">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-color)] bg-[var(--bg-card)]">
+                    {items.map((item, idx) => (
+                      <tr
+                        key={idx}
+                        className={`transition-colors hover:bg-[var(--bg-secondary)]/40 ${editingItemIndex === idx ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''
+                          }`}
+                      >
+                        <td className="px-3 py-2.5">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-[var(--text-primary)]">
+                              {item.itemName || 'Unnamed Item'}
+                            </span>
+                            {item.itemCode && (
+                              <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                                {item.itemCode}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono font-semibold text-[var(--text-primary)]">
+                          {Number(item.storePrice).toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-[var(--text-secondary)]">
+                          {item.listingFees != null && Number(item.listingFees) > 0
+                            ? Number(item.listingFees).toFixed(2)
+                            : '—'}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-[var(--text-secondary)]">
+                          {item.customerItemCode || '—'}
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          {item.uomName ? (
+                            <span className="inline-block rounded-md bg-[var(--bg-secondary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]">
+                              {item.uomName}
+                            </span>
+                          ) : (
+                            <span className="text-[var(--text-muted)]">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleEditItemRow(idx)}
+                              className="p-1.5 text-[var(--text-muted)] hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-md transition-colors cursor-pointer"
+                              title="Edit item"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItemRow(idx)}
+                              className="p-1.5 text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md transition-colors cursor-pointer"
+                              title="Remove item"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </form>
+    </Drawer>
+  );
 }

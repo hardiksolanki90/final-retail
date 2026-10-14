@@ -25,8 +25,6 @@ export function OverviewTab({ register, errors, watch, setValue, control }: Prop
     <div className="space-y-8">
       {/* Identity */}
       <div className="space-y-4">
-        <SectionLabel title="Journey Identity" />
-
         <Input label="Journey Name" required {...register('journeyName', { required: 'Journey Name is required' })} error={errors.journeyName?.message} />
 
         <div>
@@ -37,7 +35,6 @@ export function OverviewTab({ register, errors, watch, setValue, control }: Prop
 
       {/* Duration */}
       <div className="space-y-4">
-        <SectionLabel title="Schedule Window" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Controller

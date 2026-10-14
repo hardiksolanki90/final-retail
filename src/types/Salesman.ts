@@ -109,6 +109,8 @@ export interface SalesmanSelectOption {
   id: number;
   uuid: string;
   userId: number;
+  /** The salesman's user uuid — what documents reference (documents store the user, not the salesman profile). */
+  userUuid?: string;
   salesmanCode?: string;
   name: string;
 }

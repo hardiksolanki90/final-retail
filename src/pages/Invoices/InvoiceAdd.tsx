@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
 import { FileText } from 'lucide-react';
 import type { SelectOption } from '../../components/ui/Select';
@@ -28,21 +28,30 @@ import {
 import { documentTypeId } from '../../constants/documentTypes';
 import { lineCols } from '../shared/DocumentForm/lineCols';
 import { LineItemSelect } from '../shared/DocumentForm/LineItemSelect';
+import { LineAvailability } from '../shared/DocumentForm/LineAvailability';
 import { useKnownItems } from '../../hooks/useKnownItems';
 import { PdpDiscountCell, PdpPriceCell } from '../shared/DocumentForm/PdpLineCells';
 import { usePdpLinePreview } from '../../hooks/usePdpLinePreview';
-import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
-import { useCreateDocument, useDocumentFormOptions } from '../../hooks/useDocumentForm';
+import { useDocumentNumber } from '../../hooks/CodeSetting/useDocumentNumber';
+import { useCreateDocument, useDocumentFormOptions, useUpdateDocument } from '../../hooks/useDocumentForm';
 import { useMoney } from '../../hooks/Currency/useMoney';
 import { computeLine, sumLines } from '../../utils/documentMath';
 import { useLineTaxRates } from '../../hooks/Tax/useLineTaxRates';
+import { useDocumentEditing } from '../../hooks/useDocumentEditing';
+import { usePresetCustomer } from '../../hooks/usePresetCustomer';
+import { documentTypeLabel } from '../../constants/documentTypes';
+import { ensureOption, toFormLine } from '../../utils/documentEdit';
+import { DocumentEditSkeleton } from '../shared/DocumentForm/EditSkeleton';
+import { getInvoiceDetails } from '../../api/InvoiceApi';
+import type { InvoiceView } from '../../types/DocumentView';
 
-type InvoiceItem = { id: string; itemId: string; uom: string; quantity: number; price: number; excise: number; discount: number; vat: number; net: number; total: number };
+type InvoiceItem = { id: string; uuid?: string; itemId: string; uom: string; quantity: number; price: number; excise: number; discount: number; vat: number; net: number; total: number };
 
 type InvoiceFormFields = {
   invoiceType: string;
   customerId: string;
   salesmanId: string;
+  warehouse: string;
   invoiceNumber: string;
   invoiceDate: string;
   paymentTerms: string;
@@ -63,6 +72,7 @@ const defaultValues: InvoiceFormFields = {
   invoiceType: 'Credit',
   customerId: '',
   salesmanId: '',
+  warehouse: '',
   invoiceNumber: '',
   invoiceDate: new Date().toISOString().split('T')[0],
   paymentTerms: '',
@@ -78,13 +88,54 @@ const defaultValues: InvoiceFormFields = {
 };
 
 export function InvoiceAdd() {
-  const { customers, salesmen: salesman, paymentTerms } = useDocumentFormOptions();
+  const { customers, salesmen: salesman, paymentTerms, warehouses } = useDocumentFormOptions();
   const { known: knownItems, remember: rememberItems } = useKnownItems();
   const createInvoice = useCreateDocument('invoice', 'Invoice');
   const navigate = useNavigate();
-  const [codeLocked, setCodeLocked] = useState(false);
+  const { uuid } = useParams<{ uuid: string }>();
+  const isEdit = Boolean(uuid);
+  const preset = usePresetCustomer(isEdit);
 
-  const { control, register, handleSubmit, setValue, getValues, watch } = useForm<InvoiceFormFields>({ defaultValues });
+  const { control, register, handleSubmit, setValue, getValues, watch, reset, formState } = useForm<InvoiceFormFields>({
+    defaultValues: preset ? { ...defaultValues, customerId: preset.id } : defaultValues,
+  });
+  const { manual: manualNumbering, locked: codeLocked, reserve: reserveNumber } = useDocumentNumber('invoice', (value) => setValue('invoiceNumber', value), !isEdit);
+
+  const { isLoading: loadingSaved, saved } = useDocumentEditing<InvoiceView, InvoiceFormFields>({
+    label: 'invoice',
+    uuid,
+    fetcher: getInvoiceDetails,
+    toForm: (saved) => ({
+      invoiceType: documentTypeLabel(saved.orderTypeId) ?? 'Credit',
+      customerId: saved.customerId ?? '',
+      salesmanId: saved.salesmanId ?? '',
+      warehouse: saved.warehouseId ?? '',
+      invoiceNumber: saved.invoiceNumber,
+      invoiceDate: saved.invoiceDate ?? '',
+      paymentTerms: saved.paymentTermId ?? '',
+      dueDate: saved.dueDate ?? '',
+      customerNote: saved.notes ?? '',
+      items: saved.items.map(toFormLine),
+      totalGross: saved.totalGross,
+      discount: saved.totalDiscountAmount,
+      netTotal: saved.totalNet,
+      excise: saved.totalExcise,
+      vat: saved.totalVat,
+      finalTotal: saved.grandTotal,
+    }),
+    reset,
+    remember: rememberItems,
+    listPath: '/invoice',
+  });
+  const updateDoc = useUpdateDocument('invoice', 'Invoice');
+  const customersWithSaved = ensureOption(
+    customers,
+    saved?.customerId ?? preset?.id,
+    saved ? (saved.customerCode && saved.customerName ? `${saved.customerCode} - ${saved.customerName}` : saved.customerName) : preset?.label
+  );
+  const salesmanWithSaved = ensureOption(salesman, saved?.salesmanId, saved?.salesmanName);
+  const warehousesWithSaved = ensureOption(warehouses, saved?.warehouseId, saved?.warehouseName);
+  const paymentTermsWithSaved = ensureOption(paymentTerms, saved?.paymentTermId, saved?.paymentTermName);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchedItems = useWatch({ control, name: 'items' });
@@ -103,7 +154,7 @@ export function InvoiceAdd() {
   ];
 
   const customerId = useWatch({ control, name: 'customerId' });
-  const resolutions = usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
+  usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
 
   const { digits } = useMoney();
   const taxRates = useLineTaxRates(
@@ -137,15 +188,12 @@ export function InvoiceAdd() {
 
   const onSubmit = async (formData: InvoiceFormFields) => {
     try {
-      const invoiceNumber = await reserveCodeIfAuto('invoice', formData.invoiceNumber);
-      if (invoiceNumber !== formData.invoiceNumber) {
-        setValue('invoiceNumber', invoiceNumber ?? '');
-        setCodeLocked(true);
-      }
+      const invoiceNumber = isEdit ? formData.invoiceNumber : await reserveNumber(formData.invoiceNumber);
 
-      await createInvoice.mutateAsync({
+      const payload = {
         customerId: formData.customerId,
         salesmanId: formData.salesmanId || undefined,
+        warehouseId: formData.warehouse || undefined,
         orderTypeId: documentTypeId(formData.invoiceType),
         paymentTermId: formData.paymentTerms || undefined,
         invoiceNumber: invoiceNumber || undefined,
@@ -154,8 +202,17 @@ export function InvoiceAdd() {
         notes: formData.customerNote || undefined,
         items: formData.items
           .filter((item) => item.itemId)
-          .map((item) => ({ itemId: item.itemId, itemUomId: item.uom || undefined, quantity: Number(item.quantity) || 0, price: Number(item.price) || 0, discount: Number(item.discount) || 0 })),
-      });
+          .map((item) => ({
+            uuid: item.uuid,
+            itemId: item.itemId,
+            itemUomId: item.uom || undefined,
+            quantity: Number(item.quantity) || 0,
+            price: Number(item.price) || 0,
+            discount: Number(item.discount) || 0,
+          })),
+      };
+      if (isEdit && uuid) await updateDoc.mutateAsync({ uuid, payload: { ...payload, invoiceNumber: undefined } });
+      else await createInvoice.mutateAsync(payload);
       navigate('/invoice');
     } catch {
       // toast already shown by useCreateDocument's onError
@@ -165,89 +222,106 @@ export function InvoiceAdd() {
   const cols = lineCols({ reason: false, excise: taxRates.hasExcise });
 
   return (
-    <DocumentShell icon={FileText} eyebrow="Field Sales · New" title="Add Invoice" onBack={() => navigate('/invoice')} onSubmit={handleSubmit(onSubmit)}>
-      <DocSection index={1} title="Invoice Type" aside={<TypeSwitch label="Invoice Type" options={invoiceTypes} registration={register('invoiceType', { required: true })} />} />
+    <DocumentShell
+      icon={FileText}
+      eyebrow={isEdit ? 'Field Sales · Edit' : 'Field Sales · New'}
+      title={isEdit ? 'Edit Invoice' : 'Add Invoice'}
+      onBack={() => navigate('/invoice')}
+      onSubmit={handleSubmit(onSubmit)}
+    >
+      {loadingSaved ? (
+        <DocumentEditSkeleton />
+      ) : (
+        <>
+          <DocSection index={1} title="Invoice Type" aside={<TypeSwitch label="Invoice Type" options={invoiceTypes} registration={register('invoiceType', { required: true })} />} />
 
-      <SectionPair>
-        <DocSection index={2} title="Customer">
-          <div className={fieldGridCls}>
-            <ControlledSelect control={control} name="customerId" rules={{ required: 'Customer is required' }} label="Customer" options={customers} placeholder="Select Customer" />
-            <ControlledSelect control={control} name="salesmanId" rules={{ required: true }} label="Salesman" options={salesman} placeholder="Select Salesman" />
-          </div>
-        </DocSection>
+          <SectionPair>
+            <DocSection index={2} title="Customer">
+              <div className={fieldGridCls}>
+                <ControlledSelect control={control} name="customerId" rules={{ required: 'Customer is required' }} label="Customer" options={customersWithSaved} placeholder="Select Customer" />
+                <ControlledSelect control={control} name="salesmanId" rules={{ required: true }} label="Salesman" options={salesmanWithSaved} placeholder="Select Salesman" />
+                <ControlledSelect control={control} name="warehouse" label="Warehouse (stock is taken from here)" options={warehousesWithSaved} placeholder="None — stock is not tracked" />
+              </div>
+            </DocSection>
 
-        <DocSection index={3} title="Document">
-          <div className={fieldGridCls}>
-            <CodeField
-              label="Invoice Number"
-              registration={register('invoiceNumber')}
-              disabled={codeLocked}
-              action={
-                <OrderCodeSettingsIcon label="Invoice Number" entityKey="invoice" value={watch('invoiceNumber') || ''} onChange={(v) => setValue('invoiceNumber', v)} onLockChange={setCodeLocked} />
-              }
+            <DocSection index={3} title="Document">
+              <div className={fieldGridCls}>
+                <CodeField
+                  label="Invoice Number"
+                  registration={register('invoiceNumber', { validate: (value) => !manualNumbering || Boolean(value) || 'Invoice Number is required' })}
+                  required={manualNumbering}
+                  error={formState.errors.invoiceNumber?.message}
+                  disabled={codeLocked || isEdit}
+                  action={isEdit ? null : <OrderCodeSettingsIcon label="Invoice Number" entityKey="invoice" value={watch('invoiceNumber') || ''} onChange={(v) => setValue('invoiceNumber', v)} />}
+                />
+                <ControlledSelect control={control} name="paymentTerms" rules={{ required: true }} label="Payment Terms" options={paymentTermsWithSaved} placeholder="Select Payment Terms" />
+                <ControlledDate control={control} name="invoiceDate" rules={{ required: true }} label="Invoice Date" />
+                <ControlledDate control={control} name="dueDate" rules={{ required: true }} label="Due Date" />
+              </div>
+            </DocSection>
+          </SectionPair>
+
+          <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
+
+          <DocSection index={4} title="Items" flush>
+            <LineHeader
+              cols={cols}
+              labels={['Item', 'UOM', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']}
+              numericLabels={[taxRates.taxCode]}
             />
-            <ControlledSelect control={control} name="paymentTerms" rules={{ required: true }} label="Payment Terms" options={paymentTerms} placeholder="Select Payment Terms" />
-            <ControlledDate control={control} name="invoiceDate" rules={{ required: true }} label="Invoice Date" />
-            <ControlledDate control={control} name="dueDate" rules={{ required: true }} label="Due Date" />
-          </div>
-        </DocSection>
-      </SectionPair>
+            {fields.map((field, index) => (
+              <LineStrip key={field.id} index={index} cols={cols} onRemove={() => fields.length > 1 && remove(index)} canRemove={fields.length > 1} below={<LineAvailability warehouse={watch('warehouse')} item={watchedItems?.[index]?.itemId} uom={watchedItems?.[index]?.uom} quantity={Number(watchedItems?.[index]?.quantity)} />}>
+                <LineCell label="Item" className={wideCellCls}>
+                  <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} known={knownItems} disabled={!customerId} />
+                </LineCell>
+                <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
+                <LineCell label="Qty">
+                  <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
+                </LineCell>
+                <PdpPriceCell aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
+                <PdpDiscountCell aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
+                <LineCell label="Net">
+                  <LineFigure value={Number(watchedItems?.[index]?.net) || 0} />
+                </LineCell>
+                {taxRates.hasExcise && (
+                  <LineCell label="Excise">
+                    <LineFigure value={Number(watchedItems?.[index]?.excise) || 0} />
+                  </LineCell>
+                )}
+                <LineCell label={taxRates.taxCode}>
+                  <LineFigure value={Number(watchedItems?.[index]?.vat) || 0} />
+                </LineCell>
+                <LineCell label="Total">
+                  <LineFigure value={Number(watchedItems?.[index]?.total) || 0} strong />
+                </LineCell>
+              </LineStrip>
+            ))}
+            <AddLineButton onClick={() => append({ ...emptyItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
+          </DocSection>
 
-      <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
-
-      <DocSection index={4} title="Items" flush>
-        <LineHeader cols={cols} labels={['Item', 'UOM', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']} numericLabels={[taxRates.taxCode]} />
-        {fields.map((field, index) => (
-          <LineStrip key={field.id} index={index} cols={cols} onRemove={() => fields.length > 1 && remove(index)} canRemove={fields.length > 1}>
-            <LineCell label="Item" className={wideCellCls}>
-              <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} disabled={!customerId} />
-            </LineCell>
-            <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
-            <LineCell label="Qty">
-              <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
-            </LineCell>
-            <PdpPriceCell resolution={resolutions[field.id]} aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
-            <PdpDiscountCell resolution={resolutions[field.id]} aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
-            <LineCell label="Net">
-              <LineFigure value={Number(watchedItems?.[index]?.net) || 0} />
-            </LineCell>
-            {taxRates.hasExcise && (
-              <LineCell label="Excise">
-                <LineFigure value={Number(watchedItems?.[index]?.excise) || 0} />
-              </LineCell>
-            )}
-            <LineCell label={taxRates.taxCode}>
-              <LineFigure value={Number(watchedItems?.[index]?.vat) || 0} />
-            </LineCell>
-            <LineCell label="Total">
-              <LineFigure value={Number(watchedItems?.[index]?.total) || 0} strong />
-            </LineCell>
-          </LineStrip>
-        ))}
-        <AddLineButton onClick={() => append({ ...emptyItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
-      </DocSection>
-
-      <ReceiptRail
-        gross={totalGross}
-        discount={discountTotal}
-        net={netTotal}
-        vat={vatTotal}
-        excise={exciseTotal}
-        taxLabel={taxRates.taxCode}
-        taxRate={taxRates.uniformRate}
-        taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
-        showExcise={taxRates.hasExcise}
-        total={finalTotal}
-        lineCount={fields.length}
-        noteRegister={register('customerNote')}
-      >
-        <SaveButton type="submit" fullWidth>
-          Save &amp; Submit
-        </SaveButton>
-        <CancelButton type="button" fullWidth onClick={() => navigate('/invoice')}>
-          Cancel
-        </CancelButton>
-      </ReceiptRail>
+          <ReceiptRail
+            gross={totalGross}
+            discount={discountTotal}
+            net={netTotal}
+            vat={vatTotal}
+            excise={exciseTotal}
+            taxLabel={taxRates.taxCode}
+            taxRate={taxRates.uniformRate}
+            taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
+            showExcise={taxRates.hasExcise}
+            total={finalTotal}
+            lineCount={fields.length}
+            noteRegister={register('customerNote')}
+          >
+            <SaveButton type="submit" fullWidth>
+              Save &amp; Submit
+            </SaveButton>
+            <CancelButton type="button" fullWidth onClick={() => navigate('/invoice')}>
+              Cancel
+            </CancelButton>
+          </ReceiptRail>
+        </>
+      )}
     </DocumentShell>
   );
 }

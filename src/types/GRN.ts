@@ -1,5 +1,6 @@
 export interface GRNItem {
   id: string;
+  uuid?: string;
   itemId: string;
   itemName: string;
   uom: string;

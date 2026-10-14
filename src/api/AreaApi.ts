@@ -53,3 +53,5 @@ export const getAreaOptions = async (): Promise<AreaOption[]> => {
     label: (a.areaCode ?? a.code) ? `${a.areaCode ?? a.code} - ${a.areaName ?? a.name ?? ''}` : (a.areaName ?? a.name ?? String(a.id)),
   }));
 };
+
+export const getAreaDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/area/view/${uuid}`)).data.data;

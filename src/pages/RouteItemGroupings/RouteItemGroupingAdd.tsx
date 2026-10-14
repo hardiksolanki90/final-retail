@@ -1,201 +1,116 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { Trash2 } from 'lucide-react';
 import { Drawer } from '../../components/ui/Drawer';
 import { Input } from '../../components/ui/Input';
-import { Select } from '../../components/ui/Select';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
-import type { RouteItemGroupingFormData } from '../../types/RouteItemGrouping';
-import { X } from 'lucide-react';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
+import { FormSkeleton } from '../../components/ui/skeleton';
+import { showToast } from '../../lib/toast';
+import { useRouteItemGrouping, useRouteItemGroupingActions } from '../../hooks/RouteItemGroupings/useRouteItemGroupings';
+import { RouteSelect } from './RouteSelect';
+import { SalesmanSelect } from './SalesmanSelect';
+import { RouteItemPicker } from './RouteItemPicker';
+import type { RouteItemGroupingForm } from '../../types/RouteItemGrouping';
 
 interface RouteItemGroupingAddProps {
-    isOpen: boolean;
-    onClose: () => void;
-    data?: any;
-    onEvent?: (data: any) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  /** Set to edit that group instead of creating a new one. */
+  editingUuid?: string | null;
 }
 
-export function RouteItemGroupingAdd({ isOpen, onClose, data, onEvent }: RouteItemGroupingAddProps) {
-    const initialData = data?.initialData;
-    const isLoading = data?.isLoading || false;
-    const routes = data?.routes || [];
-    const items = data?.items || [];
+const defaultValues: RouteItemGroupingForm = { code: '', name: '', routeId: '', salesmanId: '', status: true, items: [] };
+const itemLabel = (item: { itemCode: string | null; itemName: string | null }) => [item.itemCode, item.itemName].filter(Boolean).join(' - ');
 
-    const defaultValues: RouteItemGroupingFormData = { routeId: '', groupName: '', description: '', priority: 1, effectiveDate: '', expiryDate: '', itemIds: [], status: 'active' };
+/** Create or edit a route item grouping: a named list of items for a route and/or a salesman. */
+export function RouteItemGroupingAdd({ isOpen, onClose, editingUuid }: RouteItemGroupingAddProps) {
+  const isEdit = Boolean(editingUuid);
+  const { data: grouping, isLoading: isLoadingGrouping } = useRouteItemGrouping(isOpen ? (editingUuid ?? null) : null);
+  const { create, update } = useRouteItemGroupingActions();
+  const [codeLocked, setCodeLocked] = useState(false);
+  const { register, handleSubmit, reset, control, setValue, getValues, formState: { errors } } = useForm<RouteItemGroupingForm>({ defaultValues });
+  const items = useWatch({ control, name: 'items' });
+  const status = useWatch({ control, name: 'status' });
+  const code = useWatch({ control, name: 'code' });
+  const pending = create.isPending || update.isPending;
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors, isSubmitting },
-        reset,
-        setValue,
-        watch,
-        setError,
-        clearErrors,
-    } = useForm<RouteItemGroupingFormData>({ defaultValues, mode: 'onBlur' });
+  useEffect(() => {
+    if (isOpen && !editingUuid) reset(defaultValues);
+  }, [isOpen, editingUuid, reset]);
 
-    const watchedItemIds = watch('itemIds') || [];
-    const watchedStatus = watch('status');
-    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  useEffect(() => {
+    if (isOpen && grouping) reset({ code: grouping.code, name: grouping.name, routeId: grouping.routeId ? String(grouping.routeId) : '', salesmanId: grouping.salesmanId ? String(grouping.salesmanId) : '', status: grouping.status, items: grouping.items });
+  }, [isOpen, grouping, reset]);
 
-    useEffect(() => {
-        if (initialData && isOpen) {
-            reset(initialData);
-            setSelectedItems(initialData.itemIds || []);
-        } else if (isOpen && !initialData) {
-            reset(defaultValues);
-            setSelectedItems([]);
-        }
-    }, [initialData, isOpen, reset]);
+  const submit = handleSubmit(async (form) => {
+    const payload = { code: form.code.trim() || undefined, name: form.name.trim(), routeId: form.routeId ? Number(form.routeId) : null, salesmanId: form.salesmanId ? Number(form.salesmanId) : null, status: form.status, items: form.items.map((item) => ({ itemId: item.itemId })) };
+    if (editingUuid) await update.mutateAsync({ uuid: editingUuid, payload });
+    else await create.mutateAsync(payload);
+    onClose();
+  });
 
-    // Sync selected items with watched itemIds
-    useEffect(() => {
-        setSelectedItems(watchedItemIds);
-    }, [watchedItemIds]);
+  const addItem = (option: { value: string; label: string }) => {
+    const itemId = Number(option.value);
+    if (getValues('items').some((item) => item.itemId === itemId)) return showToast.error('This item is already in the list');
+    setValue('items', [...getValues('items'), { itemId, itemCode: null, itemName: option.label }], { shouldValidate: true, shouldDirty: true });
+  };
 
-    const handleSelectChange = (field: keyof RouteItemGroupingFormData, value: string) => {
-        setValue(field, value);
-        clearErrors(field);
-    };
+  const footer = (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-[var(--text-secondary)]">Status:</span>
+        <button type="button" role="switch" aria-checked={status} aria-label="Status" onClick={() => setValue('status', !status, { shouldDirty: true })} className={`relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${status ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${status ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
+      </div>
+      <div className="flex gap-3">
+        <CancelButton onClick={onClose} disabled={pending}>Cancel</CancelButton>
+        <SaveButton type="submit" form="route-item-grouping-form" disabled={pending}>{pending ? 'Saving…' : isEdit ? 'Update' : 'Save'}</SaveButton>
+      </div>
+    </div>
+  );
 
-    const handleAddItem = (itemId: string) => {
-        if (itemId && !selectedItems.includes(itemId)) {
-            const newItems = [...selectedItems, itemId];
-            setSelectedItems(newItems);
-            setValue('itemIds', newItems);
-            clearErrors('itemIds');
-        }
-    };
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title={isEdit ? 'Edit Route Item Grouping' : 'Add Route Item Grouping'} width="w-[640px]" footer={footer} isLoading={isEdit && isLoadingGrouping} skeleton={<FormSkeleton fields={['code', 'input', 'select', 'select', 'section', 'input']} />}>
+      <form id="route-item-grouping-form" onSubmit={submit} className="space-y-6 p-6">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Code</label>
+          <div className="relative flex items-center gap-2">
+            <input {...register('code')} disabled={codeLocked} placeholder="Configure the system to auto-generate the code." className="block w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-60" />
+            <OrderCodeSettingsIcon label="Code" value={code || ''} onChange={(value) => setValue('code', value)} entityKey="route_item_grouping" onLockChange={setCodeLocked} />
+          </div>
+        </div>
 
-    const handleRemoveItem = (itemId: string) => {
-        const newItems = selectedItems.filter((id) => id !== itemId);
-        setSelectedItems(newItems);
-        setValue('itemIds', newItems);
-        clearErrors('itemIds');
-    };
+        <Input label="Name" required error={errors.name?.message} placeholder="Enter group name" maxLength={191} {...register('name', { required: 'Name is required', validate: (value) => value.trim() !== '' || 'Name cannot be empty' })} />
 
-    const onFormSubmit = async (data: RouteItemGroupingFormData) => {
-        try {
-            // Validate that at least one item is added
-            if (!data.itemIds || data.itemIds.length === 0) {
-                setError('itemIds', { type: 'required', message: 'At least one item is required' });
-                return;
-            }
+        <div className="grid grid-cols-2 gap-4">
+          <Controller name="routeId" control={control} rules={{ validate: () => Boolean(getValues('routeId') || getValues('salesmanId')) || 'Choose a route, a salesman, or both' }} render={({ field, fieldState }) => <RouteSelect label="Route" value={field.value} onChange={field.onChange} error={fieldState.error?.message} allLabel="No route" enabled={isOpen} />} />
+          <Controller name="salesmanId" control={control} render={({ field }) => <SalesmanSelect label="Salesman" value={field.value} onChange={field.onChange} allLabel="No salesman" enabled={isOpen} />} />
+        </div>
 
-            onEvent?.({ eventType: initialData ? 'RouteItemGroupingUpdated' : 'RouteItemGroupingCreated', routeItemGrouping: data });
-        } catch (error: any) {
-            console.error('Error saving route item grouping:', error);
-            if (error.response?.data?.errors) {
-                Object.entries(error.response.data.errors).forEach(([field, message]) => {
-                    setError(field as keyof RouteItemGroupingFormData, { type: 'server', message: Array.isArray(message) ? message[0] : message });
-                });
-            }
-        }
-    };
-
-    return (
-        <Drawer isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Route Item Grouping' : 'Add Route Item Grouping'} width="w-[700px]">
-            <form onSubmit={handleSubmit(onFormSubmit)} className="p-6 space-y-4">
-                <Select
-                    label="Route"
-                    {...register('routeId', { required: 'Route is required' })}
-                    onChange={(e) => handleSelectChange('routeId', e.target.value)}
-                    options={routes}
-                    placeholder="Select route"
-                    error={errors.routeId?.message}
-                    required
-                />
-
-                <div>
-                    <div className="flex items-center justify-between mb-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Name</label>
-                        <OrderCodeSettingsIcon label="Group Name" value="" onChange={() => {}} />
-                    </div>
-                    <Input
-                        label="Group Name"
-                        {...register('groupName', { required: 'Group Name is required', validate: (value) => value?.trim() || 'Group Name is required' })}
-                        error={errors.groupName?.message}
-                        placeholder="Enter group name"
-                        required
-                    />
-                </div>
-
-                <Input label="Description" {...register('description')} placeholder="Enter description" error={errors.description?.message} />
-
-                <Input
-                    label="Priority"
-                    type="number"
-                    {...register('priority', { required: 'Priority is required', valueAsNumber: true, min: { value: 1, message: 'Priority must be 1 or greater' } })}
-                    placeholder="Enter priority"
-                    min="1"
-                    error={errors.priority?.message}
-                    required
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                    <Input label="Effective Date" type="date" {...register('effectiveDate', { required: 'Effective Date is required' })} error={errors.effectiveDate?.message} required />
-                    <Input label="Expiry Date" type="date" {...register('expiryDate')} error={errors.expiryDate?.message} />
-                </div>
-
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-[var(--text-secondary)]">Items {errors.itemIds && <span className="text-red-500 ml-1">*</span>}</label>
-                    <div className="flex gap-2">
-                        <Select
-                            value=""
-                            onChange={(e) => handleAddItem(e.target.value)}
-                            options={items.filter((item: any) => !selectedItems.includes(item.value))}
-                            placeholder="Select item to add"
-                            className="flex-1"
-                        />
-                    </div>
-                    {errors.itemIds && <p className="text-sm text-red-500">{errors.itemIds?.message}</p>}
-
-                    {selectedItems.length > 0 && (
-                        <div className="mt-3 space-y-2 max-h-60 overflow-y-auto border border-[var(--border-color)] rounded-lg p-3">
-                            {selectedItems.map((itemId) => {
-                                const item = items.find((i: any) => i.value === itemId);
-                                return (
-                                    <div key={itemId} className="flex items-center justify-between bg-[var(--bg-secondary)] px-3 py-2 rounded-md">
-                                        <span className="text-sm text-[var(--text-primary)]">{item?.label || itemId}</span>
-                                        <button type="button" onClick={() => handleRemoveItem(itemId)} className="text-red-500 hover:text-red-700 transition-colors">
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {errors.root && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-600">{errors.root.message}</p>
-                    </div>
-                )}
-
-                <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
-                        <button
-                            type="button"
-                            onClick={() => handleSelectChange('status', watchedStatus === 'active' ? 'inactive' : 'active')}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-                                watchedStatus === 'active' ? 'bg-primary-600 dark:bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-                            }`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${watchedStatus === 'active' ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                    </div>
-                    <div className="flex gap-3">
-                        <CancelButton onClick={onClose} disabled={isSubmitting}>
-                            Cancel
-                        </CancelButton>
-                        <SaveButton type="submit" disabled={isSubmitting || isLoading}>
-                            {isSubmitting || isLoading ? 'Saving...' : initialData ? 'Update' : 'Save'}
-                        </SaveButton>
-                    </div>
-                </div>
-            </form>
-        </Drawer>
-    );
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Items <span className="text-red-500">*</span> <span className="font-normal text-[var(--text-muted)]">({items.length})</span></h3>
+          <Controller name="items" control={control} rules={{ validate: (value) => value.length > 0 || 'Add at least one item' }} render={({ fieldState }) => <>{fieldState.error && <p className="text-xs text-red-600">{fieldState.error.message}</p>}</>} />
+          <RouteItemPicker enabled={isOpen} onPick={addItem} />
+          {items.length > 0 && (
+            <div className="overflow-hidden rounded-lg border border-[var(--border-color)]">
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-[var(--border-color)]">
+                  {items.map((item) => (
+                    <tr key={item.itemId}>
+                      <td className="px-4 py-2 text-[var(--text-primary)]">{itemLabel(item)}</td>
+                      <td className="w-12 px-2 py-2 text-right">
+                        <button type="button" aria-label={`Remove ${itemLabel(item)}`} onClick={() => setValue('items', getValues('items').filter((row) => row.itemId !== item.itemId), { shouldValidate: true, shouldDirty: true })} className="cursor-pointer rounded p-1.5 text-[var(--text-muted)] hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"><Trash2 className="h-4 w-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </form>
+    </Drawer>
+  );
 }

@@ -7,6 +7,8 @@ import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { useOutletProductCode } from '../../../providers/OutletProductCodeProvider';
 import { createOutletProductCode, updateOutletProductCode } from '../../../api/OutletProductCodeApi';
 import type { OutletProductCodeFormData } from '../../../types/OutletProductCode';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { outletProductCodeView } from '../settingViews';
 interface Column {
   key: string;
   label: string;
@@ -14,6 +16,7 @@ interface Column {
 }
 
 export function OutletProductCodeList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const {
     data: items,
     meta,
@@ -246,15 +249,15 @@ export function OutletProductCodeList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading outlet product codes" columns={['check', ...when(isCodeVisible, 'text'), ...when(isNameVisible, 'text'), 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading outlet product codes" columns={['check', ...when(isCodeVisible, 'text'), ...when(isNameVisible, 'text'), 'actions']} />
               ) : items.length === 0 ? (
                 <TableEmptyRow colSpan={visibleColCount} label="No outlet product codes found." />
               ) : (
                 items.map((item: any) => {
                   const id = item.uuid ?? String(item.id);
                   return (
-                    <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                      <td className="px-4 py-4 whitespace-nowrap">
+                    <tr key={id} onClick={() => setViewing(item)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedRowKeys.includes(id)}
@@ -272,7 +275,7 @@ export function OutletProductCodeList() {
                           <span className="text-sm font-medium text-[var(--text-primary)]">{item?.name ?? ''}</span>
                         </td>
                       )}
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
@@ -395,6 +398,17 @@ export function OutletProductCodeList() {
           </div>
         </div>
       )}
+      <SettingViewDrawer
+        config={outletProductCodeView} pageSize={perPage} seed={meta && currentPage === 1 && !searchTerm ? { items: items, hasMore: totalPages > 1 } : null}
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        data={viewing}
+        onSelect={setViewing}
+        onEdit={() => {
+          if (viewing) handleEditClick(viewing);
+          setViewing(null);
+        }}
+      />
       <OutletProductCodeAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} onSubmit={handleFormSubmit} initialData={editingItem} />
     </div>
   );

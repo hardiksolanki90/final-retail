@@ -216,11 +216,10 @@ export function ItemAdd({ isOpen, onClose, onSubmit, initialData, isLoading = fa
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab as any)}
-                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                  activeTab === tab
+                className={`py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === tab
                     ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
                     : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
+                  }`}
               >
                 {tab === 'item' ? 'Item' : tab === 'uom' ? 'UOM' : 'Product Catalog'}
               </button>
@@ -490,7 +489,6 @@ export function ItemAdd({ isOpen, onClose, onSubmit, initialData, isLoading = fa
 
               {watchIsProductCatalog && (
                 <div className="space-y-4">
-                  <SectionLabel title="Nutritional Information" />
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="Net Weight" {...register('netWeight')} />
                     <Input label="Flavor" {...register('flavor')} />

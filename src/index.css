@@ -128,6 +128,42 @@ body {
   --border-color: var(--color-border-dark);
 }
 
+/* Record view drawer (party / document view): the app's own palette (primary blue, slate neutrals), with the reference design's font. */
+.record-view {
+  --rv-font: 'Source Sans 3', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --rv-bg: var(--bg-card);
+  --rv-accent: var(--color-primary-600);
+  --rv-accent-soft: var(--color-primary-50);
+  --rv-accent-border: var(--color-primary-300);
+  --rv-ring: var(--color-primary-200);
+  --rv-ink: var(--text-primary);
+  --rv-text: var(--text-primary);
+  --rv-secondary: var(--text-secondary);
+  --rv-muted: var(--color-text-secondary-dark);
+  --rv-placeholder: var(--color-text-secondary-dark);
+  --rv-icon: var(--text-secondary);
+  --rv-border: var(--border-color);
+  --rv-line: var(--border-color);
+  --rv-head: var(--bg-tertiary);
+  --rv-tint: var(--bg-secondary);
+  --rv-hover: var(--bg-secondary);
+  --rv-empty: var(--color-text-secondary-dark);
+  --rv-danger: var(--color-error-600);
+  --rv-success: var(--color-success-600);
+}
+
+.dark .record-view {
+  --rv-accent: var(--color-primary-400);
+  --rv-accent-soft: rgb(37 99 235 / 0.18);
+  --rv-accent-border: var(--color-primary-700);
+  --rv-ring: rgb(96 165 250 / 0.35);
+  --rv-muted: var(--text-muted);
+  --rv-placeholder: var(--text-muted);
+  --rv-empty: var(--text-muted);
+  --rv-danger: var(--color-error-500);
+  --rv-success: var(--color-success-500);
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

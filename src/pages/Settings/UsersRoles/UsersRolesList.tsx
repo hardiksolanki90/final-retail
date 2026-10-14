@@ -13,6 +13,9 @@ import type { UserRoleFormData } from '../../../types/UsersRoles';
 import type { InviteUser } from '../../../types/InviteUser';
 import { getInviteUserByUuid } from '../../../api/InviteUserApi';
 import { useEditDetail } from '../../../hooks/useEntityDetail';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { roleView } from '../settingViews';
+import { API_PAGE_SIZE } from '../../shared/RecordView/RecordRail';
 
 interface Column {
   key: string;
@@ -21,6 +24,7 @@ interface Column {
 }
 
 export function UsersRolesList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -338,8 +342,8 @@ export function UsersRolesList() {
                             <TableEmptyRow colSpan={visibleColumns.length + 1} label="No roles yet." />
                           ) : (
                             currentData.map((role) => (
-                              <tr key={role.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(role.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                                <td className="px-4 py-3">
+                              <tr key={role.id} onClick={() => setViewing((roles.find((r) => r.uuid === role.id) as unknown as SettingRow | undefined) ?? null)} className={`cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(role.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                                <td onClick={(e) => e.stopPropagation()} className="px-4 py-3">
                                   <input
                                     type="checkbox"
                                     checked={selectedRows.includes(role.id)}
@@ -465,6 +469,8 @@ export function UsersRolesList() {
           </div>
         </div>
       )}
+
+      <SettingViewDrawer config={roleView} pageSize={API_PAGE_SIZE} seed={!isLoading && currentPage === 1 && roles.length > 0 ? { items: roles as unknown as SettingRow[], hasMore: total > roles.length } : null} isOpen={viewing !== null} onClose={() => setViewing(null)} data={viewing} onSelect={setViewing} />
 
       <UsersRolesAdd
         isOpen={addDrawerOpen}

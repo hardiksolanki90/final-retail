@@ -5,12 +5,16 @@ import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { Pagination } from '../../../components/ui/Pagination';
 import { useInviteUsers } from '../../../hooks/UsersRoles/useInviteUsers';
 import type { InviteUser } from '../../../types/InviteUser';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { userView } from '../settingViews';
+import { API_PAGE_SIZE } from '../../shared/RecordView/RecordRail';
 
 interface UsersListProps {
   onEdit: (user: InviteUser) => void;
 }
 
 export function UsersList({ onEdit }: UsersListProps) {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
@@ -50,7 +54,7 @@ export function UsersList({ onEdit }: UsersListProps) {
                 <TableEmptyRow colSpan={6} label="No users yet." />
               ) : (
                 users.map((user) => (
-                  <tr key={user.uuid} className="hover:bg-[var(--bg-secondary)] transition-colors">
+                  <tr key={user.uuid} onClick={() => setViewing(user as unknown as SettingRow)} className="cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors">
                     <td className="px-4 py-3 text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
                       {user.firstname} {user.lastname ?? ''}
                       {user.usertype !== 4 && (
@@ -65,7 +69,7 @@ export function UsersList({ onEdit }: UsersListProps) {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={getStatusBadge(user.status)}>{user.status ? 'Active' : 'Inactive'}</span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td onClick={(e) => e.stopPropagation()} className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => onEdit(user)}
@@ -94,6 +98,7 @@ export function UsersList({ onEdit }: UsersListProps) {
 
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
+      <SettingViewDrawer config={userView} pageSize={API_PAGE_SIZE} seed={!isLoading && currentPage === 1 && users.length > 0 ? { items: users as unknown as SettingRow[], hasMore: total > users.length } : null} isOpen={viewing !== null} onClose={() => setViewing(null)} data={viewing} onSelect={setViewing} onEdit={() => { const user = users.find((u) => u.uuid === viewing?.uuid); setViewing(null); if (user) onEdit(user); }} />
     </div>
   );
 }

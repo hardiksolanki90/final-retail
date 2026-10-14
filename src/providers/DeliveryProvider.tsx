@@ -6,13 +6,13 @@ import {
   createDelivery,
   updateDelivery,
   getDeliveryDetails,
-  getDeliveryTracking,
   updateDeliveryStatus,
   markDeliveryAsDelivered,
   assignDriver,
   bulkUpdateDeliveryStatus,
 } from '../api/DeliveryApi';
 import { showToast } from '../lib/toast';
+import type { DeliveryView } from '../types/DocumentView';
 import type { Delivery, DeliveryFormData, DeliveryListResponse } from '../types/Delivery';
 import type { ColumnSearchStates, PaginationData } from '../types/Common';
 
@@ -53,15 +53,10 @@ interface DeliveryContextType {
   closeDeliveryDrawer: () => void;
 
   // Drawer data
-  deliveryDetails: Delivery | undefined;
+  deliveryDetails: DeliveryView | undefined;
   isLoadingDetails: boolean;
-  deliveryTrackingData: unknown;
-  isLoadingTracking: boolean;
 
   // Tab state
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  handleTabChange: (tab: string) => void;
 
   // Bulk actions
   selectedRowKeys: string[];
@@ -143,7 +138,6 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   });
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('details');
 
   // Delivery list query with filters
   const {
@@ -161,16 +155,9 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
   const { data: deliveryDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['delivery-details', selectedDeliveryForDrawer?.uuid],
     queryFn: () => getDeliveryDetails(selectedDeliveryForDrawer?.uuid!),
-    enabled: !!selectedDeliveryForDrawer?.uuid && activeTab === 'details',
+    enabled: !!selectedDeliveryForDrawer?.uuid,
     staleTime: 5 * 60 * 1000,
-  });
-
-  // Delivery tracking query
-  const { data: deliveryTrackingData, isLoading: isLoadingTracking } = useQuery({
-    queryKey: ['delivery-tracking', selectedDeliveryForDrawer?.uuid],
-    queryFn: () => getDeliveryTracking(selectedDeliveryForDrawer?.uuid!),
-    enabled: !!selectedDeliveryForDrawer?.uuid && activeTab === 'tracking',
-    staleTime: 1 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Mutations
@@ -314,14 +301,9 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
     setColumnSearchStates((prev) => ({ ...prev, [column]: { isOpen: false, value: '' } }));
   };
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-
   const openDeliveryDrawer = (delivery: Delivery) => {
     setSelectedDeliveryForDrawer(delivery);
     setIsDeliveryDrawerVisible(true);
-    setActiveTab('details');
   };
 
   const closeDeliveryDrawer = () => {
@@ -421,11 +403,6 @@ export default function DeliveryProvider({ children }: DeliveryProviderProps) {
     closeDeliveryDrawer,
     deliveryDetails,
     isLoadingDetails,
-    deliveryTrackingData,
-    isLoadingTracking,
-    activeTab,
-    setActiveTab,
-    handleTabChange,
     selectedRowKeys,
     setSelectedRowKeys,
     bulkActionValue,

@@ -5,8 +5,10 @@ import { useRules, useRuleDetail } from '../../hooks/usePricingPromotionRules';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
 import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
-import { RuleViewDrawer } from '../shared/RuleViewDrawer';
+import { PricingView } from '../shared/RuleView';
 import { showToast } from '../../lib/toast';
+import type { PricingPromotionRule } from '../../types/PricingPromoDiscount';
+import { API_PAGE_SIZE } from '../shared/RecordView/RecordRail';
 
 interface Column {
   key: string;
@@ -30,11 +32,11 @@ export function PricingList() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   // The rule shown in the View drawer: its full details (dimensions, items) come from the query cache.
   const [viewUuid, setViewUuid] = useState<string | null>(null);
+  const [viewRow, setViewRow] = useState<PricingPromotionRule | null>(null);
 
   const { rules, total, isLoading, bulkAction } = useRules('pricing', currentPage, searchTerm);
   const viewQuery = useRuleDetail('pricing', viewUuid);
   const viewRule = viewUuid ? (viewQuery.data ?? null) : null;
-  const isViewLoading = Boolean(viewUuid) && viewQuery.isPending;
   const viewFailed = Boolean(viewUuid) && viewQuery.isError && !viewQuery.isFetching;
   useEffect(() => {
     if (viewFailed) showToast.error('Failed to load details');
@@ -86,6 +88,7 @@ export function PricingList() {
   const handleViewClick = (uuid: string) => {
     if (viewUuid === uuid && viewFailed) viewQuery.refetch();
     setViewUuid(uuid);
+    setViewRow(rules.find((r) => r.uuid === uuid) ?? null);
     setIsViewOpen(true);
   };
 
@@ -318,15 +321,20 @@ export function PricingList() {
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
-      <RuleViewDrawer
+      <PricingView
         isOpen={isViewOpen && !viewFailed}
         onClose={() => {
           setIsViewOpen(false);
           setViewUuid(null);
         }}
-        moduleType="pricing"
-        data={viewRule}
-        isLoading={isViewLoading}
+        uuid={viewUuid}
+        row={viewRow}
+        pageSize={API_PAGE_SIZE}
+        seed={!isLoading && currentPage === 1 && !searchTerm && rules.length > 0 ? { items: rules, hasMore: total > rules.length } : null}
+        onSelect={(next, row) => {
+          setViewUuid(next);
+          setViewRow(row);
+        }}
         onBulkAction={(action) => {
           if (!viewRule?.uuid) return;
           if (action === 'delete' && !window.confirm('Delete this pricing rule? This cannot be undone.')) return;

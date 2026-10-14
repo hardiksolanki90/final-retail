@@ -35,3 +35,5 @@ export const deleteRole = async (uuid: string): Promise<void> => {
 export const bulkActionRoles = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/role/bulk-action', { uuids, action });
 };
+
+export const getRoleDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/role/edit/${uuid}`)).data.data;

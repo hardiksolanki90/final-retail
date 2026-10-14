@@ -40,7 +40,7 @@ const BULK_PAGE_SIZE = 200;
 export function useInfiniteSelect<T>({ fetchPage, mapItemToOption, selectedValue, initialOption, enabled = true, resetKey }: UseInfiniteSelectProps<T>) {
   const [options, setOptions] = useState<SelectOption[]>([]);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingAll, setIsLoadingAll] = useState(false);
 

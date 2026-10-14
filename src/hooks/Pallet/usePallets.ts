@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateRecordViews } from '../../lib/recordCache';
 import { getPalletList } from '../../api/PalletApi';
 import { getAllSalesmen } from '../../api/SalesmanApi';
 import { getAllItems } from '../../api/ItemApi';
@@ -10,7 +11,7 @@ export function usePallets(page: number = 1) {
 
     const listQuery = useQuery({ queryKey: ['pallets', page], queryFn: () => getPalletList(page), staleTime: 2 * 60 * 1000 });
 
-    return { pallets: listQuery.data?.data ?? [], total: listQuery.data?.total ?? 0, isLoading: listQuery.isLoading, refetch: () => queryClient.invalidateQueries({ queryKey: ['pallets'] }) };
+    return { pallets: listQuery.data?.data ?? [], total: listQuery.data?.total ?? 0, isLoading: listQuery.isLoading, refetch: () => Promise.all([queryClient.invalidateQueries({ queryKey: ['pallets'] }), invalidateRecordViews(queryClient)]) };
 }
 
 export function usePalletFormOptions() {

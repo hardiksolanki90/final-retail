@@ -8,6 +8,8 @@ import { useCreditLimit } from '../../../providers/CreditLimitProvider';
 import { createCreditLimit, updateCreditLimit, getCreditLimitDetails } from '../../../api/CreditLimitApi';
 import type { CreditLimitFormData, CreditLimit } from '../../../types/CreditLimit';
 import { useEditDetail } from '../../../hooks/useEntityDetail';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { creditLimitView } from '../settingViews';
 
 interface Column {
   key: string;
@@ -18,6 +20,7 @@ interface Column {
 const CREDIT_LIMIT_TYPE_LABELS: Record<1 | 2, string> = { 1: 'Customer Base', 2: 'LOB' };
 
 export default function CreditLimitList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const {
     data: creditLimits,
     meta,
@@ -179,15 +182,15 @@ export default function CreditLimitList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading credit limits" columns={['check', 'text', 'text', 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading credit limits" columns={['check', 'text', 'text', 'actions']} />
               ) : creditLimits.length === 0 ? (
                 <TableEmptyRow colSpan={4} label="No credit limits found." />
               ) : (
                 creditLimits.map((item: CreditLimit) => {
                   const id = item.uuid;
                   return (
-                    <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                      <td className="px-4 py-4 whitespace-nowrap">
+                    <tr key={id} onClick={() => setViewing(item as unknown as SettingRow)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedRowKeys.includes(id)}
@@ -201,7 +204,7 @@ export default function CreditLimitList() {
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className="text-sm text-[var(--text-secondary)]">{CREDIT_LIMIT_TYPE_LABELS[item.creditLimitType]}</span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
@@ -228,6 +231,17 @@ export default function CreditLimitList() {
         </div>
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
+      <SettingViewDrawer
+        config={creditLimitView} pageSize={perPage} seed={meta && currentPage === 1 ? { items: creditLimits as unknown as SettingRow[], hasMore: totalPages > 1 } : null}
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        data={viewing}
+        onSelect={setViewing}
+        onEdit={() => {
+          if (viewing) handleEditClick(viewing);
+          setViewing(null);
+        }}
+      />
       <CreditLimitAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} onSubmit={handleSave} editData={editInitialData} isLoading={editLoading} salesmanOptions={salesmanOptions} />
     </div>
   );

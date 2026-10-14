@@ -1,5 +1,6 @@
 import axiosInstance from '../lib/axios';
 import type { DebitNoteListResponse, DebitNoteListRow } from '../types/DebitNote';
+import type { DebitNoteView } from '../types/DocumentView';
 
 export const getDebitNoteList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<DebitNoteListResponse> => {
   const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
@@ -12,4 +13,9 @@ export const getDebitNoteList = async (page: number = 1, searchTerm?: string, pe
 
 export const bulkActionDebitNotes = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/debit-note/bulk-action', { uuids, action });
+};
+
+export const getDebitNoteByUuid = async (uuid: string): Promise<DebitNoteView> => {
+  const response = await axiosInstance.get(`/debit-note/edit/${uuid}`);
+  return response.data.data;
 };

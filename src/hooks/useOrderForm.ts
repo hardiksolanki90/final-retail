@@ -19,7 +19,7 @@ export function useOrderFormOptions() {
 
     const paymentTermsQuery = useQuery({ queryKey: ['payment-terms-all'], queryFn: () => getPaymentTerms(), staleTime: 10 * 60 * 1000 });
 
-    const salesmen: SelectOption[] = (salesmenQuery.data ?? []).map((s) => ({ value: String(s.id), label: s.salesmanCode ? `${s.salesmanCode} - ${s.name}` : s.name }));
+    const salesmen: SelectOption[] = (salesmenQuery.data ?? []).map((s) => ({ value: s.userUuid ?? String(s.id), label: s.salesmanCode ? `${s.salesmanCode} - ${s.name}` : s.name }));
 
     const paymentTerms: SelectOption[] = (paymentTermsQuery.data ?? []).filter((t) => t.uuid).map((t) => ({ value: t.uuid as string, label: t.name }));
 

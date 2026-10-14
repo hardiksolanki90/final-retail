@@ -22,7 +22,10 @@ export interface Invoice {
   createdAt?: string;
   updatedAt?: string;
   order?: { id?: number; uuid?: string; orderNumber: string };
-  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string; customerCode: string };
+  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string; name?: string; customerCode: string };
+  /** List rows (GET …/list) also carry the document date and grand total. */
+  date?: string | null;
+  total?: number | null;
   invoiceItems?: InvoiceItem[];
 }
 

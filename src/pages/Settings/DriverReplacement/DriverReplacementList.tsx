@@ -7,6 +7,8 @@ import { TableSkeletonRows, colsByKey } from '../../../components/ui/skeleton';
 import { useDriverReplacement } from '../../../providers/DriverReplacementProvider';
 import { getDriverReplacementDetails } from '../../../api/DriverReplacementApi';
 import { useEditDetail } from '../../../hooks/useEntityDetail';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { driverReplacementView } from '../settingViews';
 
 interface Column {
   key: string;
@@ -15,6 +17,7 @@ interface Column {
 }
 
 export function DriverReplacementList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const {
     data: replacements,
     meta,
@@ -211,15 +214,15 @@ export function DriverReplacementList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading driver replacements" columns={['check', ...colsByKey(visibleColumns, { date: 'date' }), 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading driver replacements" columns={['check', ...colsByKey(visibleColumns, { date: 'date' }), 'actions']} />
               ) : replacements.length === 0 ? (
                 <TableEmptyRow colSpan={visibleColumns.length + 2} label="No driver replacements found." />
               ) : (
                 replacements.map((item: any) => {
                   const id = item.uuid ?? String(item.id);
                   return (
-                    <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                      <td className="px-4 py-4 whitespace-nowrap">
+                    <tr key={id} onClick={() => setViewing(item)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedRowKeys.includes(id)}
@@ -232,7 +235,7 @@ export function DriverReplacementList() {
                           {getCellValue(item, col.key)}
                         </td>
                       ))}
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
@@ -260,6 +263,18 @@ export function DriverReplacementList() {
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
 
+      <SettingViewDrawer
+        config={driverReplacementView} pageSize={perPage} seed={meta && currentPage === 1 ? { items: replacements as unknown as SettingRow[], hasMore: totalPages > 1 } : null}
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        data={viewing}
+        onSelect={setViewing}
+        onEdit={() => {
+          if (viewing) handleEditClick(viewing);
+          setViewing(null);
+        }}
+      />
+
       <DriverReplacementAdd
         isOpen={addDrawerOpen}
         onClose={handleDrawerClose}
@@ -271,13 +286,13 @@ export function DriverReplacementList() {
         initialData={
           editInitialData
             ? {
-                oldSalesmanId: editInitialData.oldSalesmanId ?? '',
-                newSalesmanId: editInitialData.newSalesmanId ?? '',
-                oldVanId: editInitialData.oldVanId ?? '',
-                newVanId: editInitialData.newVanId ?? '',
-                reasonId: editInitialData.reasonId ?? '',
-                date: editInitialData.date ?? '',
-              }
+              oldSalesmanId: editInitialData.oldSalesmanId ?? '',
+              newSalesmanId: editInitialData.newSalesmanId ?? '',
+              oldVanId: editInitialData.oldVanId ?? '',
+              newVanId: editInitialData.newVanId ?? '',
+              reasonId: editInitialData.reasonId ?? '',
+              date: editInitialData.date ?? '',
+            }
             : undefined
         }
         isLoading={editLoading}

@@ -40,3 +40,5 @@ export const getRegionOptions = async (): Promise<RegionOption[]> => {
   const data = response.data?.data ?? [];
   return data.map((r: { id: number; regionCode?: string; regionName?: string }) => ({ value: r.id, label: r.regionCode ? `${r.regionCode} - ${r.regionName ?? ''}` : (r.regionName ?? String(r.id)) }));
 };
+
+export const getRegionDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/region/view/${uuid}`)).data.data;

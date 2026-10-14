@@ -112,7 +112,7 @@ hooks/{Module}/
 3. Forms: ALWAYS use React Hook Form
 4. Styling: ONLY TailwindCSS utility classes + CSS variables (`--text-primary`, `--bg-card`, etc.)
 5. Notifications: `react-hot-toast`
-6. Entity references: UUID only — never internal DB IDs
+6. Entity references: relations between records use the integer `id`, strictly; a record's own `uuid` only addresses it (URLs, route params)
 7. Error display: `toast.error()` from `react-hot-toast`
 8. Components: PascalCase filenames; Hooks: camelCase with `use` prefix
 9. Airbnb style guide for React/TypeScript

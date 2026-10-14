@@ -28,6 +28,7 @@ export function CustomerList() {
     perPage,
     setPerPage,
     searchTerm,
+    filters,
     setSearchTerm,
     selectedRowKeys,
     setSelectedRowKeys,
@@ -50,7 +51,8 @@ export function CustomerList() {
   const viewQuery = useCustomerDetail(viewUuid);
   const editQuery = useCustomerDetail(editUuid);
   const viewCustomer = viewUuid ? (viewQuery.data ?? null) : null;
-  const isViewLoading = Boolean(viewUuid) && viewQuery.isPending;
+  // The list row that opened the view (or was picked in its left list): names the customer while the full details load.
+  const [viewRow, setViewRow] = useState<Customer | null>(null);
   const selectedCustomer = editUuid ? (editQuery.data ?? null) : null;
   // Any fetch (first load or a refresh of stale details) shows the loader, so a form is never replaced while typing.
   const isEditLoading = isDetailLoading(editQuery, editUuid);
@@ -131,6 +133,7 @@ export function CustomerList() {
     if (!customer.uuid) return;
     if (viewUuid === customer.uuid && viewFailed) viewQuery.refetch();
     setViewUuid(customer.uuid);
+    setViewRow(customer);
     setIsViewOpen(true);
   };
 
@@ -231,11 +234,10 @@ export function CustomerList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen((prev) => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-              filterOpen || searchTerm
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm
                 ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
                 : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -375,7 +377,7 @@ export function CustomerList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading customers" columns={['check', 'text', 'text', 'text', 'text', 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading customers" columns={['check', 'text', 'text', 'text', 'text', 'actions']} />
               ) : customers.length === 0 ? (
                 <TableEmptyRow colSpan={6} label="No customers found." />
               ) : (
@@ -450,12 +452,19 @@ export function CustomerList() {
       {/* View Drawer */}
       <CustomerViewDrawer
         isOpen={isViewOpen && !viewFailed}
-        isLoading={isViewLoading}
         onClose={() => {
           setIsViewOpen(false);
           setViewUuid(null);
         }}
+        uuid={viewUuid}
+        onSelect={(uuid, row) => {
+          setViewUuid(uuid);
+          setViewRow(row);
+        }}
+        row={viewRow}
         data={viewCustomer}
+        pageSize={perPage}
+        seed={customerData && currentPage === 1 && !searchTerm && !Object.values(filters).some(Boolean) ? { items: customers, hasMore: Boolean(meta?.has_more_pages) } : null}
         onEdit={(customer) => {
           setIsViewOpen(false);
           setViewUuid(null);

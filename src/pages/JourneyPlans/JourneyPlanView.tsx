@@ -1,328 +1,170 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, Pencil, Map, ShieldAlert, Calendar, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { CalendarDays, ShieldAlert } from 'lucide-react';
+import type { DayCustomersMap, JourneyPlanCustomerRow, JourneyPlanFullFormData, JourneyPlanFullListResponse } from '../../types/JourneyPlan';
+import { getJourneyPlanList } from '../../api/JourneyPlanApi';
 import { useJourneyPlanDetail } from '../../hooks/JourneyPlans/useJourneyPlans';
-import { Tabs } from '../../components/ui/Tabs';
-import { Card, CardContent, CardHeader } from '../../components/ui/Card';
-import { Skeleton, SkeletonRegion } from '../../components/ui/skeleton';
+import { cachedFirstPage } from '../../lib/recordCache';
+import { EntityViewDrawer } from '../shared/RecordView/EntityViewDrawer';
+import { API_PAGE_SIZE } from '../shared/RecordView/RecordRail';
+import { InfoSection, InfoSectionsSkeleton, PendingValue } from '../shared/RecordView/InfoSection';
+import { RecordTable, type RecordColumn } from '../shared/RecordView/RecordTable';
+import { StatusPill } from '../shared/RecordView/StatusPill';
 
-function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">{label}</dt>
-      <dd className="text-sm font-semibold text-gray-900 dark:text-white">{value}</dd>
-    </div>
-  );
+const fetchPlans = async (page: number, search: string) => {
+  const res = await getJourneyPlanList(page, search || undefined, API_PAGE_SIZE);
+  return { items: res.data, hasMore: page < res.lastPage };
+};
+
+const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+/** One journey plan's customers by day: weeks (empty for a day-wise plan) → days (week start first) → rows. Only weeks / days that have customers. */
+function scheduleOf(dayCustomers: DayCustomersMap | undefined, firstDay?: string) {
+  const start = Math.max(DAYS.indexOf(firstDay ?? 'monday'), 0);
+  const order = [...DAYS.slice(start), ...DAYS.slice(0, start)];
+  const byWeek = new Map<string, Map<string, JourneyPlanCustomerRow[]>>();
+  Object.entries(dayCustomers ?? {}).forEach(([key, rows]) => {
+    if (!rows || rows.length === 0) return;
+    const [week, day] = key.includes('-') ? key.split('-') : ['', key];
+    byWeek.set(week, (byWeek.get(week) ?? new Map()).set(day, rows));
+  });
+  const weeks = [...byWeek.keys()].sort();
+  return { weeks, days: (week: string) => order.filter((d) => byWeek.get(week)?.has(d)), rows: (week: string, day: string) => byWeek.get(week)?.get(day) ?? [] };
 }
 
-function SkeletonDetailItem({ tall = false }: { tall?: boolean }) {
-  // Same 16px label + 4px gap + 20px value (24px for a badge) as the real DetailItem.
-  return (
-    <div>
-      <div className="mb-1 flex h-4 items-center">
-        <Skeleton className="h-3 w-24" />
-      </div>
-      <div className={`flex items-center ${tall ? 'h-6' : 'h-5'}`}>
-        <Skeleton className="h-4 w-32" />
-      </div>
-    </div>
-  );
-}
+const tabCls = (active: boolean) =>
+  `relative shrink-0 cursor-pointer whitespace-nowrap px-3 pb-2 pt-2.5 leading-5 transition-colors ${active ? 'font-semibold text-[var(--rv-accent)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--rv-accent)]' : 'text-[var(--rv-secondary)] hover:text-[var(--rv-ink)]'}`;
 
-/** Shown while the plan loads: toolbar, header (avatar, name, base / merchandiser, customer count), tab bar and Overview cards. */
-function JourneyPlanViewSkeleton() {
-  return (
-    <SkeletonRegion label="Loading journey plan details" className="min-h-[calc(100vh-64px)] bg-gray-50 pb-12 dark:bg-gray-900/50">
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white/80 px-6 py-3 dark:border-gray-800 dark:bg-gray-900/80">
-        <div className="text-sm font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Journey Plan Details</div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-[34px] w-16 rounded-lg" />
-          <Skeleton className="h-[34px] w-20 rounded-lg" />
-        </div>
-      </div>
+/** Schedule & customers: Week 1…5 tabs (week-wise plans), a day tab row beneath, and that day's customers in a scrolling table. */
+function ScheduleSection({ dayCustomers, firstDay }: { dayCustomers?: DayCustomersMap; firstDay?: string }) {
+  const schedule = scheduleOf(dayCustomers, firstDay);
+  const [pickedWeek, setPickedWeek] = useState('');
+  const [pickedDay, setPickedDay] = useState('');
+  const week = schedule.weeks.includes(pickedWeek) ? pickedWeek : (schedule.weeks[0] ?? '');
+  const days = schedule.days(week);
+  const day = days.includes(pickedDay) ? pickedDay : (days[0] ?? '');
+  const rows = schedule.rows(week, day);
 
-      <div className="border-b border-gray-200 bg-white pb-0 pt-8 dark:border-gray-800 dark:bg-gray-800">
-        <div className="mx-auto mb-8 max-w-7xl px-6">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <div className="flex items-center gap-6">
-              <Skeleton className="h-20 w-20 shrink-0 rounded-2xl" />
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-56" />
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-7 w-24 rounded-md" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-              </div>
+  return (
+    <section className="overflow-hidden rounded-[4px] border border-[var(--rv-border)]">
+      <h3 className="flex h-10 items-center bg-[var(--rv-head)] px-[14px] font-semibold text-[var(--rv-text)]">Schedule &amp; Customers</h3>
+      {schedule.weeks.length === 0 ? (
+        <p className="px-[14px] py-8 text-center text-[var(--rv-secondary)]">No customers are scheduled in this plan yet</p>
+      ) : (
+        <>
+          {week && (
+            <div role="tablist" aria-label="Week" className="flex gap-1 overflow-x-auto border-b border-[var(--rv-line)] px-[14px]">
+              {schedule.weeks.map((w) => (
+                <button key={w} type="button" role="tab" aria-selected={w === week} onClick={() => setPickedWeek(w)} className={tabCls(w === week)}>
+                  {w.replace('week', 'Week ')}
+                </button>
+              ))}
             </div>
-            <Skeleton className="h-[62px] w-28 rounded-lg" />
-          </div>
-        </div>
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
-            {['w-16', 'w-40'].map((w) => (
-              <div key={w} className="flex h-11 items-center px-5">
-                <Skeleton className={`h-4 ${w}`} />
-              </div>
+          )}
+          <div role="tablist" aria-label="Day" className="flex gap-1 overflow-x-auto border-b border-[var(--rv-line)] bg-[var(--rv-tint)] px-[14px]">
+            {days.map((d) => (
+              <button key={d} type="button" role="tab" aria-selected={d === day} onClick={() => setPickedDay(d)} className={tabCls(d === day)}>
+                {capitalise(d)}
+                <span className="ml-1.5 rounded-full bg-[var(--rv-accent-soft)] px-1.5 py-0.5 text-xs font-medium text-[var(--rv-accent)]">{schedule.rows(week, d).length}</span>
+              </button>
             ))}
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-6 lg:col-span-2">
-              <Card>
-                <CardHeader title="General Details" />
-                <CardContent className="grid grid-cols-1 gap-6 pb-2 sm:grid-cols-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <SkeletonDetailItem key={i} tall={i === 4} />
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <Card>
-                <CardHeader title="Timing Details" />
-                <CardContent className="space-y-6 pb-2">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <SkeletonDetailItem key={i} />
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
+          <div className="max-h-[60vh] min-h-[320px] overflow-auto">
+            <RecordTable columns={customerColumns} rows={rows} rowKey={(c, i) => c.id || String(i)} emptyLabel="No customers on this day" bare />
           </div>
-        </div>
-      </div>
-    </SkeletonRegion>
+        </>
+      )}
+    </section>
   );
 }
 
+const customerColumns: RecordColumn<JourneyPlanCustomerRow>[] = [
+  { key: 'sequence', label: '#', width: 'w-14', render: (c) => c.sequence },
+  { key: 'customer', label: 'Customer', render: (c) => <span className="font-semibold text-[var(--rv-ink)]">{c.customerName || 'Unknown customer'}</span> },
+  { key: 'code', label: 'Code', render: (c) => c.code || '—' },
+  { key: 'time', label: 'Visit Time', render: (c) => (c.startTime && c.endTime ? `${c.startTime} - ${c.endTime}` : 'All day') },
+  { key: 'msl', label: 'MSL Perform', render: (c) => <StatusPill label={c.mslPerform ? 'Yes' : 'No'} tone={c.mslPerform ? 'success' : 'neutral'} /> },
+];
+
+/** Journey plan view (route /journey-plan/view/:uuid): merged single tab with overview + schedule. */
 export function JourneyPlanView() {
   const navigate = useNavigate();
   const { uuid } = useParams<{ uuid: string }>();
-
   const query = useJourneyPlanDetail(uuid);
+  // The Journey Plan page's own first page from the cache, taken once on opening: the left list starts from it instead of asking again.
+  const queryClient = useQueryClient();
+  const [cached] = useState(() => cachedFirstPage<JourneyPlanFullListResponse>(queryClient, 'journey-plans', (k) => k[1] === 1 && k[2] === ''));
   const data = query.data ?? null;
-  const isLoading = query.isLoading;
-  const isError = query.isError;
-  const error = query.error as { response?: { data?: { message?: string } } } | null;
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
+  // The list row that opened this view (passed in router state): names the plan at once while the full record loads.
+  const stateRow = (useLocation().state as { row?: JourneyPlanFullFormData } | null)?.row;
+  const row = stateRow?.uuid === uuid ? stateRow : undefined;
+  const base = data ?? row;
+  const pend = <PendingValue />;
+  const title = base?.journeyName || null;
+  const days = Object.entries(data?.dayCustomers ?? {}).filter(([, customers]) => customers && customers.length > 0);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
-        setIsMoreOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const content =
+    query.isError && !data && !row ? (
+      <div className="flex flex-col items-center gap-3 py-20 text-[var(--rv-secondary)]">
+        <ShieldAlert className="h-8 w-8 text-[var(--rv-danger)]" />
+        <p>Couldn't load this journey plan.</p>
+      </div>
+    ) : !base ? (
+      <div className="mt-3 space-y-4">
+        <InfoSectionsSkeleton titles={['General Details', 'Timing Details', 'Schedule']} />
+      </div>
+    ) : (
+      <div className="mt-3 space-y-4">
+        {/* ── Overview: the list row's values at once, the rest once the full record arrives ── */}
+        <InfoSection
+          title="General Details"
+          rows={[
+            { label: 'Journey Name', value: base.journeyName },
+            { label: 'Description', value: data ? data.description : pend },
+            { label: 'Plan Base', value: data ? data.journeyPlanBase?.replace('_', ' ') : pend },
+            { label: 'Merchandiser', value: data ? data.merchandiserName : pend },
+            { label: 'Enforced Sequence', value: data ? (data.enforceFlag ? 'Yes' : 'No') : pend },
+            { label: 'Customers', value: data ? days.reduce((n, [, customers]) => n + customers.length, 0) : pend },
+            { label: 'Status', value: <StatusPill label={base.status ? 'Active' : 'Inactive'} tone={base.status ? 'success' : 'neutral'} /> },
+          ]}
+        />
+        <InfoSection
+          title="Timing Details"
+          rows={[
+            { label: 'Start Date', value: base.startDate },
+            { label: 'End Date', value: base.noEnd ? 'No end date' : base.endDate },
+            { label: 'Start Time', value: data ? data.startTime : pend },
+            { label: 'End Time', value: data ? data.endTime : pend },
+          ]}
+        />
 
-  if (isLoading) return <JourneyPlanViewSkeleton />;
-
-  if (isError || !data) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900/50 gap-4">
-        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
-          <ShieldAlert className="w-8 h-8" />
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">{error?.response?.data?.message || 'Failed to load details.'}</p>
-        <button
-          onClick={() => navigate('/journey-plan')}
-          className="mt-2 px-5 py-2 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-        >
-          Back to List
-        </button>
+        {/* ── Schedule & Customers ── */}
+        {data ? <ScheduleSection dayCustomers={data.dayCustomers} firstDay={data.firstDayOfWeek} /> : <InfoSectionsSkeleton titles={['Schedule & Customers']} />}
       </div>
     );
-  }
-
-  const tabs = [
-    {
-      key: 'overview',
-      label: 'Overview',
-      content: (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card hover>
-              <CardHeader title="General Details" />
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-2">
-                <DetailItem label="Journey Name" value={data.journeyName || '—'} />
-                <DetailItem label="Description" value={data.description || '—'} />
-                <DetailItem label="Plan Base" value={data.journeyPlanBase?.replace('_', ' ') || '—'} />
-                <DetailItem label="Merchandiser" value={data.merchandiserName || '—'} />
-                <DetailItem
-                  label="Status"
-                  value={
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${data.status ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}
-                    >
-                      {data.status ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                      {data.status ? 'Active' : 'Inactive'}
-                    </span>
-                  }
-                />
-                <DetailItem label="Enforced Sequence" value={data.enforceFlag ? 'Yes' : 'No'} />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card hover>
-              <CardHeader title="Timing Details" />
-              <CardContent className="space-y-6 pb-2">
-                <DetailItem label="Start Date" value={data.startDate || '—'} />
-                <DetailItem label="End Date" value={data.noEnd ? 'No End Date' : data.endDate || '—'} />
-                <DetailItem label="Start Time" value={data.startTime || '—'} />
-                <DetailItem label="End Time" value={data.endTime || '—'} />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'schedule',
-      label: 'Schedule & Customers',
-      content: (
-        <div className="space-y-6">
-          {data.dayCustomers && Object.keys(data.dayCustomers).length > 0 ? (
-            <div className="space-y-6">
-              {Object.entries(data.dayCustomers).map(([dayKey, customers]: [string, any]) => {
-                if (!customers || customers.length === 0) return null;
-
-                let displayDay = dayKey;
-                if (dayKey.includes('-')) {
-                  const [week, day] = dayKey.split('-');
-                  displayDay = `Week ${week} - ${day.charAt(0).toUpperCase() + day.slice(1)}`;
-                } else {
-                  displayDay = dayKey.charAt(0).toUpperCase() + dayKey.slice(1);
-                }
-
-                return (
-                  <Card key={dayKey} hover>
-                    <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-primary-500" />
-                        {displayDay}
-                      </h3>
-                      <span className="text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-400 px-3 py-1 rounded-full">{customers.length} Customers</span>
-                    </div>
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                      {customers.map((c: any, index: number) => (
-                        <div key={c.id || index} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm">
-                              {c.sequence || index + 1}
-                            </div>
-                            <div>
-                              <div className="text-sm font-bold text-gray-900 dark:text-white">{c.customerName || 'Unknown Customer'}</div>
-                              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">Code: {c.code || '—'}</div>
-                            </div>
-                          </div>
-                          <div className="text-right flex flex-col items-end gap-1">
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300">
-                              <Clock className="w-3.5 h-3.5" />
-                              {c.startTime && c.endTime ? `${c.startTime} - ${c.endTime}` : 'All Day'}
-                            </div>
-                            <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              MSL Perform: <span className={c.mslPerform ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}>{c.mslPerform ? 'Yes' : 'No'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                );
-              })}
-
-              {!Object.values(data.dayCustomers).some((arr: any) => arr && arr.length > 0) && (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
-                  <Map className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No Schedule</h3>
-                  <p>There are no customers scheduled in this plan yet.</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
-              <Map className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No Schedule</h3>
-              <p>No customer data available for this Journey Plan.</p>
-            </div>
-          )}
-        </div>
-      ),
-    },
-  ];
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-gray-900/50 pb-12">
-      {/* Top Toolbar */}
-      <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
-        <div className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Journey Plan Details</div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/journey-plan/edit/${uuid}`)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-          >
-            <Pencil className="w-4 h-4" /> Edit
-          </button>
-
-          <div className="relative" ref={moreRef}>
-            <button
-              onClick={() => setIsMoreOpen(!isMoreOpen)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-            >
-              More <ChevronDown className="w-4 h-4" />
-            </button>
-            {isMoreOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1 overflow-hidden">
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setIsMoreOpen(false)}>
-                  Mark Active
-                </button>
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setIsMoreOpen(false)}>
-                  Mark Inactive
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Header Section */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800 pt-8 pb-0">
-        <div className="px-6 max-w-7xl mx-auto mb-8">
-          <div className="flex flex-col md:flex-row md:items-end gap-6 justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-inner">
-                {data.journeyName ? data.journeyName.substring(0, 2).toUpperCase() : 'JP'}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{data.journeyName || '—'}</h1>
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/50 px-2.5 py-1 rounded-md font-medium">
-                    {data.journeyPlanBase?.replace('_', ' ').toUpperCase() || '—'}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-600"></span>
-                    {data.merchandiserName || 'Unassigned'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <div className="text-center px-4 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
-                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Customers</div>
-                <div className="text-xl font-bold text-gray-900 dark:text-white">{Object.values(data.dayCustomers || {}).reduce((acc: number, arr: any) => acc + (arr?.length || 0), 0)}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs inside Header */}
-        <div className="px-6 max-w-7xl mx-auto">
-          <Tabs tabs={tabs} defaultActiveKey="overview" />
-        </div>
-      </div>
-    </div>
+    <EntityViewDrawer<JourneyPlanFullFormData>
+      isOpen
+      onClose={() => navigate('/journey-plan')}
+      title={title}
+      rail={{
+        queryKey: `journey-plan-${API_PAGE_SIZE}`,
+        seed: cached ? { items: cached.data.data, hasMore: cached.data.currentPage < cached.data.lastPage, updatedAt: cached.updatedAt } : null,
+        placeholder: 'Search Journey Plans',
+        fetchPage: fetchPlans,
+        toCard: (p) => ({ key: p.uuid ?? '', title: p.journeyName, subtitle: p.salesmanName || null, amount: p.status ? 'Active' : 'Inactive' }),
+        selectedKey: uuid,
+        onSelect: (p) => {
+          if (p.uuid) navigate(`/journey-plan/view/${p.uuid}`, { state: { row: p } });
+        },
+      }}
+      onEdit={() => navigate(`/journey-plan/edit/${uuid}`)}
+      editPermission="journey-plan.edit"
+      tabs={[{ key: 'overview', label: 'Overview', icon: CalendarDays, content }]}
+    />
   );
 }

@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import type { InvoiceView } from '../types/DocumentView';
 import type { Invoice, InvoiceFormData, InvoiceListResponse } from '../types/Invoice';
 
 export const getInvoiceList = async (
@@ -27,15 +28,15 @@ export const getInvoiceList = async (
 
   return {
     // InvoiceList.tsx reads invoice.order.order_number / invoice.customer.name /
-    // invoice.total / invoice.date directly — the backend resource returns
-    // orderNumber/customerName/grandTotal/invoiceDate flat, so shape them here
-    // rather than rewriting the (already very defensive) list page.
+    // invoice.total / invoice.date directly — the list resource sends them in that
+    // shape; the flat orderNumber/customerName/grandTotal/invoiceDate keys are the
+    // older payload, kept as a fallback.
     data: (payload.invoices ?? []).map((item: any) => ({
       ...item,
-      order: item.orderNumber ? { order_number: item.orderNumber } : null,
-      customer: item.customerName ? { name: item.customerName } : null,
-      total: item.grandTotal,
-      date: item.invoiceDate,
+      order: item.order ?? (item.orderNumber ? { order_number: item.orderNumber } : null),
+      customer: item.customer ?? (item.customerName ? { name: item.customerName } : null),
+      total: item.total ?? item.grandTotal,
+      date: item.date ?? item.invoiceDate,
       status: item.status ? 'active' : 'inactive',
     })),
     total: payload.total ?? 0,
@@ -45,7 +46,7 @@ export const getInvoiceList = async (
   };
 };
 
-export const getInvoiceDetails = async (uuid: string): Promise<Invoice> => {
+export const getInvoiceDetails = async (uuid: string): Promise<InvoiceView> => {
   const response = await axiosInstance.get(`/invoice/edit/${uuid}`);
   return response.data.data;
 };

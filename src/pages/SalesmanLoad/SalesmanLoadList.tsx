@@ -1,18 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
 import { Pagination } from '../../components/ui/Pagination';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
-
-const salesmanLoadData = [
-  { id: 1, date: '2024-01-15', trip: 'TRIP001', loadPeriodNumber: 'LP-2024-001', orderNumber: 'ORD-001', salesman: 'John Smith', salesmanCode: 'SM001', status: 'Loaded' },
-  { id: 2, date: '2024-01-15', trip: 'TRIP002', loadPeriodNumber: 'LP-2024-002', orderNumber: 'ORD-002', salesman: 'Sarah Johnson', salesmanCode: 'SM002', status: 'Pending' },
-  { id: 3, date: '2024-01-16', trip: 'TRIP003', loadPeriodNumber: 'LP-2024-003', orderNumber: 'ORD-003', salesman: 'Mike Brown', salesmanCode: 'SM003', status: 'Loaded' },
-  { id: 4, date: '2024-01-16', trip: 'TRIP004', loadPeriodNumber: 'LP-2024-004', orderNumber: 'ORD-004', salesman: 'Emily Davis', salesmanCode: 'SM004', status: 'In Progress' },
-  { id: 5, date: '2024-01-17', trip: 'TRIP005', loadPeriodNumber: 'LP-2024-005', orderNumber: 'ORD-005', salesman: 'John Smith', salesmanCode: 'SM001', status: 'Loaded' },
-  { id: 6, date: '2024-01-17', trip: 'TRIP006', loadPeriodNumber: 'LP-2024-006', orderNumber: 'ORD-006', salesman: 'Sarah Johnson', salesmanCode: 'SM002', status: 'Pending' },
-  { id: 7, date: '2024-01-18', trip: 'TRIP007', loadPeriodNumber: 'LP-2024-007', orderNumber: 'ORD-007', salesman: 'Mike Brown', salesmanCode: 'SM003', status: 'Loaded' },
-  { id: 8, date: '2024-01-18', trip: 'TRIP008', loadPeriodNumber: 'LP-2024-008', orderNumber: 'ORD-008', salesman: 'Emily Davis', salesmanCode: 'SM004', status: 'In Progress' },
-];
+import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
+import { DocumentViewDrawer } from '../shared/DocumentViewDrawer';
+import { useEntityDetail } from '../../hooks/useEntityDetail';
+import { useSalesmanLoads, useSalesmanLoadFormOptions } from '../../hooks/SalesmanLoad/useSalesmanLoads';
+import type { SalesmanLoadFormData } from '../../types/SalesmanLoad';
+import type { SalesmanLoadView } from '../../types/DocumentView';
+import { SalesmanLoadAdd } from './SalesmanLoadAdd';
+import { getSalesmanLoadByUuid } from '../../api/SalesmanLoadApi';
+import { salesmanLoadSheet } from '../../utils/documentSheets';
+import { salesmanLoadRail } from '../../utils/documentRails';
 
 interface Column {
   key: string;
@@ -21,10 +20,56 @@ interface Column {
 }
 
 export function SalesmanLoadList() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
-  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { loads, total, isLoading, bulkAction, createLoad, updateLoad, isCreating } = useSalesmanLoads(currentPage, rowsPerPage);
+  const [addOpen, setAddOpen] = useState(false);
+  // The load being edited (null while adding), turned into the form's values once per edit.
+  const [editing, setEditing] = useState<SalesmanLoadView | null>(null);
+  const editValues = useMemo<SalesmanLoadFormData | undefined>(
+    () =>
+      editing
+        ? {
+            loadCode: editing.loadNumber,
+            loadType: editing.loadType ?? '',
+            routeId: editing.routeId ?? '',
+            salesmanId: editing.salesmanId ?? '',
+            loadDate: editing.loadDate ?? '',
+            items: editing.items.map((l) => ({
+              id: '',
+              uuid: l.uuid,
+              itemId: l.itemId ?? '',
+              itemName: l.itemName ?? '',
+              uom: l.uomName ?? '',
+              quantity: l.quantity,
+              requestedQty: l.requestedQty,
+              lowerQty: l.lowerQty,
+              ctnQty: l.ctnQty,
+            })),
+          }
+        : undefined,
+    [editing]
+  );
+  const loadOptions = useSalesmanLoadFormOptions(addOpen);
+  // The row whose details are open in the view drawer (its uuid), and that load's full record.
+  const [viewUuid, setViewUuid] = useState<string | null>(null);
+  const { data: viewed, isLoading: isViewing } = useEntityDetail('salesman-load', getSalesmanLoadByUuid, viewUuid);
+
+  const salesmanLoadData = useMemo(
+    () =>
+      loads.map((l) => ({
+        id: l.uuid,
+        date: l.date ?? '—',
+        trip: l.trip != null ? String(l.trip) : '—',
+        loadPeriodNumber: l.loadPeriodNumber,
+        orderNumber: l.orderNumber ?? '—',
+        salesman: l.salesman ?? '—',
+        salesmanCode: l.salesmanCode ?? '—',
+        status: l.status === 'Confirm' ? 'Confirm' : 'Pending',
+      })),
+    [loads]
+  );
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -69,9 +114,8 @@ export function SalesmanLoadList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(salesmanLoadData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
+  // Pages come from the server; the column filters narrow the loaded page.
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
 
   // Apply filters
   const filteredData = salesmanLoadData.filter(
@@ -101,13 +145,13 @@ export function SalesmanLoadList() {
           .toLowerCase()
           .includes(appliedFilter.salesmanCode.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
+  const currentData = filteredData;
 
   const handleSelectAll = () => {
     setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
   };
 
-  const handleSelectRow = (id: number) => {
+  const handleSelectRow = (id: string) => {
     setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   };
 
@@ -134,15 +178,37 @@ export function SalesmanLoadList() {
   };
 
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => console.log('Delete', selectedRows) },
-    { label: 'Archive Selected', icon: Archive, action: () => console.log('Archive', selectedRows) },
-    { label: 'Update Status', icon: Tag, action: () => console.log('Update Status', selectedRows) },
+    {
+      label: 'Activate Selected',
+      icon: Tag,
+      action: () => {
+        bulkAction({ uuids: selectedRows, action: 'activate' });
+        setSelectedRows([]);
+      },
+    },
+    {
+      label: 'Deactivate Selected',
+      icon: Archive,
+      action: () => {
+        bulkAction({ uuids: selectedRows, action: 'deactivate' });
+        setSelectedRows([]);
+      },
+    },
+    {
+      label: 'Delete Selected',
+      icon: Trash2,
+      action: () => {
+        if (!window.confirm(`Delete ${selectedRows.length} salesman load${selectedRows.length === 1 ? '' : 's'}? This can't be undone.`)) return;
+        bulkAction({ uuids: selectedRows, action: 'delete' });
+        setSelectedRows([]);
+      },
+    },
   ];
 
   const getStatusBadge = (status: string) => {
     const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
     switch (status) {
-      case 'Loaded':
+      case 'Confirm':
         return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400`;
       case 'Pending':
         return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400`;
@@ -237,7 +303,7 @@ export function SalesmanLoadList() {
           </div>
 
           <button
-            onClick={() => console.log('Create new load')}
+            onClick={() => setAddOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -355,13 +421,20 @@ export function SalesmanLoadList() {
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
                 <TableSkeletonRows rows={rowsPerPage} label="Loading salesman loads" columns={['check', ...colsByKey(visibleColumns, { date: 'date', status: 'badge' })]} dense />
+              ) : currentData.length === 0 ? (
+                <TableEmptyRow colSpan={visibleColumns.length + 1} label="No salesman loads found." />
               ) : (
                 currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                  <tr
+                    key={item.id}
+                    onClick={() => setViewUuid(item.id)}
+                    className={`cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
+                  >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(item.id)}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={() => handleSelectRow(item.id)}
                         className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
                       />
@@ -381,7 +454,7 @@ export function SalesmanLoadList() {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          total={salesmanLoadData.length}
+          total={total}
           perPage={rowsPerPage}
           onPageChange={setCurrentPage}
           onPerPageChange={setRowsPerPage}
@@ -483,6 +556,37 @@ export function SalesmanLoadList() {
           </div>
         </div>
       )}
+
+      <SalesmanLoadAdd
+        isOpen={addOpen}
+        onClose={() => {
+          setAddOpen(false);
+          setEditing(null);
+        }}
+        initialData={editValues}
+        onSubmit={async (data) => void (editing ? await updateLoad({ uuid: editing.uuid, data }) : await createLoad(data))}
+        isLoading={isCreating}
+        salesman={loadOptions.salesman}
+        routes={loadOptions.routes}
+        items={loadOptions.items}
+        stockByItem={loadOptions.stockByItem}
+      />
+      <DocumentViewDrawer
+        isOpen={viewUuid !== null}
+        onClose={() => setViewUuid(null)}
+        title="Salesman load"
+        rail={{ ...salesmanLoadRail(rowsPerPage), seed: !isLoading && currentPage === 1 && loads.length > 0 ? { items: loads, hasMore: total > loads.length } : null, selectedKey: viewUuid, onSelect: (row) => setViewUuid(row.uuid ?? null) }}
+        sheet={viewed && salesmanLoadSheet(viewed)}
+        number={loads.find((r) => r.uuid === viewUuid)?.loadPeriodNumber}
+        isLoading={isViewing}
+        editPermission="salesman-load.edit"
+        onEdit={() => {
+          if (!viewed) return;
+          setEditing(viewed);
+          setViewUuid(null);
+          setAddOpen(true);
+        }}
+      />
     </div>
   );
 }

@@ -39,10 +39,35 @@ export const deleteReason = async (uuid: string) => {
 export interface ReasonOption {
   value: number;
   label: string;
+  uuid: string;
 }
 
 export const getReasonOptions = async (): Promise<ReasonOption[]> => {
-  const response = await axiosInstance.get('/reason-type/all?per_page=50');
-  const data = response.data?.reasonTypes ?? [];
-  return data.map((r: { id: number; name?: string }) => ({ value: r.id, label: r.name || '' }));
+  try {
+    const response = await axiosInstance.get('/reason-type/all?per_page=50');
+    const data = response.data?.data ?? response.data?.reasonTypes ?? [];
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map((r: { id: number; uuid: string; name?: string }) => ({ value: r.id, label: r.name || '', uuid: r.uuid }));
+    }
+  } catch {
+    // continue to fallback
+  }
+
+  try {
+    const response = await axiosInstance.get('/reason-type-all');
+    const data = response.data?.data ?? response.data?.reasonTypes ?? [];
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map((r: { id: number; uuid: string; name?: string }) => ({ value: r.id, label: r.name || '', uuid: r.uuid }));
+    }
+  } catch {
+    // continue to fallback
+  }
+
+  try {
+    const response = await axiosInstance.get('/reason-type/list?per_page=50');
+    const data = response.data?.data ?? response.data?.reasonTypes ?? [];
+    return data.map((r: { id: number; uuid: string; name?: string }) => ({ value: r.id, label: r.name || '', uuid: r.uuid }));
+  } catch {
+    return [];
+  }
 };

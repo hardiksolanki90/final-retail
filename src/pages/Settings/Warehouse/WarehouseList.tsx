@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Filter, Plus, Building, Columns3, ChevronDown, Check, Menu, Download, Upload, Pencil, Trash2 } from 'lucide-react';
+import { Boxes, Filter, Plus, Building, Columns3, ChevronDown, Check, Menu, Download, Upload, Pencil, Trash2 } from 'lucide-react';
 import { WarehouseAdd } from './WarehouseAdd';
 import { Pagination } from '../../../components/ui/Pagination';
 import { TableSkeletonRows, colsByKey } from '../../../components/ui/skeleton';
 import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { useWarehouse } from '../../../providers/WarehouseProvider';
+import { SettingViewDrawer, type SettingExtraTab, type SettingRow } from '../../shared/SettingViewDrawer';
+import { WarehouseStockTab } from './WarehouseStockTab';
+import { warehouseView } from '../settingViews';
+
+/** The warehouse view's extra tab: what is on hand here (needs `stock.view`). */
+const STOCK_TAB: SettingExtraTab = { key: 'stock', label: 'Stock', icon: Boxes, permission: 'stock.view', render: (record) => <WarehouseStockTab warehouseId={Number(record.id)} warehouseName={String(record.name ?? '')} /> };
 
 interface Column {
     key: string;
@@ -13,6 +19,7 @@ interface Column {
 }
 
 export function WarehouseList() {
+    const [viewing, setViewing] = useState<SettingRow | null>(null);
     const {
         data: warehouses,
         meta,
@@ -249,17 +256,16 @@ export function WarehouseList() {
                         </thead>
                         <tbody className="divide-y divide-[var(--border-color)]">
                             {isLoading ? (
-                                <TableSkeletonRows rows={perPage} label="Loading warehouses" columns={['check', ...colsByKey(visibleColumns, { isMain: 'badge', status: 'badge' }), 'actions']} />
+                                <TableSkeletonRows rows={10} label="Loading warehouses" columns={['check', ...colsByKey(visibleColumns, { isMain: 'badge', status: 'badge' }), 'actions']} />
                             ) : warehouses.length === 0 ? (
                                 <TableEmptyRow colSpan={visibleColumns.length + 2} label="No warehouses found." />
                             ) : (
                                 warehouses.map((item) => {
                                     const id = item.uuid;
                                     return (
-                                        <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                                            <td className="px-4 py-4 whitespace-nowrap">
-                                                <input
-                                                    type="checkbox"
+                                        <tr key={id} onClick={() => setViewing(item as unknown as SettingRow)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                                            <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
+                                                <input type="checkbox"
                                                     checked={selectedRowKeys.includes(id)}
                                                     onChange={() => handleSelectRow(id)}
                                                     className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
@@ -270,7 +276,7 @@ export function WarehouseList() {
                                                     {getCellValue(item, col.key)}
                                                 </td>
                                             ))}
-                                            <td className="px-4 py-4 whitespace-nowrap">
+                                            <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
@@ -297,6 +303,8 @@ export function WarehouseList() {
                 </div>
                 <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
             </div>
+
+            <SettingViewDrawer config={warehouseView} pageSize={perPage} seed={meta && currentPage === 1 && !searchTerm ? { items: warehouses as unknown as SettingRow[], hasMore: totalPages > 1 } : null} isOpen={viewing !== null} onClose={() => setViewing(null)} data={viewing} onSelect={setViewing} onEdit={() => { if (viewing) handleEditClick(viewing); setViewing(null); }} extraTabs={[STOCK_TAB]} />
 
             <WarehouseAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} onSubmit={handleSaved} initialData={editingItem} />
         </div>

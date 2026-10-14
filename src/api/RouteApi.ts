@@ -37,14 +37,15 @@ export const deleteRoute = async (uuid: string) => {
   showToast.success('Route deleted successfully');
 };
 
-export const getRouteOptions = async (areaId?: number | string, depotId?: number | string): Promise<{ value: number; label: string }[]> => {
+export const getRouteOptions = async (areaId?: number | string, depotId?: number | string): Promise<{ value: number; label: string; uuid: string }[]> => {
   const params = new URLSearchParams();
   params.append('per_page', '50');
   if (areaId) params.append('area_id', areaId.toString());
   if (depotId) params.append('depot_id', depotId.toString());
   const response = await axiosInstance.get(`/route/all?${params.toString()}`);
-  return (response.data?.routes ?? []).map((r: { id: number; code?: string; routeName?: string }) => ({
+  return (response.data?.routes ?? []).map((r: { id: number; uuid: string; code?: string; routeName?: string }) => ({
     value: r.id,
+    uuid: r.uuid,
     label: r.code ? `${r.code} - ${r.routeName ?? ''}` : (r.routeName ?? String(r.id)),
   }));
 };

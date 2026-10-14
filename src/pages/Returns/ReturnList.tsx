@@ -1,18 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
-import { ReturnAdd } from './ReturnAdd';
+import axiosInstance from '../../lib/axios';
 import { Pagination } from '../../components/ui/Pagination';
 import { useMoney } from '../../hooks/Currency/useMoney';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
-
-const returnsData = [
-  { id: 1, returnNo: 'RET001', orderNo: 'ORD001', customer: 'Acme Corp', date: '2024-07-15', items: 3, amount: 450.0, reason: 'Defective', status: 'Processed' },
-  { id: 2, returnNo: 'RET002', orderNo: 'ORD003', customer: 'Global Trade', date: '2024-07-14', items: 1, amount: 89.5, reason: 'Wrong Size', status: 'Pending' },
-  { id: 3, returnNo: 'RET003', orderNo: 'ORD005', customer: 'Fresh Foods', date: '2024-07-13', items: 5, amount: 156.0, reason: 'Expired', status: 'Processed' },
-  { id: 4, returnNo: 'RET004', orderNo: 'ORD007', customer: 'Metro Dist.', date: '2024-07-12', items: 2, amount: 320.0, reason: 'Damaged', status: 'Rejected' },
-  { id: 5, returnNo: 'RET005', orderNo: 'ORD002', customer: 'Tech Solutions', date: '2024-07-11', items: 1, amount: 545.0, reason: 'Not as Described', status: 'Pending' },
-  { id: 6, returnNo: 'RET006', orderNo: 'ORD004', customer: 'Retail Mart', date: '2024-07-10', items: 4, amount: 210.0, reason: 'Customer Request', status: 'Processed' },
-];
 
 interface Column {
   key: string;
@@ -21,11 +14,28 @@ interface Column {
 }
 
 export function ReturnList() {
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<(string | number)[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
-  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
+  const { data: apiResponse, isLoading, refetch } = useQuery({
+    queryKey: ['return-list', currentPage, rowsPerPage],
+    queryFn: async () => {
+      try {
+        const res = await axiosInstance.get(`/return/list?page=${currentPage}&per_page=${rowsPerPage}`);
+        const rows = res.data?.returns || res.data?.data || [];
+        return {
+          rows: Array.isArray(rows) ? rows : [],
+          total: res.data?.pagination?.total ?? res.data?.total ?? rows.length,
+          lastPage: res.data?.pagination?.lastPage ?? res.data?.last_page ?? 1,
+        };
+      } catch (err) {
+        console.warn('API /return/list error:', err);
+        return { rows: [], total: 0, lastPage: 1 };
+      }
+    },
+    staleTime: 30 * 1000,
+  });
+
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -65,19 +75,19 @@ export function ReturnList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(returnsData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
+  const sourceData: any[] = apiResponse?.rows ?? [];
+  const totalCount = apiResponse?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
 
   // Apply filters
-  const filteredData = returnsData.filter(
-    (c) =>
+  const currentData = sourceData.filter(
+    (c: any) =>
       (!appliedFilter.returnNo ||
-        String(c.returnNo ?? '')
+        String(c.returnNo ?? c.returnNumber ?? '')
           .toLowerCase()
           .includes(appliedFilter.returnNo.toLowerCase())) &&
       (!appliedFilter.orderNo ||
-        String(c.orderNo ?? '')
+        String(c.orderNo ?? c.invoiceNo ?? '')
           .toLowerCase()
           .includes(appliedFilter.orderNo.toLowerCase())) &&
       (!appliedFilter.customer ||
@@ -85,7 +95,7 @@ export function ReturnList() {
           .toLowerCase()
           .includes(appliedFilter.customer.toLowerCase())) &&
       (!appliedFilter.date ||
-        String(c.date ?? '')
+        String(c.date ?? c.returnDate ?? '')
           .toLowerCase()
           .includes(appliedFilter.date.toLowerCase())) &&
       (!appliedFilter.items ||
@@ -93,14 +103,13 @@ export function ReturnList() {
           .toLowerCase()
           .includes(appliedFilter.items.toLowerCase())) &&
       (!appliedFilter.amount ||
-        String(c.amount ?? '')
+        String(c.amount ?? c.finalTotal ?? '')
           .toLowerCase()
           .includes(appliedFilter.amount.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
 
-  const handleSelectAll = () => setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
-  const handleSelectRow = (id: number) => setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
+  const handleSelectAll = () => setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item: any) => item.uuid || item.id));
+  const handleSelectRow = (id: string | number) => setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   const visibleColumns = columns.filter((col) => col.visible);
 
@@ -120,23 +129,71 @@ export function ReturnList() {
   };
 
   const bulkActions = [
-    { label: 'Delete Selected', icon: Trash2, action: () => console.log('Delete', selectedRows) },
-    { label: 'Archive Selected', icon: Archive, action: () => console.log('Archive', selectedRows) },
-    { label: 'Update Status', icon: Tag, action: () => console.log('Update Status', selectedRows) },
+    {
+      label: 'Delete Selected',
+      icon: Trash2,
+      action: async () => {
+        if (!selectedRows.length) return;
+        try {
+          await axiosInstance.post('/return/bulk-action', {
+            action: 'delete',
+            uuids: selectedRows.map(String),
+          });
+          setSelectedRows([]);
+          refetch();
+        } catch (err) {
+          console.error('Bulk delete failed:', err);
+        }
+      },
+    },
+    {
+      label: 'Activate Selected',
+      icon: Check,
+      action: async () => {
+        if (!selectedRows.length) return;
+        try {
+          await axiosInstance.post('/return/bulk-action', {
+            action: 'activate',
+            uuids: selectedRows.map(String),
+          });
+          setSelectedRows([]);
+          refetch();
+        } catch (err) {
+          console.error('Bulk activate failed:', err);
+        }
+      },
+    },
+    {
+      label: 'Deactivate Selected',
+      icon: Tag,
+      action: async () => {
+        if (!selectedRows.length) return;
+        try {
+          await axiosInstance.post('/return/bulk-action', {
+            action: 'deactivate',
+            uuids: selectedRows.map(String),
+          });
+          setSelectedRows([]);
+          refetch();
+        } catch (err) {
+          console.error('Bulk deactivate failed:', err);
+        }
+      },
+    },
   ];
 
   const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 text-xs font-medium ';
-    switch (status) {
-      case 'Processed':
-        return `${baseClasses} `;
-      case 'Pending':
-        return `${baseClasses} `;
-      case 'Rejected':
-        return `${baseClasses} `;
-      default:
-        return `${baseClasses} `;
+    const s = String(status || '').toLowerCase();
+    if (s === 'processed' || s === 'completed' || s === 'approved') {
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300';
     }
+    if (s === 'pending') {
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300';
+    }
+    if (s === 'rejected') {
+      return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300';
+    }
+    return 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
   };
 
   const { format: formatCurrency } = useMoney();
@@ -182,11 +239,10 @@ export function ReturnList() {
           {/* Filter Button */}
           <button
             onClick={() => setFilterOpen((prev) => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || Object.values(appliedFilter).some(Boolean)
+              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+              : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -221,15 +277,13 @@ export function ReturnList() {
               </div>
             )}
           </div>
-          <button
-            onClick={() => setIsAddOpen(true)}
+          <Link
+            to="/return/add"
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Create
-          </button>
-
-          <ReturnAdd isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+          </Link>
 
           <div className="relative" ref={moreActionsRef}>
             <button
@@ -339,35 +393,53 @@ export function ReturnList() {
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
                 <TableSkeletonRows rows={rowsPerPage} label="Loading returns" columns={['check', ...colsByKey(visibleColumns, { date: 'date', status: 'badge' })]} dense />
+              ) : currentData.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="px-6 py-12 text-center text-sm text-[var(--text-muted)]">
+                    No returns found
+                  </td>
+                </tr>
               ) : (
-                currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.includes(item.id)}
-                        onChange={() => handleSelectRow(item.id)}
-                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                      />
-                    </td>
-                    {visibleColumns.map((column) => (
-                      <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                        {column.key === 'status' ? (
-                          <span className={getStatusBadge(item.status)}>{item.status}</span>
-                        ) : column.key === 'amount' ? (
-                          formatCurrency(item.amount)
-                        ) : (
-                          item[column.key as keyof typeof item]
-                        )}
+                currentData.map((item: any) => {
+                  const rowId = item.uuid || item.id;
+                  const isSelected = selectedRows.includes(rowId);
+                  return (
+                    <tr key={rowId} className={`hover:bg-[var(--bg-secondary)] transition-colors ${isSelected ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleSelectRow(rowId)}
+                          className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
+                        />
                       </td>
-                    ))}
-                  </tr>
-                ))
+                      {visibleColumns.map((column) => (
+                        <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
+                          {column.key === 'returnNo' ? (
+                            item.uuid ? (
+                              <Link to={`/return/edit/${item.uuid}`} className="font-semibold text-primary-600 hover:text-primary-700 hover:underline">
+                                {item.returnNo || item.returnNumber}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-[var(--text-primary)]">{item.returnNo || item.returnNumber}</span>
+                            )
+                          ) : column.key === 'status' ? (
+                            <span className={getStatusBadge(item.status)}>{item.status}</span>
+                          ) : column.key === 'amount' ? (
+                            formatCurrency(Number(item.amount ?? item.finalTotal ?? 0))
+                          ) : (
+                            item[column.key as keyof typeof item] ?? '-'
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-        <Pagination currentPage={currentPage} totalPages={totalPages} total={returnsData.length} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={totalCount} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
 
       {exportModalOpen && (

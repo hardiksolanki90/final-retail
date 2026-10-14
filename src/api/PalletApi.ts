@@ -16,3 +16,5 @@ export const createPallet = async (data: AddPalletFormData): Promise<unknown> =>
   const response = await axiosInstance.post('/pallet/add', data);
   return response.data.data;
 };
+
+export const getPalletDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/pallet/edit/${uuid}`)).data.data;

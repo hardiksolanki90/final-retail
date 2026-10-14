@@ -56,6 +56,13 @@ const toItemOption = (it: { value: string; label: string; code?: string | null; 
   uoms: (it.uoms ?? []).map((u) => ({ value: u.id, label: [u.code, u.name].filter(Boolean).join(' - '), isBase: u.isBase })),
 });
 
+/** Exactly these items as dropdown options (an edit form's saved lines), however far down the list they'd sit. */
+export const getItemsByUuids = async (uuids: string[]): Promise<ItemSelectOption[]> => {
+  if (uuids.length === 0) return [];
+  const response = await axiosInstance.get(`/item/all?uuids=${uuids.join(',')}`);
+  return (response.data?.data ?? []).map(toItemOption);
+};
+
 /**
  * One searchable page of item options (by code, name or barcode) for a dropdown that loads as it
  * scrolls. Page 1 is shared between every dropdown on a form — one request, cached a minute;

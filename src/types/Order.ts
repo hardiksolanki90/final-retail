@@ -19,7 +19,10 @@ export interface Order {
   billingAddress?: string;
   createdAt?: string;
   updatedAt?: string;
-  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string; customerCode: string };
+  customer?: { id?: number; uuid?: string; firstName: string; lastName: string; shopName?: string; name?: string; customerCode: string };
+  /** List rows (GET …/list) also carry the document date and grand total. */
+  date?: string | null;
+  total?: number | null;
   salesman?: { id?: number; uuid?: string; firstName: string; lastName: string };
   orderDetails?: OrderDetail[];
 }
@@ -81,4 +84,73 @@ export interface OrderListResponse {
   lastPage: number;
   nextPage?: number;
   prevPage?: number;
+}
+
+/** One line of GET /order/edit/{uuid} (OrderDetailResource). */
+export interface OrderViewLine {
+  uuid?: string;
+  itemId: string;
+  itemUomId?: string | null;
+  /** Delivery lines: the reason; credit / debit note lines: the reason text. */
+  reasonId?: string | null;
+  reason?: string | null;
+  itemName?: string | null;
+  itemCode?: string | null;
+  uomName?: string | null;
+  quantity: number;
+  price: number;
+  discount: number;
+  vat: number;
+  excise: number;
+  net: number;
+  total: number;
+  isFree: boolean;
+  taxes: { code: string; name: string; rate: number | null; amount: number }[];
+  /** Order lines: how much of the line is on deliveries, and how much is still left to deliver. */
+  deliveredQty?: number;
+  openQty?: number;
+  /** Delivery lines converted from an order: that order line, how much was ordered, and the most this line can be. */
+  orderLineUuid?: string | null;
+  orderedQty?: number | null;
+  maxQty?: number | null;
+  /** Which pricing / discount / promotion plan priced this line (orders only). */
+  pricingPlanName?: string | null;
+  discountPlanName?: string | null;
+  promotionPlanName?: string | null;
+}
+
+/** GET /order/edit/{uuid} (OrderView): one saved order with its names resolved. */
+export interface OrderView {
+  uuid: string;
+  /** Still pending, so it can be edited (the update API enforces the same rule). */
+  editable?: boolean;
+  customerId?: string | null;
+  salesmanId?: string | null;
+  paymentTermId?: string | null;
+  orderNumber: string;
+  orderTypeId?: number | null;
+  orderDate?: string | null;
+  dueDate?: string | null;
+  deliveryDate?: string | null;
+  customerName?: string | null;
+  customerCode?: string | null;
+  salesmanName?: string | null;
+  paymentTermName?: string | null;
+  paymentTermDays?: number | null;
+  routeId?: string | null;
+  routeName?: string | null;
+  warehouseId?: string | null;
+  warehouseName?: string | null;
+  depotName?: string | null;
+  notes?: string | null;
+  currentStage?: string | null;
+  approvalStatus?: string | null;
+  totalQty: number;
+  totalGross: number;
+  totalDiscountAmount: number;
+  totalNet: number;
+  totalVat: number;
+  totalExcise: number;
+  grandTotal: number;
+  items: OrderViewLine[];
 }

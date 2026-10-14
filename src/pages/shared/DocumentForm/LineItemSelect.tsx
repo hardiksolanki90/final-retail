@@ -12,12 +12,15 @@ interface BodyProps {
   disabled?: boolean;
   error?: string;
   remember: (options: SelectOption[]) => void;
+  /** Items already loaded (an edit form's saved lines): the selected one keeps its label even when the first page doesn't include it. */
+  known?: SelectOption[];
 }
 
-function LineItemSelectBody({ name, value, onChange, onBlur, disabled, error, remember }: BodyProps) {
+function LineItemSelectBody({ name, value, onChange, onBlur, disabled, error, remember, known }: BodyProps) {
   const select = useInfiniteSelect({
     enabled: !disabled,
     selectedValue: value,
+    initialOption: known?.find((option) => String(option.value) === value) ?? null,
     fetchPage: async (page, search) => {
       const res = await getItemOptions(page, search || undefined);
       return { items: res.data, hasMore: res.meta.has_more_pages };
@@ -48,7 +51,19 @@ function LineItemSelectBody({ name, value, onChange, onBlur, disabled, error, re
 }
 
 /** A document line's item dropdown: searches the server and loads more as you scroll. */
-export function LineItemSelect<T extends FieldValues>({ control, name, disabled, remember }: { control: Control<T>; name: Path<T>; disabled?: boolean; remember: (options: SelectOption[]) => void }) {
+export function LineItemSelect<T extends FieldValues>({
+  control,
+  name,
+  disabled,
+  remember,
+  known,
+}: {
+  control: Control<T>;
+  name: Path<T>;
+  disabled?: boolean;
+  remember: (options: SelectOption[]) => void;
+  known?: SelectOption[];
+}) {
   return (
     <Controller
       control={control}
@@ -62,6 +77,7 @@ export function LineItemSelect<T extends FieldValues>({ control, name, disabled,
           disabled={disabled}
           error={fieldState.error?.message}
           remember={remember}
+          known={known}
         />
       )}
     />

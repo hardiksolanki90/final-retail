@@ -88,3 +88,5 @@ export const deleteCountry = async (uuid: string) => {
   await axiosInstance.delete(`/country/delete/${uuid}`);
   showToast.success('Country deleted successfully');
 };
+
+export const getCountryDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/country/view/${uuid}`)).data.data;

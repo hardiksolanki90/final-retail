@@ -1,4 +1,5 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
+import { retryTransient } from '../lib/queryClient';
 
 /** How long one record's details count as fresh — reopening inside this window sends no request. */
 export const DETAIL_STALE_MS = 2 * 60 * 1000;
@@ -12,7 +13,7 @@ export const detailKey = (entity: string) => `${entity}-detail`;
  * Invalidate with `queryClient.invalidateQueries({ queryKey: [detailKey(entity)] })` after a save.
  */
 export function useEntityDetail<T>(entity: string, fetcher: (uuid: string) => Promise<T>, uuid: string | null | undefined) {
-    return useQuery({ queryKey: [detailKey(entity), uuid ?? null], queryFn: () => fetcher(uuid as string), enabled: Boolean(uuid), staleTime: DETAIL_STALE_MS, refetchOnWindowFocus: false, retry: 1 });
+    return useQuery({ queryKey: [detailKey(entity), uuid ?? null], queryFn: () => fetcher(uuid as string), enabled: Boolean(uuid), staleTime: DETAIL_STALE_MS, refetchOnWindowFocus: false, retry: retryTransient(1) });
 }
 
 /** After a create / update / delete / bulk action: refresh the entity's list and drop its cached details. */

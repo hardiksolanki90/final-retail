@@ -40,3 +40,5 @@ export const getCurrencyMasterList = async (page = 1, perPage = 20, searchTerm?:
   const response = await axiosInstance.get(`/currency-master/all?${params.toString()}`);
   return unwrapPaginated(response.data, 'currencyMasters', perPage);
 };
+
+export const getCurrencyDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/currency/view/${uuid}`)).data.data;

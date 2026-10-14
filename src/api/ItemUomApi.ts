@@ -35,3 +35,5 @@ export const deleteItemUom = async (uuid: string) => {
   await axiosInstance.delete(`/item-uom/delete/${uuid}`);
   showToast.success('UOM deleted successfully');
 };
+
+export const getItemUomDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/item-uom/view/${uuid}`)).data.data;

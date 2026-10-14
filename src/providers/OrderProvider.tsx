@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrderList, deleteOrder, createOrder, updateOrder, getOrderDetails, getOrderSummary, updateOrderStatus, cancelOrder, bulkUpdateOrderStatus, bulkOrderAction } from '../api/OrderApi';
+import { getOrderList, deleteOrder, createOrder, updateOrder, getOrderDetails, updateOrderStatus, cancelOrder, bulkUpdateOrderStatus, bulkOrderAction } from '../api/OrderApi';
 import { showToast } from '../lib/toast';
-import type { Order, OrderFormData, OrderListResponse } from '../types/Order';
+import type { Order, OrderFormData, OrderListResponse, OrderView } from '../types/Order';
 import type { ColumnSearchStates, PaginationData } from '../types/Common';
 
 interface OrderContextType {
@@ -42,15 +42,10 @@ interface OrderContextType {
   closeOrderDrawer: () => void;
 
   // Drawer data
-  orderDetails: Order | undefined;
+  orderDetails: OrderView | undefined;
   isLoadingDetails: boolean;
-  orderSummaryData: unknown;
-  isLoadingSummary: boolean;
 
   // Tab state
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  handleTabChange: (tab: string) => void;
 
   // Bulk actions
   selectedRowKeys: string[];
@@ -130,7 +125,6 @@ export default function OrderProvider({ children }: OrderProviderProps) {
   });
 
   // Tab state
-  const [activeTab, setActiveTab] = useState('details');
 
   // Order list query with filters
   const {
@@ -148,16 +142,9 @@ export default function OrderProvider({ children }: OrderProviderProps) {
   const { data: orderDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['order-details', selectedOrderForDrawer?.uuid],
     queryFn: () => getOrderDetails(selectedOrderForDrawer?.uuid!),
-    enabled: !!selectedOrderForDrawer?.uuid && activeTab === 'details',
+    enabled: !!selectedOrderForDrawer?.uuid,
     staleTime: 5 * 60 * 1000,
-  });
-
-  // Order summary query
-  const { data: orderSummaryData, isLoading: isLoadingSummary } = useQuery({
-    queryKey: ['order-summary', selectedOrderForDrawer?.uuid],
-    queryFn: () => getOrderSummary(selectedOrderForDrawer?.uuid!),
-    enabled: !!selectedOrderForDrawer?.uuid && activeTab === 'summary',
-    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Mutations
@@ -304,14 +291,9 @@ export default function OrderProvider({ children }: OrderProviderProps) {
     setColumnSearchStates((prev) => ({ ...prev, [column]: { isOpen: false, value: '' } }));
   };
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-
   const openOrderDrawer = (order: Order) => {
     setSelectedOrderForDrawer(order);
     setIsOrderDrawerVisible(true);
-    setActiveTab('details');
   };
 
   const closeOrderDrawer = () => {
@@ -396,11 +378,6 @@ export default function OrderProvider({ children }: OrderProviderProps) {
     closeOrderDrawer,
     orderDetails,
     isLoadingDetails,
-    orderSummaryData,
-    isLoadingSummary,
-    activeTab,
-    setActiveTab,
-    handleTabChange,
     selectedRowKeys,
     setSelectedRowKeys,
     bulkActionValue,

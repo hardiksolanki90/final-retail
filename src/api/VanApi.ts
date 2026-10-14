@@ -38,12 +38,13 @@ export const deleteVan = async (uuid: string) => {
 export interface VanOption {
   value: number;
   label: string;
+  uuid: string;
 }
 
 export const getVanOptions = async (): Promise<VanOption[]> => {
   const response = await axiosInstance.get('/van/all?per_page=50');
   const data = response.data?.vans ?? [];
-  return data.map((v: { id: number; vanCode?: string; plateNumber?: string }) => ({ value: v.id, label: `${v.vanCode || ''} - ${v.plateNumber || ''}`.replace(/^ - | - $/g, '') }));
+  return data.map((v: { id: number; uuid: string; vanCode?: string; plateNumber?: string }) => ({ value: v.id, uuid: v.uuid, label: `${v.vanCode || ''} - ${v.plateNumber || ''}`.replace(/^ - | - $/g, '') }));
 };
 
 export interface VanTypeOption {

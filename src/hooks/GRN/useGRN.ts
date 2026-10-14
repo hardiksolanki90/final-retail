@@ -55,7 +55,7 @@ export function useGRNFormOptions() {
     return {
         warehouses: warehousesQuery.data ?? [],
         items: itemsQuery.data ?? [],
-        reasons: reasonsQuery.data ?? [],
+        reasons: (reasonsQuery.data ?? []).map((r) => ({ value: r.uuid, label: r.label })),
         isLoading: warehousesQuery.isLoading || itemsQuery.isLoading || reasonsQuery.isLoading,
     };
 }
@@ -79,6 +79,7 @@ export function useGRNMutations() {
         onSuccess: () => {
             showToast.success('GRN updated successfully!');
             queryClient.invalidateQueries({ queryKey: ['grn'] });
+            queryClient.invalidateQueries({ queryKey: ['grn-detail'] });
         },
         onError: (error: any) => {
             showToast.error(error.response?.data?.message || 'Failed to update GRN');

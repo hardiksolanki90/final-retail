@@ -8,6 +8,9 @@ import { createPallet } from '../../api/PalletApi';
 import { showToast } from '../../lib/toast';
 import type { AddPalletFormData } from '../../types/Pallet';
 import { usePallets, usePalletFormOptions } from '../../hooks/Pallet/usePallets';
+import { SettingViewDrawer, type SettingRow } from '../shared/SettingViewDrawer';
+import { palletView } from '../Settings/settingViews';
+import { API_PAGE_SIZE } from '../shared/RecordView/RecordRail';
 
 interface Column {
   key: string;
@@ -16,6 +19,7 @@ interface Column {
 }
 
 export function PalletList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -361,8 +365,8 @@ export function PalletList() {
                 <TableEmptyRow colSpan={visibleColumns.length + 1} label="No pallet records yet." />
               ) : (
                 currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                    <td className="px-4 py-3">
+                  <tr key={item.id} onClick={() => setViewing(item as unknown as SettingRow)} className={`cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                    <td onClick={(e) => e.stopPropagation()} className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(item.id)}
@@ -384,6 +388,8 @@ export function PalletList() {
 
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
+
+      <SettingViewDrawer config={palletView} pageSize={API_PAGE_SIZE} seed={!isLoading && currentPage === 1 && pallets.length > 0 ? { items: pallets as unknown as SettingRow[], hasMore: total > pallets.length } : null} isOpen={viewing !== null} onClose={() => setViewing(null)} data={viewing} onSelect={setViewing} />
 
       <PalletAdd
         isOpen={isAddOpen}

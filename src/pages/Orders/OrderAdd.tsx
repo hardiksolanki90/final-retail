@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
 import { ShoppingCart, Gift } from 'lucide-react';
 import type { SelectOption } from '../../components/ui/Select';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
-import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
+import { useDocumentNumber } from '../../hooks/CodeSetting/useDocumentNumber';
 import { useCreateOrder, useOrderFormOptions, usePdpPromotions } from '../../hooks/useOrderForm';
 import { usePdpLinePreview } from '../../hooks/usePdpLinePreview';
 import type { PdpPromotion } from '../../types/PdpResolution';
@@ -37,8 +37,16 @@ import { PdpDiscountCell, PdpPriceCell } from '../shared/DocumentForm/PdpLineCel
 import { useMoney } from '../../hooks/Currency/useMoney';
 import { computeLine, sumLines } from '../../utils/documentMath';
 import { useLineTaxRates } from '../../hooks/Tax/useLineTaxRates';
+import { useDocumentEditing } from '../../hooks/useDocumentEditing';
+import { documentTypeLabel } from '../../constants/documentTypes';
+import { ensureOption, toFormLine } from '../../utils/documentEdit';
+import { DocumentEditSkeleton } from '../shared/DocumentForm/EditSkeleton';
+import { getOrderDetails } from '../../api/OrderApi';
+import type { OrderView } from '../../types/Order';
+import { useUpdateDocument } from '../../hooks/useDocumentForm';
+import { usePresetCustomer } from '../../hooks/usePresetCustomer';
 
-type OrderItem = { id: string; itemId: string; uom: string; quantity: number; price: number; discount: number; vat: number; net: number; excise: number; total: number };
+type OrderItem = { id: string; uuid?: string; itemId: string; uom: string; quantity: number; price: number; discount: number; vat: number; net: number; excise: number; total: number };
 
 type OrderFormFields = {
   orderType: string;
@@ -84,9 +92,48 @@ export function OrderAdd() {
   const createOrder = useCreateOrder();
 
   const navigate = useNavigate();
-  const [codeLocked, setCodeLocked] = useState(false);
+  const { uuid } = useParams<{ uuid: string }>();
+  const isEdit = Boolean(uuid);
+  const preset = usePresetCustomer(isEdit);
 
-  const { control, register, handleSubmit, setValue, getValues, watch } = useForm<OrderFormFields>({ defaultValues });
+  const { control, register, handleSubmit, setValue, getValues, watch, reset, formState } = useForm<OrderFormFields>({
+    defaultValues: preset ? { ...defaultValues, customerId: preset.id } : defaultValues,
+  });
+  const { manual: manualNumbering, locked: codeLocked, reserve: reserveNumber } = useDocumentNumber('order', (value) => setValue('orderNumber', value), !isEdit);
+
+  const { isLoading: loadingSaved, saved } = useDocumentEditing<OrderView, OrderFormFields>({
+    label: 'order',
+    uuid,
+    fetcher: getOrderDetails,
+    toForm: (saved) => ({
+      orderType: documentTypeLabel(saved.orderTypeId) ?? 'Cash',
+      customerId: saved.customerId ?? '',
+      salesmanId: saved.salesmanId ?? '',
+      orderNumber: saved.orderNumber,
+      deliveryDate: saved.deliveryDate ?? '',
+      paymentTerms: saved.paymentTermId ?? '',
+      dueDate: saved.dueDate ?? '',
+      notes: saved.notes ?? '',
+      items: saved.items.map(toFormLine),
+      grossTotal: saved.totalGross,
+      vat: saved.totalVat,
+      excise: saved.totalExcise,
+      netTotal: saved.totalNet,
+      discount: saved.totalDiscountAmount,
+      finalTotal: saved.grandTotal,
+    }),
+    reset,
+    remember: rememberItems,
+    listPath: '/order',
+  });
+  const updateDoc = useUpdateDocument('order', 'Order');
+  const customersWithSaved = ensureOption(
+    customers,
+    saved?.customerId ?? preset?.id,
+    saved ? (saved.customerCode && saved.customerName ? `${saved.customerCode} - ${saved.customerName}` : saved.customerName) : preset?.label
+  );
+  const salesmenWithSaved = ensureOption(salesmen, saved?.salesmanId, saved?.salesmanName);
+  const paymentTermsWithSaved = ensureOption(paymentTerms, saved?.paymentTermId, saved?.paymentTermName);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchedItems = useWatch({ control, name: 'items' });
@@ -106,7 +153,7 @@ export function OrderAdd() {
 
   // ── PDP preview ────────────────────────────────────────────────────────────
   const customerId = useWatch({ control, name: 'customerId' });
-  const resolutions = usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
+  usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
 
   // Promotions sum buy qty across lines, so they're previewed for the whole
   // basket (debounced), shown under the last line that fed each one.
@@ -164,13 +211,9 @@ export function OrderAdd() {
 
   const onSubmit = async (formData: OrderFormFields) => {
     try {
-      const orderNumber = await reserveCodeIfAuto('order', formData.orderNumber);
-      if (orderNumber !== formData.orderNumber) {
-        setValue('orderNumber', orderNumber ?? '');
-        setCodeLocked(true);
-      }
+      const orderNumber = isEdit ? formData.orderNumber : await reserveNumber(formData.orderNumber);
 
-      await createOrder.mutateAsync({
+      const payload = {
         customerId: formData.customerId,
         orderTypeId: documentTypeId(formData.orderType),
         salesmanId: formData.salesmanId || undefined,
@@ -181,8 +224,17 @@ export function OrderAdd() {
         notes: formData.notes || undefined,
         items: formData.items
           .filter((item) => item.itemId)
-          .map((item) => ({ itemId: item.itemId, itemUomId: item.uom || undefined, quantity: Number(item.quantity) || 0, price: Number(item.price) || 0, discount: Number(item.discount) || 0 })),
-      });
+          .map((item) => ({
+            uuid: item.uuid,
+            itemId: item.itemId,
+            itemUomId: item.uom || undefined,
+            quantity: Number(item.quantity) || 0,
+            price: Number(item.price) || 0,
+            discount: Number(item.discount) || 0,
+          })),
+      };
+      if (isEdit && uuid) await updateDoc.mutateAsync({ uuid, payload: { ...payload, orderNumber: undefined } });
+      else await createOrder.mutateAsync(payload);
       navigate('/order');
     } catch {
       // toast already shown by useCreateOrder's onError
@@ -193,128 +245,144 @@ export function OrderAdd() {
 
   return (
     <>
-      <DocumentShell icon={ShoppingCart} eyebrow="Field Sales · New" title="Add Order" onBack={() => navigate('/order')} onSubmit={handleSubmit(onSubmit)}>
-        <DocSection index={1} title="Order Type" aside={<TypeSwitch label="Order Type" options={orderTypeOptions} registration={register('orderType', { required: 'Order Type is required' })} />} />
+      <DocumentShell
+        icon={ShoppingCart}
+        eyebrow={isEdit ? 'Field Sales · Edit' : 'Field Sales · New'}
+        title={isEdit ? 'Edit Order' : 'Add Order'}
+        onBack={() => navigate('/order')}
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        {loadingSaved ? (
+          <DocumentEditSkeleton />
+        ) : (
+          <>
+            <DocSection
+              index={1}
+              title="Order Type"
+              aside={<TypeSwitch label="Order Type" options={orderTypeOptions} registration={register('orderType', { required: 'Order Type is required' })} />}
+            />
 
-        <SectionPair>
-          <DocSection index={2} title="Customer">
-            <div className={fieldGridCls}>
-              <ControlledSelect control={control} name="customerId" rules={{ required: 'Customer is required' }} label="Customer" options={customers} placeholder="Select Customer" />
-              <ControlledSelect control={control} name="salesmanId" label="Salesman" options={salesmen} placeholder="Select Salesman" />
-            </div>
-          </DocSection>
+            <SectionPair>
+              <DocSection index={2} title="Customer">
+                <div className={fieldGridCls}>
+                  <ControlledSelect control={control} name="customerId" rules={{ required: 'Customer is required' }} label="Customer" options={customersWithSaved} placeholder="Select Customer" />
+                  <ControlledSelect control={control} name="salesmanId" label="Salesman" options={salesmenWithSaved} placeholder="Select Salesman" />
+                </div>
+              </DocSection>
 
-          <DocSection index={3} title="Document">
-            <div className={fieldGridCls}>
-              <CodeField
-                label="Order Number"
-                registration={register('orderNumber')}
-                disabled={codeLocked}
-                action={<OrderCodeSettingsIcon label="Order Number" entityKey="order" value={watch('orderNumber') || ''} onChange={(v) => setValue('orderNumber', v)} onLockChange={setCodeLocked} />}
-              />
-              <ControlledDate control={control} name="deliveryDate" rules={{ required: 'Date is required' }} label="Delivery Date" />
-              <ControlledSelect
-                control={control}
-                name="paymentTerms"
-                rules={{ required: 'Payment Terms is required' }}
-                label="Payment Terms"
-                options={paymentTerms}
-                placeholder="Select Payment Terms"
-              />
-              <ControlledDate control={control} name="dueDate" label="Due Date" />
-            </div>
-          </DocSection>
-        </SectionPair>
+              <DocSection index={3} title="Document">
+                <div className={fieldGridCls}>
+                  <CodeField
+                    label="Order Number"
+                    registration={register('orderNumber', { validate: (value) => !manualNumbering || Boolean(value) || 'Order Number is required' })}
+                    required={manualNumbering}
+                    error={formState.errors.orderNumber?.message}
+                    disabled={codeLocked || isEdit}
+                    action={isEdit ? null : <OrderCodeSettingsIcon label="Order Number" entityKey="order" value={watch('orderNumber') || ''} onChange={(v) => setValue('orderNumber', v)} />}
+                  />
+                  <ControlledDate control={control} name="deliveryDate" rules={{ required: 'Date is required' }} label="Delivery Date" />
+                  <ControlledSelect
+                    control={control}
+                    name="paymentTerms"
+                    rules={{ required: 'Payment Terms is required' }}
+                    label="Payment Terms"
+                    options={paymentTermsWithSaved}
+                    placeholder="Select Payment Terms"
+                  />
+                  <ControlledDate control={control} name="dueDate" label="Due Date" />
+                </div>
+              </DocSection>
+            </SectionPair>
 
-        <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
+            <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
 
-        <DocSection index={4} title="Items" flush>
-          <LineHeader
-            cols={cols}
-            labels={['Item', 'UOM', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']}
-            numericLabels={[taxRates.taxCode]}
-          />
-          {fields.map((field, index) => {
-            const resolution = resolutions[field.id];
-
-            return (
-              <LineStrip
-                key={field.id}
-                index={index}
+            <DocSection index={4} title="Items" flush>
+              <LineHeader
                 cols={cols}
-                onRemove={() => fields.length > 1 && remove(index)}
-                canRemove={fields.length > 1}
-                below={promotionsByLine[field.id]?.map((promotion) => (
-                  <div
-                    key={promotion.planName}
-                    className="mx-4 xl:ml-[3.625rem] xl:mr-5 mb-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-emerald-200/70 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/15 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400"
-                  >
-                    <Gift className="w-3.5 h-3.5 shrink-0" />
-                    <span>{promotion.offers.length ? 'Free on save:' : `Discount on save: ${promotion.discount}`}</span>
-                    {promotion.offers.map((offer, i) => (
-                      <span key={i} className="font-medium">
-                        {offer.quantity} × {offer.itemName}
-                        {offer.itemUomName ? ` (${offer.itemUomName})` : ''}
-                        {i < promotion.offers.length - 1 ? ',' : ''}
-                      </span>
+                labels={['Item', 'UOM', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']}
+                numericLabels={[taxRates.taxCode]}
+              />
+              {fields.map((field, index) => {
+                return (
+                  <LineStrip
+                    key={field.id}
+                    index={index}
+                    cols={cols}
+                    onRemove={() => fields.length > 1 && remove(index)}
+                    canRemove={fields.length > 1}
+                    below={promotionsByLine[field.id]?.map((promotion) => (
+                      <div
+                        key={promotion.planName}
+                        className="mx-4 xl:ml-[3.625rem] xl:mr-5 mb-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-emerald-200/70 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/15 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400"
+                      >
+                        <Gift className="w-3.5 h-3.5 shrink-0" />
+                        <span>{promotion.offers.length ? 'Free on save:' : `Discount on save: ${promotion.discount}`}</span>
+                        {promotion.offers.map((offer, i) => (
+                          <span key={i} className="font-medium">
+                            {offer.quantity} × {offer.itemName}
+                            {offer.itemUomName ? ` (${offer.itemUomName})` : ''}
+                            {i < promotion.offers.length - 1 ? ',' : ''}
+                          </span>
+                        ))}
+                        <span className="text-emerald-600/70 dark:text-emerald-400/70">
+                          — {promotion.planName}
+                          {promotion.lineKeys.length > 1 ? ` (lines ${promotion.lineKeys.map((k) => fields.findIndex((f) => f.id === k) + 1).join(', ')})` : ''}
+                        </span>
+                      </div>
                     ))}
-                    <span className="text-emerald-600/70 dark:text-emerald-400/70">
-                      — {promotion.planName}
-                      {promotion.lineKeys.length > 1 ? ` (lines ${promotion.lineKeys.map((k) => fields.findIndex((f) => f.id === k) + 1).join(', ')})` : ''}
-                    </span>
-                  </div>
-                ))}
-              >
-                <LineCell label="Item" className={wideCellCls}>
-                  <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} disabled={!customerId} />
-                </LineCell>
-                <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
-                <LineCell label="Qty">
-                  <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
-                </LineCell>
-                <PdpPriceCell resolution={resolution} aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
-                <PdpDiscountCell resolution={resolution} aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
-                <LineCell label="Net">
-                  <LineFigure value={Number(watchedItems?.[index]?.net) || 0} />
-                </LineCell>
-                {taxRates.hasExcise && (
-                  <LineCell label="Excise">
-                    <LineFigure value={Number(watchedItems?.[index]?.excise) || 0} />
-                  </LineCell>
-                )}
-                <LineCell label={taxRates.taxCode}>
-                  <LineFigure value={Number(watchedItems?.[index]?.vat) || 0} />
-                </LineCell>
-                <LineCell label="Total">
-                  <LineFigure value={Number(watchedItems?.[index]?.total) || 0} strong />
-                </LineCell>
-              </LineStrip>
-            );
-          })}
-          <AddLineButton onClick={() => append({ ...emptyItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
-        </DocSection>
+                  >
+                    <LineCell label="Item" className={wideCellCls}>
+                      <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} known={knownItems} disabled={!customerId} />
+                    </LineCell>
+                    <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
+                    <LineCell label="Qty">
+                      <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
+                    </LineCell>
+                    <PdpPriceCell aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
+                    <PdpDiscountCell aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
+                    <LineCell label="Net">
+                      <LineFigure value={Number(watchedItems?.[index]?.net) || 0} />
+                    </LineCell>
+                    {taxRates.hasExcise && (
+                      <LineCell label="Excise">
+                        <LineFigure value={Number(watchedItems?.[index]?.excise) || 0} />
+                      </LineCell>
+                    )}
+                    <LineCell label={taxRates.taxCode}>
+                      <LineFigure value={Number(watchedItems?.[index]?.vat) || 0} />
+                    </LineCell>
+                    <LineCell label="Total">
+                      <LineFigure value={Number(watchedItems?.[index]?.total) || 0} strong />
+                    </LineCell>
+                  </LineStrip>
+                );
+              })}
+              <AddLineButton onClick={() => append({ ...emptyItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
+            </DocSection>
 
-        <ReceiptRail
-          gross={grossTotal}
-          discount={discountTotal}
-          net={netTotal}
-          vat={vatTotal}
-          excise={exciseTotal}
-          taxLabel={taxRates.taxCode}
-          taxRate={taxRates.uniformRate}
-          taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
-          showExcise={taxRates.hasExcise}
-          total={finalTotal}
-          lineCount={fields.length}
-          noteRegister={register('notes')}
-        >
-          <SaveButton type="submit" fullWidth isLoading={createOrder.isPending}>
-            Save &amp; Submit
-          </SaveButton>
-          <CancelButton type="button" fullWidth onClick={() => navigate('/order')}>
-            Cancel
-          </CancelButton>
-        </ReceiptRail>
+            <ReceiptRail
+              gross={grossTotal}
+              discount={discountTotal}
+              net={netTotal}
+              vat={vatTotal}
+              excise={exciseTotal}
+              taxLabel={taxRates.taxCode}
+              taxRate={taxRates.uniformRate}
+              taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
+              showExcise={taxRates.hasExcise}
+              total={finalTotal}
+              lineCount={fields.length}
+              noteRegister={register('notes')}
+            >
+              <SaveButton type="submit" fullWidth isLoading={createOrder.isPending}>
+                Save &amp; Submit
+              </SaveButton>
+              <CancelButton type="button" fullWidth onClick={() => navigate('/order')}>
+                Cancel
+              </CancelButton>
+            </ReceiptRail>
+          </>
+        )}
       </DocumentShell>
     </>
   );

@@ -3,6 +3,12 @@ import { usePdpResolution } from './useOrderForm';
 import type { PdpResolution } from '../types/PdpResolution';
 
 interface PreviewRow {
+  /** Present on a saved line: the server keeps its saved price and discount, so it isn't previewed. */
+  uuid?: string;
+  /** A free-goods line: priced 0 by definition, never previewed. */
+  isFree?: boolean;
+  /** A line converted from an order: priced by that order line, never previewed. */
+  orderLineUuid?: string;
   itemId?: string;
   uom?: string;
   quantity?: number;
@@ -41,7 +47,7 @@ export function usePdpLinePreview({ customerId, fields, watchedItems, setLine }:
   useEffect(() => {
     fields.forEach((field, index) => {
       const row = watchedItems?.[index];
-      if (!row) return;
+      if (!row || row.uuid || row.isFree || row.orderLineUuid) return;
 
       const priceFromServer = resolutions[field.id]?.price != null;
       // Manual price only matters (for the discount preview) when the server

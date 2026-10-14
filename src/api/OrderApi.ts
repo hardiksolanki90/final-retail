@@ -1,5 +1,5 @@
 import axiosInstance from '../lib/axios';
-import type { Order, OrderFormData, OrderListResponse } from '../types/Order';
+import type { Order, OrderFormData, OrderListResponse, OrderView } from '../types/Order';
 
 export const getOrderList = async (
   page: number = 1,
@@ -27,7 +27,7 @@ export const getOrderList = async (
   return response.data;
 };
 
-export const getOrderDetails = async (uuid: string): Promise<Order> => {
+export const getOrderDetails = async (uuid: string): Promise<OrderView> => {
   const response = await axiosInstance.get(`/order/edit/${uuid}`);
   return response.data.data || response.data;
 };

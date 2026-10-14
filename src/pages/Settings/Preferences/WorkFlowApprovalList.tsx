@@ -6,8 +6,12 @@ import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { TableSkeletonRows } from '../../../components/ui/skeleton';
 import { useWorkFlowRules } from '../../../hooks/Preferences/useWorkFlowRules';
 import type { WorkFlowRule } from '../../../types/WorkFlowRule';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { workFlowView } from '../settingViews';
+import { API_PAGE_SIZE } from '../../shared/RecordView/RecordRail';
 
 export function WorkFlowApprovalList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const { rules, total, lastPage, isLoading, handleDeleteWithConfirmation } = useWorkFlowRules(currentPage);
@@ -52,15 +56,15 @@ export function WorkFlowApprovalList() {
                 <TableEmptyRow colSpan={4} label="No workflow rules found." />
               ) : (
                 rules.map((rule: WorkFlowRule) => (
-                  <tr key={rule.uuid} className="hover:bg-[var(--bg-secondary)] transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap">
+                  <tr key={rule.uuid} onClick={() => setViewing(rule as unknown as SettingRow)} className="cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors">
+                    <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                       <button type="button" onClick={() => navigate(`/settings/work-flow-approval/edit/${rule.uuid}`)} className="text-sm font-medium text-primary-600 hover:underline">
                         {rule.name}
                       </button>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">{rule.module}</td>
                     <td className="px-4 py-4 text-sm text-[var(--text-secondary)] max-w-[320px] truncate">{rule.description || '—'}</td>
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -88,6 +92,7 @@ export function WorkFlowApprovalList() {
           <Pagination currentPage={currentPage} totalPages={lastPage} total={total} perPage={15} onPageChange={setCurrentPage} onPerPageChange={() => {}} hasLoaded={!isLoading} />
         </div>
       </div>
+      <SettingViewDrawer config={workFlowView} pageSize={API_PAGE_SIZE} seed={!isLoading && currentPage === 1 && rules.length > 0 ? { items: rules as unknown as SettingRow[], hasMore: lastPage > 1 } : null} isOpen={viewing !== null} onClose={() => setViewing(null)} data={viewing} onSelect={setViewing} onEdit={() => { if (viewing?.uuid) navigate(`/settings/work-flow-approval/edit/${viewing.uuid}`); setViewing(null); }} />
     </div>
   );
 }

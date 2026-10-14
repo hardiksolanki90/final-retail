@@ -1,277 +1,125 @@
-import { useState } from 'react';
-import { Filter, Plus, Columns3, ChevronDown, Check } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, ChevronDown, Columns3, Filter, Plus, Search } from 'lucide-react';
+import { format, isValid, parseISO } from 'date-fns';
 import { Pagination } from '../../components/ui/Pagination';
+import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
+import { useAuth } from '../../context/AuthContext';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useComplaintFeedbacks } from '../../hooks/ComplaintFeedbacks/useComplaintFeedbacks';
+import type { ComplaintFeedback, ComplaintFeedbackListParams } from '../../types/ComplaintFeedback';
+import { ComplaintFeedbackAdd } from './ComplaintFeedbackAdd';
+import { ComplaintFeedbackView } from './ComplaintFeedbackView';
 
-const complaintFeedbacksData = [
-  { id: 1, type: 'Complaint', customerName: 'Acme Corp', subject: 'Delivery Delay', category: 'Delivery', priority: 'High', status: 'Open' },
-  { id: 2, type: 'Feedback', customerName: 'Global Trade', subject: 'Excellent Service', category: 'Service', priority: 'Low', status: 'Closed' },
-  { id: 3, type: 'Complaint', customerName: 'Tech Solutions', subject: 'Product Quality Issue', category: 'Product', priority: 'Urgent', status: 'In Progress' },
-  { id: 4, type: 'Feedback', customerName: 'Retail Mart', subject: 'Great Product Range', category: 'Product', priority: 'Low', status: 'Closed' },
-  { id: 5, type: 'Complaint', customerName: 'Fresh Foods', subject: 'Billing Error', category: 'Billing', priority: 'Medium', status: 'Resolved' },
-];
+type FilterState = Pick<ComplaintFeedbackListParams, 'date' | 'route' | 'complaintId' | 'merchandiserName' | 'title' | 'itemCode' | 'itemName' | 'type'>;
+type ColumnKey = 'date' | 'routeName' | 'complaintId' | 'merchandiserName' | 'title' | 'itemCode' | 'itemName' | 'type';
 
 interface Column {
-  key: string;
+  key: ColumnKey;
   label: string;
   visible: boolean;
 }
 
+const COLUMNS: Column[] = [
+  { key: 'date', label: 'Date', visible: true },
+  { key: 'routeName', label: 'Route', visible: true },
+  { key: 'complaintId', label: 'Complaint ID', visible: true },
+  { key: 'merchandiserName', label: 'Merchandiser Name', visible: true },
+  { key: 'title', label: 'Feedback Title', visible: true },
+  { key: 'itemCode', label: 'Item Code', visible: true },
+  { key: 'itemName', label: 'Item Name', visible: true },
+  { key: 'type', label: 'Type', visible: false },
+];
+
+const EMPTY_FILTERS: FilterState = { date: '', route: '', complaintId: '', merchandiserName: '', title: '', itemCode: '', itemName: '', type: '' };
+
+function formatDate(value: string) {
+  const date = parseISO(value);
+  return isValid(date) ? format(date, 'd MMM yyyy h:mm a') : '—';
+}
+
+function Cell({ column, row }: { column: ColumnKey; row: ComplaintFeedback }) {
+  if (column === 'date') return <>{formatDate(row.date || row.createdAt)}</>;
+  if (column === 'type') return <span className={`rounded-full px-2 py-1 text-xs font-medium ${row.type === 'complaint' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>{row.type === 'complaint' ? 'Complaint' : 'Suggestion'}</span>;
+  return <>{row[column] || '—'}</>;
+}
+
 export function ComplaintFeedbackList() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
-  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
-  const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
-
-  const [columns, setColumns] = useState<Column[]>([
-    { key: 'type', label: 'Type', visible: true },
-    { key: 'customerName', label: 'Customer Name', visible: true },
-    { key: 'subject', label: 'Subject', visible: true },
-    { key: 'category', label: 'Category', visible: true },
-    { key: 'priority', label: 'Priority', visible: true },
-    { key: 'status', label: 'Status', visible: true },
-  ]);
-
-  // Filter state
+  const { hasPermission } = useAuth();
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
+  const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDraft, setFilterDraft] = useState({ type: '', customerName: '', subject: '', category: '', priority: '', status: '' });
-  const [appliedFilter, setAppliedFilter] = useState({ type: '', customerName: '', subject: '', category: '', priority: '', status: '' });
+  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+  const [columns, setColumns] = useState(COLUMNS);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewing, setViewing] = useState<ComplaintFeedback | null>(null);
+  const debouncedSearch = useDebounce(search.trim(), 300);
+  const debouncedFilters = useDebounce(filters, 300);
+  const listParams = useMemo(() => ({ search: debouncedSearch || undefined, ...debouncedFilters }), [debouncedSearch, debouncedFilters]);
 
-  const totalPages = Math.ceil(complaintFeedbacksData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
+  const { data, isLoading, isFetching, isError, dataUpdatedAt } = useComplaintFeedbacks({ page, perPage, ...listParams });
+  const rows = useMemo(() => data?.data ?? [], [data?.data]);
+  const meta = data?.meta;
+  const visibleColumns = columns.filter((column) => column.visible);
+  const allSelected = rows.length > 0 && rows.every((row) => selected.includes(row.uuid));
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const viewSeed = useMemo(() => ({ items: rows, hasMore: Boolean(meta?.has_more_pages), updatedAt: dataUpdatedAt }), [rows, meta?.has_more_pages, dataUpdatedAt]);
 
-  // Apply filters
-  const filteredData = complaintFeedbacksData.filter(
-    (c) =>
-      (!appliedFilter.type ||
-        String(c.type ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.type.toLowerCase())) &&
-      (!appliedFilter.customerName ||
-        String(c.customerName ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.customerName.toLowerCase())) &&
-      (!appliedFilter.subject ||
-        String(c.subject ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.subject.toLowerCase())) &&
-      (!appliedFilter.category ||
-        String(c.category ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.category.toLowerCase())) &&
-      (!appliedFilter.priority ||
-        String(c.priority ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.priority.toLowerCase())) &&
-      (!appliedFilter.status ||
-        String(c.status ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.status.toLowerCase()))
-  );
-  const currentData = filteredData.slice(startIndex, endIndex);
-  const visibleColumns = columns.filter((col) => col.visible);
-
-  const handleSelectAll = () => {
-    if (selectedRows.length === currentData.length) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(currentData.map((item) => item.id));
-    }
+  const updateFilter = (key: keyof FilterState, value: string) => {
+    setFilters((current) => ({ ...current, [key]: value }));
+    setPage(1);
+    setSelected([]);
   };
 
-  const handleSelectRow = (id: number) => {
-    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
-  };
-
-  const toggleColumn = (key: string) => {
-    setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
-  };
+  const toggleRow = (uuid: string) => setSelected((current) => current.includes(uuid) ? current.filter((id) => id !== uuid) : [...current, uuid]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 pl-6 pb-0 pt-6">
+      <div className="flex flex-col gap-4 px-6 pt-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Complaints & Feedback</h1>
-          <p className="text-[var(--text-secondary)] mt-1">Manage customer complaints and feedback</p>
+          <p className="mt-1 text-[var(--text-secondary)]">Manage merchandising complaints and suggestions</p>
         </div>
-
         <div className="flex flex-wrap items-center gap-2">
-          {/* Filter Button */}
-          <button
-            onClick={() => setFilterOpen((prev) => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-              filterOpen || Object.values(appliedFilter).some(Boolean)
-                ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
-          >
-            <Filter className="w-4 h-4" />
-            Filter
-            {Object.values(appliedFilter).some(Boolean) && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-600 text-white rounded-full">{Object.values(appliedFilter).filter(Boolean).length}</span>
-            )}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search complaints" className="h-10 w-56 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] pl-9 pr-3 text-sm text-[var(--text-primary)] outline-none focus:border-primary-500" />
+          </div>
+          <button type="button" onClick={() => setFilterOpen((open) => !open)} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
+            <Filter className="h-4 w-4" /> Filter {activeFilterCount > 0 && <span className="rounded-full bg-primary-600 px-1.5 py-0.5 text-xs text-white">{activeFilterCount}</span>}
           </button>
           <div className="relative">
-            <button
-              onClick={() => setColumnsDropdownOpen(!columnsDropdownOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
-            >
-              <Columns3 className="w-4 h-4" />
-              Columns
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            {columnsDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
-                <div className="py-1">
-                  {columns.map((column) => (
-                    <button
-                      key={column.key}
-                      onClick={() => toggleColumn(column.key)}
-                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-                    >
-                      <span>{column.label}</span>
-                      {column.visible && <Check className="w-4 h-4 text-primary-600" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <button type="button" onClick={() => setColumnsOpen((open) => !open)} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] px-4 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><Columns3 className="h-4 w-4" /> Columns <ChevronDown className="h-4 w-4" /></button>
+            {columnsOpen && <div className="absolute right-0 z-20 mt-2 w-52 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] py-1 shadow-lg">{columns.map((column) => <button key={column.key} type="button" onClick={() => setColumns((current) => current.map((item) => item.key === column.key ? { ...item, visible: !item.visible } : item))} className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><span>{column.label}</span>{column.visible && <Check className="h-4 w-4 text-primary-600" />}</button>)}</div>}
           </div>
-
-          <button
-            onClick={() => console.log('Create')}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Create
-          </button>
+          {hasPermission('complaint-feedback.create') && <button type="button" onClick={() => setAddOpen(true)} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-primary-600 px-4 text-sm font-medium text-white hover:bg-primary-700"><Plus className="h-4 w-4" /> New</button>}
         </div>
       </div>
 
-      {/* Filter Accordion */}
-      {filterOpen && (
-        <div className="mx-6 mb-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-5 py-4 shadow-sm">
-          <div className="flex flex-wrap items-end gap-3">
-            {(
-              [
-                { key: 'type', label: 'Type' },
-                { key: 'customerName', label: 'Customer Name' },
-                { key: 'subject', label: 'Subject' },
-                { key: 'category', label: 'Category' },
-                { key: 'priority', label: 'Priority' },
-                { key: 'status', label: 'Status' },
-              ] as { key: keyof typeof filterDraft; label: string }[]
-            ).map(({ key, label }) => (
-              <div key={key} className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
-                <input
-                  type="text"
-                  value={filterDraft[key]}
-                  onChange={(e) => setFilterDraft((prev) => ({ ...prev, [key]: e.target.value }))}
-                  placeholder={`Filter by ${label.toLowerCase()}...`}
-                  className="px-3 py-2 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            ))}
-            <div className="flex items-end gap-2 pb-0.5">
-              <button
-                onClick={() => {
-                  setAppliedFilter({ ...filterDraft });
-                }}
-                className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors whitespace-nowrap"
-              >
-                Apply
-              </button>
-              <button
-                onClick={() => {
-                  const empty = { type: '', customerName: '', subject: '', category: '', priority: '', status: '' };
-                  setFilterDraft(empty);
-                  setAppliedFilter(empty);
-                  setFilterOpen(false);
-                }}
-                className="px-4 py-2 text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg transition-colors whitespace-nowrap"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {filterOpen && <div className="mx-6 grid gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+        <input type="date" value={filters.date} onChange={(event) => updateFilter('date', event.target.value)} aria-label="Filter by date" className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)]" />
+        {(['route', 'complaintId', 'merchandiserName', 'title', 'itemCode', 'itemName'] as const).map((key) => <input key={key} value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} placeholder={`Filter ${COLUMNS.find((column) => column.key === (key === 'route' ? 'routeName' : key))?.label.toLowerCase()}`} className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)]" />)}
+        <select value={filters.type} onChange={(event) => updateFilter('type', event.target.value)} className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-sm text-[var(--text-primary)]"><option value="">All types</option><option value="complaint">Complaint</option><option value="suggestion">Suggestion</option></select>
+        <button type="button" onClick={() => { setFilters(EMPTY_FILTERS); setPage(1); }} className="cursor-pointer rounded-lg border border-[var(--border-color)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">Clear filters</button>
+      </div>}
 
-      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden transition-theme mx-6">
+      <div className="mx-6 overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
-              <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)]">
-                <th className="w-12 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.length === currentData.length && currentData.length > 0}
-                    onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                  />
-                </th>
-                {visibleColumns.map((column) => (
-                  <th key={column.key} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+            <thead><tr className="border-b border-[var(--border-color)] bg-[var(--bg-secondary)]"><th className="w-12 px-4 py-3"><input type="checkbox" aria-label="Select all complaints" checked={allSelected} onChange={() => setSelected(allSelected ? [] : rows.map((row) => row.uuid))} /></th>{visibleColumns.map((column) => <th key={column.key} className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">{column.label}</th>)}</tr></thead>
             <tbody className="divide-y divide-[var(--border-color)]">
-              {isLoading ? (
-                <TableSkeletonRows rows={rowsPerPage} label="Loading complaints & feedback" columns={['check', ...colsByKey(visibleColumns, { type: 'badge', priority: 'badge' })]} dense />
-              ) : (
-                currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.includes(item.id)}
-                        onChange={() => handleSelectRow(item.id)}
-                        className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
-                      />
-                    </td>
-                    {visibleColumns.map((column) => (
-                      <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                        {column.key === 'type' ? (
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              item.type === 'Complaint' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            }`}
-                          >
-                            {item.type}
-                          </span>
-                        ) : column.key === 'priority' ? (
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              item.priority === 'Urgent'
-                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                                : item.priority === 'High'
-                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-                                  : item.priority === 'Medium'
-                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                            }`}
-                          >
-                            {item.priority}
-                          </span>
-                        ) : (
-                          item[column.key as keyof typeof item]
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
+              {isLoading ? <TableSkeletonRows rows={perPage} label="Loading complaints and feedback" columns={['check', ...colsByKey(visibleColumns, { type: 'badge' })]} dense /> : rows.length === 0 ? <TableEmptyRow colSpan={visibleColumns.length + 1} label={isError ? 'Unable to load complaints and feedback.' : 'No complaints or feedback found.'} /> : rows.map((row) => <tr key={row.uuid} onClick={() => setViewing(row)} className={`cursor-pointer hover:bg-[var(--bg-secondary)] ${selected.includes(row.uuid) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}><td className="px-4 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" aria-label={`Select ${row.complaintId}`} checked={selected.includes(row.uuid)} onChange={() => toggleRow(row.uuid)} /></td>{visibleColumns.map((column) => <td key={column.key} className="whitespace-nowrap px-4 py-3 text-sm text-[var(--text-primary)]"><Cell column={column.key} row={row} /></td>)}</tr>)}
             </tbody>
           </table>
         </div>
-
-        <Pagination currentPage={currentPage} totalPages={totalPages} total={complaintFeedbacksData.length} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
+        <div className={isFetching && !isLoading ? 'opacity-70' : ''}><Pagination currentPage={page} totalPages={meta?.last_page ?? 1} total={meta?.total ?? 0} perPage={perPage} onPageChange={setPage} onPerPageChange={(value) => { setPerPage(value); setPage(1); }} /></div>
       </div>
+
+      <ComplaintFeedbackAdd isOpen={addOpen} onClose={() => setAddOpen(false)} />
+      <ComplaintFeedbackView key={viewing?.uuid ?? 'closed'} isOpen={Boolean(viewing)} onClose={() => setViewing(null)} complaint={viewing} seed={viewSeed} pageSize={perPage} listParams={listParams} onSelect={setViewing} />
     </div>
   );
 }

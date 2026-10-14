@@ -64,3 +64,7 @@ export const updateSensorySurvey = async (uuid: string, data: SensorySurveyFormD
 export const bulkActionSensorySurveys = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/sensory-survey/bulk-action', { uuids, action });
 };
+
+export const getConsumerSurveyDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/consumer-survey/edit/${uuid}`)).data.data;
+
+export const getSensorySurveyDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/sensory-survey/edit/${uuid}`)).data.data;

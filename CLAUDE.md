@@ -137,7 +137,7 @@ Every `{Module}List.tsx` table body MUST use `TableSkeletonRows` and `TableEmpty
 ```tsx
 <tbody>
   {isLoading ? (
-    <TableSkeletonRows rows={perPage} label="Loading {modules}" columns={['check', 'text', 'badge', 'actions']} />
+    <TableSkeletonRows rows={10} label="Loading {modules}" columns={['check', 'text', 'badge', 'actions']} />
   ) : items.length === 0 ? (
     <TableEmptyRow colSpan={N} label="No {modules} found." />
   ) : items.map((item) => (
@@ -161,7 +161,7 @@ Every `{Module}List.tsx` table body MUST use `TableSkeletonRows` and `TableEmpty
 3. **Forms**: Always React Hook Form — no uncontrolled or manual state forms
 4. **Styling**: TailwindCSS only — NO Ant Design, NO custom CSS except CSS variables
 5. **Notifications**: `toast.success()` / `toast.error()` from `react-hot-toast`
-6. **IDs**: UUID only — never expose internal DB integer IDs
+6. **IDs**: Relations between records (`depotId`, `routeId`, `areaId`, `parentId`, …) use the integer `id`, strictly — never switch them to UUID. A record's own `uuid` is used only to address it (URLs, route params, `/entity/view|edit|delete/{uuid}`)
 7. **Naming**: Components PascalCase, hooks `useCamelCase`, API classes `PascalCaseApi`
 8. **CSS Variables**: Use `--text-primary`, `--text-secondary`, `--bg-card`, `--border-color` for theming
 9. **Dark mode**: Always add `dark:` prefix variants when styling

@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
-import { AlertCircle, FileText } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { SaveButton, CancelButton } from '../../components/ui/Button';
-import type { CreditNoteFormData, CreditNoteItem } from '../../types/CreditNote';
+import { FileText } from 'lucide-react';
 import { OrderCodeSettingsIcon } from '../../components/ui/OrderCodeSettingsIcon';
-import { useCreditNoteFormOptions, useCreditNoteMutations } from '../../hooks/CreditNotes/useCreditNotes';
-import { reserveCodeIfAuto } from '../../api/CodeSettingApi';
 import {
   AddLineButton,
   CodeField,
@@ -28,23 +25,46 @@ import {
 } from '../shared/DocumentForm';
 import { lineCols } from '../shared/DocumentForm/lineCols';
 import { LineItemSelect } from '../shared/DocumentForm/LineItemSelect';
+import { emptyNoteItem, noteLinesPayload, type NoteItem } from '../shared/DocumentForm/noteLines';
 import { useKnownItems } from '../../hooks/useKnownItems';
 import { PdpDiscountCell, PdpPriceCell } from '../shared/DocumentForm/PdpLineCells';
 import { usePdpLinePreview } from '../../hooks/usePdpLinePreview';
+import { useDocumentNumber } from '../../hooks/CodeSetting/useDocumentNumber';
+import { useCreateDocument, useDocumentFormOptions, useUpdateDocument } from '../../hooks/useDocumentForm';
 import { useMoney } from '../../hooks/Currency/useMoney';
 import { computeLine, sumLines } from '../../utils/documentMath';
 import { useLineTaxRates } from '../../hooks/Tax/useLineTaxRates';
+import { useDocumentEditing } from '../../hooks/useDocumentEditing';
+import { usePresetCustomer } from '../../hooks/usePresetCustomer';
+import { ensureOption, toFormLine } from '../../utils/documentEdit';
+import { DocumentEditSkeleton } from '../shared/DocumentForm/EditSkeleton';
+import { getCreditNoteByUuid } from '../../api/CreditNoteApi';
+import type { CreditNoteView } from '../../types/DocumentView';
 
-const initialItem: CreditNoteItem = { id: '', itemId: '', itemName: '', uom: '', reason: '', quantity: 1, price: 0, discount: 0, vat: 0, net: 0, excise: 0, total: 0 };
+type CreditNoteFormFields = {
+  creditNoteNumber: string;
+  creditNoteDate: string;
+  customerId: string;
+  invoiceId: string;
+  reason: string;
+  notes: string;
+  items: NoteItem[];
+  grossTotal: number;
+  vat: number;
+  excise: number;
+  netTotal: number;
+  discount: number;
+  finalTotal: number;
+};
 
-const initialFormData: CreditNoteFormData = {
+const defaultValues: CreditNoteFormFields = {
   creditNoteNumber: '',
   creditNoteDate: new Date().toISOString().split('T')[0],
   customerId: '',
   invoiceId: '',
   reason: '',
   notes: '',
-  items: [{ ...initialItem, id: '1' }],
+  items: [{ ...emptyNoteItem, id: '1' }],
   grossTotal: 0,
   vat: 0,
   excise: 0,
@@ -54,46 +74,79 @@ const initialFormData: CreditNoteFormData = {
 };
 
 export function CreditNoteAdd() {
-  const navigate = useNavigate();
-  const { customers, invoices, reasons, isLoading: optionsLoading } = useCreditNoteFormOptions();
+  const { customers, invoices, reasonNames: reasons } = useDocumentFormOptions();
   const { known: knownItems, remember: rememberItems } = useKnownItems();
-  const { createMutation } = useCreditNoteMutations();
-  const [codeLocked, setCodeLocked] = useState(false);
+  const createCreditNote = useCreateDocument('credit-note', 'Credit note');
+  const navigate = useNavigate();
+  const { uuid } = useParams<{ uuid: string }>();
+  const isEdit = Boolean(uuid);
+  const preset = usePresetCustomer(isEdit);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    control,
-    setValue,
-    getValues,
-    setError,
-    watch,
-  } = useForm<CreditNoteFormData>({ defaultValues: initialFormData });
+  const { control, register, handleSubmit, setValue, getValues, watch, reset, formState } = useForm<CreditNoteFormFields>({
+    defaultValues: preset ? { ...defaultValues, customerId: preset.id } : defaultValues,
+  });
+  const { manual: manualNumbering, locked: codeLocked, reserve: reserveNumber } = useDocumentNumber('credit_note', (value) => setValue('creditNoteNumber', value), !isEdit);
+
+  const { isLoading: loadingSaved, saved } = useDocumentEditing<CreditNoteView, CreditNoteFormFields>({
+    label: 'credit note',
+    uuid,
+    fetcher: getCreditNoteByUuid,
+    toForm: (saved) => ({
+      creditNoteNumber: saved.creditNoteNumber,
+      creditNoteDate: saved.creditNoteDate ?? '',
+      customerId: saved.customerId ?? '',
+      invoiceId: saved.invoiceId ?? '',
+      reason: saved.reason ?? '',
+      notes: saved.notes ?? '',
+      items: saved.items.map(toFormLine),
+      grossTotal: saved.totalGross,
+      vat: saved.totalVat,
+      excise: saved.totalExcise,
+      netTotal: saved.totalNet,
+      discount: saved.totalDiscountAmount,
+      finalTotal: saved.grandTotal,
+    }),
+    reset,
+    remember: rememberItems,
+    listPath: '/credit-note',
+  });
+  const updateDoc = useUpdateDocument('credit-note', 'Credit note');
+  const customersWithSaved = ensureOption(
+    customers,
+    saved?.customerId ?? preset?.id,
+    saved ? (saved.customerCode && saved.customerName ? `${saved.customerCode} - ${saved.customerName}` : saved.customerName) : preset?.label
+  );
+  const invoicesWithSaved = ensureOption(invoices, saved?.invoiceId, saved?.invoiceNumber);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchedItems = useWatch({ control, name: 'items' });
-  const watchedTotals = useWatch({ control, name: ['grossTotal', 'vat', 'excise', 'netTotal', 'discount', 'finalTotal'] });
+  const grossTotal = useWatch({ control, name: 'grossTotal' });
+  const vatTotal = useWatch({ control, name: 'vat' });
+  const exciseTotal = useWatch({ control, name: 'excise' });
+  const netTotal = useWatch({ control, name: 'netTotal' });
+  const discountTotal = useWatch({ control, name: 'discount' });
+  const finalTotal = useWatch({ control, name: 'finalTotal' });
 
   const customerId = useWatch({ control, name: 'customerId' });
-  const resolutions = usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
+  usePdpLinePreview({ customerId, fields, watchedItems, setLine: (index, key, value) => setValue(`items.${index}.${key}`, value) });
 
   const { digits } = useMoney();
   const taxRates = useLineTaxRates(
     (watchedItems ?? []).map((item) => item?.itemId),
     customerId
   );
-
-  useEffect(() => {
+  const calculateTotals = useCallback(() => {
     if (!watchedItems) return;
     const currentItems = getValues('items') || [];
-    const lines = watchedItems.map((item: CreditNoteItem) => computeLine(item, digits, taxRates.forItem(item?.itemId)));
+    const lines = watchedItems.map((item) => computeLine(item, digits, taxRates.forItem(item?.itemId)));
+
     lines.forEach((line, index) => {
       if (currentItems[index]?.net !== line.net) setValue(`items.${index}.net`, line.net);
       if (currentItems[index]?.total !== line.total) setValue(`items.${index}.total`, line.total);
       if (currentItems[index]?.vat !== line.tax) setValue(`items.${index}.vat`, line.tax);
       if (currentItems[index]?.excise !== line.excise) setValue(`items.${index}.excise`, line.excise);
     });
+
     const totals = sumLines(lines, digits);
     if (getValues('grossTotal') !== totals.gross) setValue('grossTotal', totals.gross);
     if (getValues('vat') !== totals.tax) setValue('vat', totals.tax);
@@ -103,150 +156,137 @@ export function CreditNoteAdd() {
     if (getValues('finalTotal') !== totals.total) setValue('finalTotal', totals.total);
   }, [watchedItems, setValue, getValues, digits, taxRates]);
 
-  const [grossTotal, vat, excise, netTotal, discount, finalTotal] = watchedTotals;
+  useEffect(() => {
+    calculateTotals();
+  }, [calculateTotals]);
 
-  const onFormSubmit = async (formData: CreditNoteFormData) => {
+  const onSubmit = async (formData: CreditNoteFormFields) => {
     try {
-      const creditNoteNumber = await reserveCodeIfAuto('credit_note', formData.creditNoteNumber);
-      if (creditNoteNumber !== formData.creditNoteNumber) {
-        formData.creditNoteNumber = creditNoteNumber ?? '';
-        setValue('creditNoteNumber', creditNoteNumber ?? '');
-        setCodeLocked(true);
-      }
-      await createMutation.mutateAsync(formData);
+      const creditNoteNumber = isEdit ? formData.creditNoteNumber : await reserveNumber(formData.creditNoteNumber);
+
+      const payload = {
+        customerId: formData.customerId,
+        invoiceId: formData.invoiceId || undefined,
+        creditNoteNumber: creditNoteNumber || undefined,
+        creditNoteDate: formData.creditNoteDate || undefined,
+        reason: formData.reason || undefined,
+        notes: formData.notes || undefined,
+        items: noteLinesPayload(formData.items),
+      };
+      if (isEdit && uuid) await updateDoc.mutateAsync({ uuid, payload: { ...payload, creditNoteNumber: undefined } });
+      else await createCreditNote.mutateAsync(payload);
       navigate('/credit-note');
-    } catch (error: any) {
-      setError('root', { message: error.response?.data?.message || 'Error saving credit note' });
+    } catch {
+      // toast already shown by useCreateDocument's onError
     }
   };
 
   const cols = lineCols({ reason: true, excise: taxRates.hasExcise });
 
   return (
-    <DocumentShell icon={FileText} eyebrow="Field Sales · New" title="Add Credit Note" onBack={() => navigate('/credit-note')} onSubmit={handleSubmit(onFormSubmit)}>
-      {errors.root && (
-        <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>
-            <strong>Error:</strong> {errors.root.message}
-          </span>
-        </div>
-      )}
+    <DocumentShell
+      icon={FileText}
+      eyebrow={isEdit ? 'Field Sales · Edit' : 'Field Sales · New'}
+      title={isEdit ? 'Edit Credit Note' : 'Add Credit Note'}
+      onBack={() => navigate('/credit-note')}
+      onSubmit={handleSubmit(onSubmit)}
+    >
+      {loadingSaved ? (
+        <DocumentEditSkeleton />
+      ) : (
+        <>
+          <SectionPair>
+            <DocSection index={1} title="Reference">
+              <div className={fieldGridCls}>
+                <ControlledSelect control={control} name="customerId" rules={{ required: 'Customer is required' }} label="Customer" options={customersWithSaved} placeholder="Select Customer" />
+                <ControlledSelect control={control} name="invoiceId" rules={{ required: 'Invoice is required' }} label="Invoice" options={invoicesWithSaved} placeholder="Select Invoice" />
+              </div>
+            </DocSection>
 
-      <SectionPair>
-        <DocSection index={1} title="Reference">
-          <div className={fieldGridCls}>
-            <ControlledSelect
-              control={control}
-              name="customerId"
-              rules={{ required: 'Customer is required' }}
-              label="Customer"
-              options={customers}
-              placeholder="Select Customer"
-              isLoading={optionsLoading}
-              loadingMessage="Loading…"
-            />
-            <ControlledSelect
-              control={control}
-              name="invoiceId"
-              rules={{ required: 'Invoice is required' }}
-              label="Invoice"
-              options={invoices}
-              placeholder="Select Invoice"
-              isLoading={optionsLoading}
-              loadingMessage="Loading…"
-            />
-          </div>
-        </DocSection>
-
-        <DocSection index={2} title="Document">
-          <div className={fieldGridCls}>
-            <CodeField
-              label="Credit Note Number"
-              registration={register('creditNoteNumber')}
-              disabled={codeLocked}
-              action={
-                <OrderCodeSettingsIcon
+            <DocSection index={2} title="Document">
+              <div className={fieldGridCls}>
+                <CodeField
                   label="Credit Note Number"
-                  entityKey="credit_note"
-                  value={watch('creditNoteNumber') || ''}
-                  onChange={(v) => setValue('creditNoteNumber', v)}
-                  onLockChange={setCodeLocked}
+                  registration={register('creditNoteNumber', { validate: (value) => !manualNumbering || Boolean(value) || 'Credit Note Number is required' })}
+                  required={manualNumbering}
+                  error={formState.errors.creditNoteNumber?.message}
+                  disabled={codeLocked || isEdit}
+                  action={
+                    isEdit ? null : (
+                      <OrderCodeSettingsIcon label="Credit Note Number" entityKey="credit_note" value={watch('creditNoteNumber') || ''} onChange={(v) => setValue('creditNoteNumber', v)} />
+                    )
+                  }
                 />
-              }
+                <ControlledDate control={control} name="creditNoteDate" rules={{ required: 'Date is required' }} label="Credit Note Date" />
+                <ControlledSelect control={control} name="reason" rules={{ required: 'Reason is required' }} label="Reason" options={reasons} placeholder="Select Reason" />
+              </div>
+            </DocSection>
+          </SectionPair>
+
+          <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
+
+          <DocSection index={3} title="Items" flush>
+            <LineHeader
+              cols={cols}
+              labels={['Item', 'UOM', 'Reason', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']}
+              numericLabels={[taxRates.taxCode]}
             />
-            <ControlledDate control={control} name="creditNoteDate" rules={{ required: 'Date is required' }} label="Credit Note Date" />
-            <ControlledSelect control={control} name="reason" rules={{ required: 'Reason is required' }} label="Reason" options={reasons} placeholder="Select Reason" />
-          </div>
-        </DocSection>
-      </SectionPair>
-
-      <TaxNotice supported={taxRates.supported} country={taxRates.country} taxCode={taxRates.taxCode} missingRate={taxRates.missingRate} regionAssumed={taxRates.regionAssumed} />
-
-      <DocSection index={3} title="Items" flush>
-        <LineHeader
-          cols={cols}
-          labels={['Item', 'UOM', 'Reason', 'Qty', 'Price', 'Discount', 'Net', ...(taxRates.hasExcise ? ['Excise'] : []), taxRates.taxCode, 'Total']}
-          numericLabels={[taxRates.taxCode]}
-        />
-        {fields.map((field, index) => {
-          const item = watchedItems?.[index];
-          const { net, total, excise, tax } = computeLine(item, digits, taxRates.forItem(item?.itemId));
-          return (
-            <LineStrip key={field.id} index={index} cols={cols} onRemove={() => fields.length > 1 && remove(index)} canRemove={fields.length > 1}>
-              <LineCell label="Item" className={wideCellCls}>
-                <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} disabled={!customerId} />
-              </LineCell>
-              <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
-              <LineCell label="Reason">
-                <ControlledSelect control={control} name={`items.${index}.reason`} options={reasons} placeholder="Reason" />
-              </LineCell>
-              <LineCell label="Qty">
-                <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
-              </LineCell>
-              <PdpPriceCell resolution={resolutions[field.id]} aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
-              <PdpDiscountCell resolution={resolutions[field.id]} aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
-              <LineCell label="Net">
-                <LineFigure value={net} />
-              </LineCell>
-              {taxRates.hasExcise && (
-                <LineCell label="Excise">
-                  <LineFigure value={excise} />
+            {fields.map((field, index) => (
+              <LineStrip key={field.id} index={index} cols={cols} onRemove={() => fields.length > 1 && remove(index)} canRemove={fields.length > 1}>
+                <LineCell label="Item" className={wideCellCls}>
+                  <LineItemSelect control={control} name={`items.${index}.itemId`} remember={rememberItems} known={knownItems} disabled={!customerId} />
                 </LineCell>
-              )}
-              <LineCell label={taxRates.taxCode}>
-                <LineFigure value={tax} />
-              </LineCell>
-              <LineCell label="Total">
-                <LineFigure value={total} strong />
-              </LineCell>
-            </LineStrip>
-          );
-        })}
-        <AddLineButton onClick={() => append({ ...initialItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
-      </DocSection>
+                <LineUomCell control={control} name={`items.${index}.uom`} itemId={watchedItems?.[index]?.itemId} items={knownItems} />
+                <LineCell label="Reason">
+                  <ControlledSelect control={control} name={`items.${index}.reason`} options={reasons} placeholder="Reason" />
+                </LineCell>
+                <LineCell label="Qty">
+                  <QtyStepper aria-label={`Line ${index + 1} quantity`} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
+                </LineCell>
+                <PdpPriceCell aria-label={`Line ${index + 1} price`} {...register(`items.${index}.price`, { valueAsNumber: true })} />
+                <PdpDiscountCell aria-label={`Line ${index + 1} discount`} {...register(`items.${index}.discount`, { valueAsNumber: true })} />
+                <LineCell label="Net">
+                  <LineFigure value={Number(watchedItems?.[index]?.net) || 0} />
+                </LineCell>
+                {taxRates.hasExcise && (
+                  <LineCell label="Excise">
+                    <LineFigure value={Number(watchedItems?.[index]?.excise) || 0} />
+                  </LineCell>
+                )}
+                <LineCell label={taxRates.taxCode}>
+                  <LineFigure value={Number(watchedItems?.[index]?.vat) || 0} />
+                </LineCell>
+                <LineCell label="Total">
+                  <LineFigure value={Number(watchedItems?.[index]?.total) || 0} strong />
+                </LineCell>
+              </LineStrip>
+            ))}
+            <AddLineButton onClick={() => append({ ...emptyNoteItem, id: Date.now().toString() })} disabled={!customerId} disabledHint="Select a customer first" />
+          </DocSection>
 
-      <ReceiptRail
-        gross={grossTotal}
-        discount={discount}
-        net={netTotal}
-        vat={vat}
-        excise={excise}
-        taxLabel={taxRates.taxCode}
-        taxRate={taxRates.uniformRate}
-        taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
-        showExcise={taxRates.hasExcise}
-        total={finalTotal}
-        lineCount={fields.length}
-        noteRegister={register('notes')}
-      >
-        <SaveButton type="submit" fullWidth disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Save & Submit'}
-        </SaveButton>
-        <CancelButton type="button" fullWidth onClick={() => navigate('/credit-note')} disabled={isSubmitting}>
-          Cancel
-        </CancelButton>
-      </ReceiptRail>
+          <ReceiptRail
+            gross={grossTotal}
+            discount={discountTotal}
+            net={netTotal}
+            vat={vatTotal}
+            excise={exciseTotal}
+            taxLabel={taxRates.taxCode}
+            taxRate={taxRates.uniformRate}
+            taxRows={taxRates.taxRows(watchedItems ?? [], digits)}
+            showExcise={taxRates.hasExcise}
+            total={finalTotal}
+            lineCount={fields.length}
+            noteRegister={register('notes')}
+          >
+            <SaveButton type="submit" fullWidth isLoading={createCreditNote.isPending}>
+              Save &amp; Submit
+            </SaveButton>
+            <CancelButton type="button" fullWidth onClick={() => navigate('/credit-note')}>
+              Cancel
+            </CancelButton>
+          </ReceiptRail>
+        </>
+      )}
     </DocumentShell>
   );
 }

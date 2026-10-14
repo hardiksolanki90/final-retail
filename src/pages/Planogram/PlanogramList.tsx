@@ -1,15 +1,22 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
 import { Pagination } from '../../components/ui/Pagination';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
-
-const planogramsData = [
-  { id: 1, code: 'PLG001', name: 'Aisle 1 Layout', store: 'Downtown Store', category: 'Beverages', shelves: 5, status: 'Active' },
-  { id: 2, code: 'PLG002', name: 'End Cap Display', store: 'Mall Outlet', category: 'Snacks', shelves: 3, status: 'Active' },
-  { id: 3, code: 'PLG003', name: 'Checkout Area', store: 'City Center', category: 'Impulse', shelves: 2, status: 'Draft' },
-  { id: 4, code: 'PLG004', name: 'Frozen Section', store: 'Suburban Branch', category: 'Frozen', shelves: 8, status: 'Active' },
-  { id: 5, code: 'PLG005', name: 'Dairy Wall', store: 'East Side', category: 'Dairy', shelves: 6, status: 'Inactive' },
-];
+import { PlanogramAdd } from './PlanogramAdd';
+import { PlanogramViewDrawer } from './PlanogramViewDrawer';
+import {
+  getPlanogramList,
+  createPlanogram,
+  updatePlanogram,
+  deletePlanogram,
+  type PlanogramPayload,
+} from '../../api/PlanogramApi';
+import { usePlanogramDetail } from '../../hooks/Planogram/usePlanogramDetail';
+import { showToast } from '../../lib/toast';
+import { getAllSalesmen } from '../../api/SalesmanApi';
+import { getCustomerOptions } from '../../api/CustomerApi';
+import type { SelectOption } from '../../components/ui/Select';
+import type { PlanogramFormData } from '../../types/Planogram';
 
 interface Column {
   key: string;
@@ -21,7 +28,21 @@ export function PlanogramList() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
-  const isLoading = false; // sample data for now — use the data hook's isLoading once this list is wired to its API
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isAddLoading, setIsAddLoading] = useState(false);
+  const [planograms, setPlanograms] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // View & Edit Drawer State
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [viewUuid, setViewUuid] = useState<string | null>(null);
+  const [viewRow, setViewRow] = useState<any | null>(null);
+  const viewQuery = usePlanogramDetail(viewUuid);
+  const viewPlanogram = viewUuid ? (viewQuery.data ?? null) : null;
+  const [editingPlanogram, setEditingPlanogram] = useState<PlanogramFormData | undefined>(undefined);
+  const [editingUuid, setEditingUuid] = useState<string | null>(null);
+
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [columnsDropdownOpen, setColumnsDropdownOpen] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
@@ -37,16 +58,187 @@ export function PlanogramList() {
   const [columns, setColumns] = useState<Column[]>([
     { key: 'code', label: 'Code', visible: true },
     { key: 'name', label: 'Name', visible: true },
-    { key: 'store', label: 'Store', visible: true },
+    { key: 'customer', label: 'Customer', visible: true },
+    { key: 'salesman', label: 'Salesman', visible: true },
     { key: 'category', label: 'Category', visible: true },
     { key: 'shelves', label: 'Shelves', visible: true },
+    { key: 'date', label: 'Date', visible: true },
     { key: 'status', label: 'Status', visible: true },
   ]);
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterDraft, setFilterDraft] = useState({ code: '', name: '', store: '', category: '', shelves: '', status: '' });
-  const [appliedFilter, setAppliedFilter] = useState({ code: '', name: '', store: '', category: '', shelves: '', status: '' });
+  const [filterDraft, setFilterDraft] = useState({ code: '', name: '', customer: '', salesman: '', category: '', status: '' });
+  const [appliedFilter, setAppliedFilter] = useState({ code: '', name: '', customer: '', salesman: '', category: '', status: '' });
+
+  const [customerOptions, setCustomerOptions] = useState<SelectOption[]>([]);
+  const [merchandiserOptions, setMerchandiserOptions] = useState<SelectOption[]>([]);
+
+  useEffect(() => {
+    getCustomerOptions(1, undefined, 100)
+      .then((res) => {
+        const list = res?.data || [];
+        if (list.length > 0) {
+          setCustomerOptions(
+            list.map((c: any) => ({
+              value: String(c.value ?? c.id ?? ''),
+              label: [c.code, c.label || c.name].filter(Boolean).join(' - ') || c.label || c.name || String(c.value ?? c.id ?? ''),
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+
+    getAllSalesmen()
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          setMerchandiserOptions(
+            res.map((s: any) => {
+              const val = String(s.userId ?? s.id ?? s.value ?? '');
+              const code = s.salesmanCode ?? s.salesman_code ?? s.code ?? '';
+              const name = s.name ?? [s.firstname, s.lastname].filter(Boolean).join(' ') ?? s.label ?? '';
+              const label = [code, name].filter(Boolean).join(' - ') || name || code || (val ? `Salesman #${val}` : '');
+              return { value: val, label };
+            })
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const fetchPlanograms = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await getPlanogramList(currentPage, rowsPerPage);
+      if (res && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped = res.data.map((p: any, index: number) => ({
+          id: p.id ?? index + 1,
+          code: p.planogram_id || p.planogramCode || p.code || `PLG-${p.id}`,
+          name: p.name || '—',
+          customer:
+            [p.customer?.firstname, p.customer?.lastname].filter(Boolean).join(' ') ||
+            p.customer?.shop_name ||
+            '—',
+          salesman:
+            p.salesman?.name ||
+            [p.salesman?.firstname, p.salesman?.lastname].filter(Boolean).join(' ') ||
+            '—',
+          category: p.category || '—',
+          shelves: p.shelf_count ?? p.shelfCount ?? '—',
+          date: p.date || '—',
+          status: p.status
+            ? p.status === '1' || p.status === 1 || p.status === 'active'
+              ? 'Active'
+              : 'Inactive'
+            : 'Active',
+          raw: p,
+        }));
+        setPlanograms(mapped);
+        setTotalCount(res.total || mapped.length);
+      } else {
+        setPlanograms([]);
+        setTotalCount(0);
+      }
+    } catch {
+      setPlanograms([]);
+      setTotalCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, rowsPerPage]);
+
+  useEffect(() => {
+    fetchPlanograms();
+  }, [fetchPlanograms]);
+
+  const handleViewClick = (item: any) => {
+    const rawUuid = String(item.raw?.uuid || item.raw?.id || item.uuid || item.id);
+    setViewUuid(rawUuid);
+    setViewRow(item.raw || item);
+    setIsViewOpen(true);
+  };
+
+  const handleEditPlanogram = (planogram: any) => {
+    const targetUuid = String(planogram.uuid || planogram.id);
+    setEditingUuid(targetUuid);
+    setEditingPlanogram({
+      planogramCode: planogram.planogram_id || planogram.planogramCode || planogram.code || '',
+      name: planogram.name || '',
+      customerId: String(planogram.customer_id || planogram.customer?.id || ''),
+      salesmanId: String(planogram.salesman_id || planogram.salesman?.id || ''),
+      category: planogram.category || '',
+      description: planogram.description || '',
+      image: planogram.image || null,
+      shelfCount: planogram.shelf_count ?? planogram.shelfCount ?? 0,
+      productsPerShelf: planogram.products_per_shelf ?? planogram.productsPerShelf ?? 0,
+      date: planogram.date || '',
+      status: planogram.status === 'inactive' || planogram.status === '0' || planogram.status === 0 ? 'inactive' : 'active',
+    });
+    setIsAddOpen(true);
+  };
+
+  const handleDeletePlanogram = async (planogram: any) => {
+    const targetUuid = String(planogram.uuid || planogram.id);
+    if (!window.confirm('Are you sure you want to delete this planogram?')) return;
+    try {
+      await deletePlanogram(targetUuid);
+      showToast.success('Planogram deleted successfully');
+      setIsViewOpen(false);
+      setViewUuid(null);
+      fetchPlanograms();
+    } catch (error: any) {
+      showToast.error(error?.response?.data?.message || error?.message || 'Failed to delete planogram');
+    }
+  };
+
+  const handleSavePlanogram = async (data: PlanogramFormData) => {
+    setIsAddLoading(true);
+    try {
+      let base64Image: string | undefined;
+      if (data.image instanceof File) {
+        base64Image = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(data.image as File);
+        });
+      } else if (typeof data.image === 'string' && data.image.length > 0) {
+        base64Image = data.image;
+      }
+
+      const payload: PlanogramPayload = {
+        planogram_id: data.planogramCode,
+        name: data.name,
+        customer_id: data.customerId,
+        salesman_id: data.salesmanId,
+        category: data.category,
+        description: data.description,
+        shelf_count: data.shelfCount,
+        products_per_shelf: data.productsPerShelf,
+        date: data.date,
+        status: data.status || 'active',
+        images: base64Image ? [base64Image] : [],
+      };
+
+      if (editingUuid) {
+        await updatePlanogram(editingUuid, payload);
+        showToast.success('Planogram updated successfully');
+      } else {
+        await createPlanogram(payload);
+        showToast.success('Planogram added successfully');
+      }
+      setIsAddOpen(false);
+      setEditingUuid(null);
+      setEditingPlanogram(undefined);
+      fetchPlanograms();
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to save planogram';
+      showToast.error(msg);
+      throw error;
+    } finally {
+      setIsAddLoading(false);
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -58,44 +250,25 @@ export function PlanogramList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const totalPages = Math.ceil(planogramsData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
+  const totalPages = Math.ceil(totalCount / rowsPerPage);
 
   // Apply filters
-  const filteredData = planogramsData.filter(
+  const filteredData = planograms.filter(
     (c) =>
-      (!appliedFilter.code ||
-        String(c.code ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.code.toLowerCase())) &&
-      (!appliedFilter.name ||
-        String(c.name ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.name.toLowerCase())) &&
-      (!appliedFilter.store ||
-        String(c.store ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.store.toLowerCase())) &&
-      (!appliedFilter.category ||
-        String(c.category ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.category.toLowerCase())) &&
-      (!appliedFilter.shelves ||
-        String(c.shelves ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.shelves.toLowerCase())) &&
-      (!appliedFilter.status ||
-        String(c.status ?? '')
-          .toLowerCase()
-          .includes(appliedFilter.status.toLowerCase()))
+      (!appliedFilter.code || String(c.code ?? '').toLowerCase().includes(appliedFilter.code.toLowerCase())) &&
+      (!appliedFilter.name || String(c.name ?? '').toLowerCase().includes(appliedFilter.name.toLowerCase())) &&
+      (!appliedFilter.customer || String(c.customer ?? '').toLowerCase().includes(appliedFilter.customer.toLowerCase())) &&
+      (!appliedFilter.salesman || String(c.salesman ?? '').toLowerCase().includes(appliedFilter.salesman.toLowerCase())) &&
+      (!appliedFilter.category || String(c.category ?? '').toLowerCase().includes(appliedFilter.category.toLowerCase())) &&
+      (!appliedFilter.status || String(c.status ?? '').toLowerCase().includes(appliedFilter.status.toLowerCase()))
   );
-  const currentData = filteredData.slice(startIndex, endIndex);
+  const currentData = filteredData;
 
   const handleSelectAll = () => setSelectedRows(selectedRows.length === currentData.length ? [] : currentData.map((item) => item.id));
   const handleSelectRow = (id: number) => setSelectedRows((prev) => (prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]));
   const toggleColumn = (key: string) => setColumns((prev) => prev.map((col) => (col.key === key ? { ...col, visible: !col.visible } : col)));
   const visibleColumns = columns.filter((col) => col.visible);
+
   const handleExportSubmit = () => {
     setExportModalOpen(false);
     setExportType('specific');
@@ -118,16 +291,14 @@ export function PlanogramList() {
   ];
 
   const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 text-xs font-medium ';
+    const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full ';
     switch (status) {
       case 'Active':
-        return `${baseClasses} `;
-      case 'Draft':
-        return `${baseClasses} `;
+        return `${baseClasses}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400`;
       case 'Inactive':
-        return `${baseClasses} `;
+        return `${baseClasses}bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400`;
       default:
-        return `${baseClasses} `;
+        return `${baseClasses}bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400`;
     }
   };
 
@@ -211,7 +382,11 @@ export function PlanogramList() {
             )}
           </div>
           <button
-            onClick={() => console.log('Creating...')}
+            onClick={() => {
+              setEditingUuid(null);
+              setEditingPlanogram(undefined);
+              setIsAddOpen(true);
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -259,9 +434,9 @@ export function PlanogramList() {
               [
                 { key: 'code', label: 'Code' },
                 { key: 'name', label: 'Name' },
-                { key: 'store', label: 'Store' },
+                { key: 'customer', label: 'Customer' },
+                { key: 'salesman', label: 'Salesman' },
                 { key: 'category', label: 'Category' },
-                { key: 'shelves', label: 'Shelves' },
                 { key: 'status', label: 'Status' },
               ] as { key: keyof typeof filterDraft; label: string }[]
             ).map(({ key, label }) => (
@@ -287,7 +462,7 @@ export function PlanogramList() {
               </button>
               <button
                 onClick={() => {
-                  const empty = { code: '', name: '', store: '', category: '', shelves: '', status: '' };
+                  const empty = { code: '', name: '', customer: '', salesman: '', category: '', status: '' };
                   setFilterDraft(empty);
                   setAppliedFilter(empty);
                   setFilterOpen(false);
@@ -324,20 +499,38 @@ export function PlanogramList() {
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
                 <TableSkeletonRows rows={rowsPerPage} label="Loading planograms" columns={['check', ...colsByKey(visibleColumns, { status: 'badge' })]} dense />
+              ) : currentData.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="px-4 py-12 text-center text-sm text-[var(--text-muted)]">
+                    No planograms found
+                  </td>
+                </tr>
               ) : (
                 currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                    <td className="px-4 py-3">
+                  <tr
+                    key={item.id}
+                    onClick={() => handleViewClick(item)}
+                    className={`hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
+                  >
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(item.id)}
-                        onChange={() => handleSelectRow(item.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectRow(item.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                         className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
                       />
                     </td>
                     {visibleColumns.map((column) => (
                       <td key={column.key} className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                        {column.key === 'status' ? <span className={getStatusBadge(item.status)}>{item.status}</span> : item[column.key as keyof typeof item]}
+                        {column.key === 'status' ? (
+                          <span className={getStatusBadge(item.status)}>{item.status}</span>
+                        ) : (
+                          item[column.key as keyof typeof item]
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -346,8 +539,9 @@ export function PlanogramList() {
             </tbody>
           </table>
         </div>
-        <Pagination currentPage={currentPage} totalPages={totalPages} total={planogramsData.length} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={totalCount} perPage={rowsPerPage} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
+
       {exportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={handleExportCancel} />
@@ -362,11 +556,11 @@ export function PlanogramList() {
               <p className="text-[var(--text-secondary)]">Export data in CSV or XLS format.</p>
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="exportType" checked={exportType === 'all'} onChange={() => setExportType('all')} className="w-5 h-5 text-primary-600" />
+                  <input type="radio" name="exportType" checked={exportType === 'all'} onChange={() => setExportType('all')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)] font-medium">All Records</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="exportType" checked={exportType === 'specific'} onChange={() => setExportType('specific')} className="w-5 h-5 text-primary-600" />
+                  <input type="radio" name="exportType" checked={exportType === 'specific'} onChange={() => setExportType('specific')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)] font-medium">Specific Date Range</span>
                 </label>
               </div>
@@ -378,7 +572,7 @@ export function PlanogramList() {
                       type="date"
                       value={exportFromDate}
                       onChange={(e) => setExportFromDate(e.target.value)}
-                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)]"
+                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                   <div>
@@ -387,7 +581,7 @@ export function PlanogramList() {
                       type="date"
                       value={exportToDate}
                       onChange={(e) => setExportToDate(e.target.value)}
-                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)]"
+                      className="w-full max-w-xs px-3 py-2 border border-[var(--border-color)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                 </div>
@@ -395,11 +589,11 @@ export function PlanogramList() {
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-[var(--text-secondary)]">Export As :</label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="exportFormat" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} className="w-5 h-5 text-primary-600" />
+                  <input type="radio" name="exportFormat" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)]">CSV</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="exportFormat" checked={exportFormat === 'xls'} onChange={() => setExportFormat('xls')} className="w-5 h-5 text-primary-600" />
+                  <input type="radio" name="exportFormat" checked={exportFormat === 'xls'} onChange={() => setExportFormat('xls')} className="w-5 h-5 text-primary-600 border-[var(--border-color)] focus:ring-primary-500" />
                   <span className="text-[var(--text-primary)]">XLS</span>
                 </label>
               </div>
@@ -418,6 +612,48 @@ export function PlanogramList() {
           </div>
         </div>
       )}
+
+      {/* Planogram View Drawer */}
+      <PlanogramViewDrawer
+        isOpen={isViewOpen}
+        onClose={() => {
+          setIsViewOpen(false);
+          setViewUuid(null);
+        }}
+        uuid={viewUuid}
+        onSelect={(nextUuid, nextRow) => {
+          setViewUuid(nextUuid);
+          setViewRow(nextRow);
+        }}
+        row={viewRow}
+        data={viewPlanogram}
+        pageSize={rowsPerPage}
+        seed={
+          planograms.length > 0 && currentPage === 1
+            ? { items: planograms.map((p) => p.raw || p), hasMore: totalPages > 1 }
+            : null
+        }
+        onEdit={(planogram) => {
+          setIsViewOpen(false);
+          handleEditPlanogram(planogram);
+        }}
+        onDelete={handleDeletePlanogram}
+      />
+
+      {/* Planogram Add / Edit Drawer */}
+      <PlanogramAdd
+        isOpen={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false);
+          setEditingUuid(null);
+          setEditingPlanogram(undefined);
+        }}
+        onSubmit={handleSavePlanogram}
+        initialData={editingPlanogram}
+        isLoading={isAddLoading}
+        customers={customerOptions}
+        merchandisers={merchandiserOptions}
+      />
     </div>
   );
 }

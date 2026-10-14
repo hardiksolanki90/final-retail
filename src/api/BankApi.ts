@@ -29,3 +29,5 @@ export const deleteBank = async (uuid: string) => {
   await axiosInstance.delete(`/bank/delete/${uuid}`);
   showToast.success('Bank deleted successfully');
 };
+
+export const getBankDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/bank/view/${uuid}`)).data.data;

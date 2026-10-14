@@ -8,6 +8,8 @@ import { useMerchandiserReplacement } from '../../../providers/MerchandiserRepla
 import { createMerchandiserReplacement, updateMerchandiserReplacement, getMerchandiserReplacementDetails } from '../../../api/MerchandiserReplacementApi';
 import type { MerchandiserReplacementFormData } from '../../../types/MerchandiserReplacement';
 import { useEditDetail } from '../../../hooks/useEntityDetail';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { merchandiserReplacementView } from '../settingViews';
 
 interface Column {
   key: string;
@@ -16,6 +18,7 @@ interface Column {
 }
 
 export function MerchandiserReplacementList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const {
     data: replacements,
     meta,
@@ -106,11 +109,10 @@ export function MerchandiserReplacementList() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setFilterOpen((prev) => !prev)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-              filterOpen
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen
                 ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
                 : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }`}
+              }`}
           >
             <Filter className="w-4 h-4" />
             Filter
@@ -214,13 +216,13 @@ export function MerchandiserReplacementList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading replacements" columns={['check', ...colsByKey(visibleColumns, { addedOn: 'date' }), 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading replacements" columns={['check', ...colsByKey(visibleColumns, { addedOn: 'date' }), 'actions']} />
               ) : replacements.length === 0 ? (
                 <TableEmptyRow colSpan={visibleColumns.length + 2} label="No replacements found." />
               ) : (
                 replacements.map((item) => (
-                  <tr key={item.uuid} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                    <td className="px-4 py-4 whitespace-nowrap">
+                  <tr key={item.uuid} onClick={() => setViewing(item as unknown as SettingRow)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                    <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedRowKeys.includes(item.uuid)}
@@ -236,7 +238,7 @@ export function MerchandiserReplacementList() {
                         {col.key === 'addedOn' && item.addedOn}
                       </td>
                     ))}
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200"
@@ -263,6 +265,18 @@ export function MerchandiserReplacementList() {
         {/* Pagination */}
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
+
+      <SettingViewDrawer
+        config={merchandiserReplacementView} pageSize={perPage} seed={meta && currentPage === 1 ? { items: replacements as unknown as SettingRow[], hasMore: totalPages > 1 } : null}
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        data={viewing}
+        onSelect={setViewing}
+        onEdit={() => {
+          if (viewing) handleEditClick(viewing);
+          setViewing(null);
+        }}
+      />
 
       <MerchandiserReplacementAdd
         isOpen={addDrawerOpen}

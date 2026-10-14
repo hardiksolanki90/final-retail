@@ -1,34 +1,53 @@
+/** A group as the list shows it. Related records are integer ids plus names; the group itself is addressed by uuid. */
 export interface RouteItemGrouping {
-  id: string;
-  routeId: string;
-  itemGroupId: string;
-  itemIds: string[];
-  groupName: string;
-  description?: string;
-  priority: number;
-  effectiveDate: string;
-  expiryDate?: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-  updatedAt: string;
+  uuid: string;
+  code: string;
+  name: string;
+  status: boolean;
+  routeId: number | null;
+  routeName: string | null;
+  salesmanId: number | null;
+  salesmanName: string | null;
+  salesmanCode: string | null;
+  itemCount: number;
 }
 
 export interface RouteItemGroupingItem {
-  id: string;
-  itemId: string;
-  itemCode: string;
-  itemName: string;
-  quantity: number;
-  sortOrder: number;
+  itemId: number;
+  itemCode: string | null;
+  itemName: string | null;
 }
 
-export interface RouteItemGroupingFormData {
+/** One group with its items. */
+export interface RouteItemGroupingDetail extends RouteItemGrouping {
+  items: RouteItemGroupingItem[];
+}
+
+/** What the add / edit form holds: ids as strings (what the selects hold) and the chosen items with their labels. */
+export interface RouteItemGroupingForm {
+  code: string;
+  name: string;
   routeId: string;
-  groupName: string;
-  description?: string;
-  priority: number;
-  effectiveDate: string;
-  expiryDate?: string;
-  itemIds: string[];
-  status: 'active' | 'inactive';
+  salesmanId: string;
+  status: boolean;
+  items: RouteItemGroupingItem[];
+}
+
+export interface RouteItemGroupingPayload {
+  /** Empty = numbered automatically. */
+  code?: string;
+  name: string;
+  routeId: number | null;
+  salesmanId: number | null;
+  status: boolean;
+  items: { itemId: number }[];
+}
+
+export interface RouteItemGroupingListParams {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  routeId?: number;
+  salesmanId?: number;
+  status?: boolean;
 }

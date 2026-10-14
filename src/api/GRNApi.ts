@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import type { GRNView } from '../types/DocumentView';
 import type { GRN, GRNFormData, GRNListResponse } from '../types/GRN';
 
 export const getGRNList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<GRNListResponse> => {
@@ -13,7 +14,7 @@ export const getGRNList = async (page: number = 1, searchTerm?: string, perPage:
   return { data: payload.goodReceiptNotes ?? [], total: payload.total ?? 0, currentPage: payload.currentPage ?? page, perPage, lastPage: payload.lastPage ?? 1 };
 };
 
-export const getGRNByUuid = async (uuid: string): Promise<GRN> => {
+export const getGRNByUuid = async (uuid: string): Promise<GRNView> => {
   const response = await axiosInstance.get(`/grn/edit/${uuid}`);
   return response.data.data;
 };

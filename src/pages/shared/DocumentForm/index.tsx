@@ -123,20 +123,27 @@ export function CodeField({
   action,
   registration,
   disabled = false,
+  required = false,
+  error,
 }: {
   label: string;
   action: ReactNode;
   registration: UseFormRegisterReturn;
   /** True once an auto-generated code has been reserved for this document. */
   disabled?: boolean;
+  required?: boolean;
+  error?: string;
 }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+          {required && <span className="text-red-500 font-bold ml-0.5">*</span>}
+        </span>
         {action}
       </div>
-      <Input {...registration} aria-label={label} placeholder="Configure the system to auto-generate the code." disabled={disabled} className={mono} />
+      <Input {...registration} aria-label={label} placeholder="Configure the system to auto-generate the code." disabled={disabled} error={error} className={mono} />
     </div>
   );
 }
@@ -195,9 +202,10 @@ interface UomBodyProps {
   base: string | undefined;
   itemId: string | undefined;
   error?: string;
+  disabled?: boolean;
 }
 
-function LineUomBody({ value, onChange, onBlur, name, options, base, itemId, error }: UomBodyProps) {
+function LineUomBody({ value, onChange, onBlur, name, options, base, itemId, error, disabled }: UomBodyProps) {
   // The UOM must belong to the chosen item: no item → blank; a UOM the item
   // doesn't have (item changed, or none yet) → its base UOM. While the item
   // list is still loading (no options) the saved value is left alone.
@@ -209,11 +217,11 @@ function LineUomBody({ value, onChange, onBlur, name, options, base, itemId, err
     if (options.length > 0 && !options.some((o) => String(o.value) === value)) onChange(base ?? '');
   }, [itemId, options, base, value, onChange]);
 
-  return <Select name={name} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} options={options} placeholder={itemId ? 'UOM' : 'Select item first'} error={error} />;
+  return <Select name={name} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} options={options} placeholder={itemId ? 'UOM' : 'Select item first'} error={error} disabled={disabled} />;
 }
 
 /** UOM cell for a line: offers only the UOMs assigned to the line's item and keeps the value valid. */
-export function LineUomCell<T extends FieldValues>({ control, name, itemId, items }: { control: Control<T>; name: Path<T>; itemId: string | undefined; items: SelectOption[] }) {
+export function LineUomCell<T extends FieldValues>({ control, name, itemId, items, disabled }: { control: Control<T>; name: Path<T>; itemId: string | undefined; items: SelectOption[]; disabled?: boolean }) {
   const options = useMemo(() => uomsForItem(items, itemId), [items, itemId]);
   const base = baseUomFor(items, itemId);
 
@@ -231,6 +239,7 @@ export function LineUomCell<T extends FieldValues>({ control, name, itemId, item
             options={options}
             base={base}
             itemId={itemId}
+            disabled={disabled}
             error={errorText(fieldState.error, 'UOM')}
           />
         )}

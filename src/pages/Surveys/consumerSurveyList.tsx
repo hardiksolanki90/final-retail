@@ -6,6 +6,9 @@ import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
 import { useConsumerSurveys, useSurveyFormOptions } from '../../hooks/Survey/useSurveys';
 import type { ConsumerSurveyFormData } from '../../types/Survey';
+import { SettingViewDrawer, type SettingRow } from '../shared/SettingViewDrawer';
+import { consumerSurveyView } from '../Settings/settingViews';
+import { API_PAGE_SIZE } from '../shared/RecordView/RecordRail';
 
 interface Column {
   key: string;
@@ -14,6 +17,7 @@ interface Column {
 }
 
 export function ConsumerSurveyList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -363,8 +367,8 @@ export function ConsumerSurveyList() {
                 <TableEmptyRow colSpan={visibleColumns.length + 1} label="No consumer surveys yet." />
               ) : (
                 currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
-                    <td className="px-4 py-3">
+                  <tr key={item.id} onClick={() => setViewing((surveys.find((survey) => survey.uuid === item.id) as unknown as SettingRow | undefined) ?? null)} className={`cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                    <td onClick={(e) => e.stopPropagation()} className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(item.id)}
@@ -481,6 +485,8 @@ export function ConsumerSurveyList() {
           </div>
         </div>
       )}
+
+      <SettingViewDrawer config={consumerSurveyView} pageSize={API_PAGE_SIZE} seed={!isLoading && currentPage === 1 && surveys.length > 0 ? { items: surveys as unknown as SettingRow[], hasMore: total > surveys.length } : null} isOpen={viewing !== null} onClose={() => setViewing(null)} data={viewing} onSelect={setViewing} />
 
       <ConsumerSurveyAdd isOpen={addOpen} onClose={() => setAddOpen(false)} onSubmit={handleAddSubmit} isLoading={optionsLoading} customers={customers} merchandisers={merchandisers} />
     </div>

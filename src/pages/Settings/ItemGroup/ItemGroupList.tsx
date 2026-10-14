@@ -7,6 +7,8 @@ import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { useItemGroup } from '../../../providers/ItemGroupProvider';
 import { getItemGroupDetails } from '../../../api/ItemGroupApi';
 import { useEditDetail } from '../../../hooks/useEntityDetail';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { itemGroupView } from '../settingViews';
 interface Column {
   key: string;
   label: string;
@@ -14,6 +16,7 @@ interface Column {
 }
 
 export function ItemGroupList() {
+  const [viewing, setViewing] = useState<SettingRow | null>(null);
   const {
     data: itemGroups,
     meta,
@@ -227,15 +230,15 @@ export function ItemGroupList() {
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
               {isLoading ? (
-                <TableSkeletonRows rows={perPage} label="Loading item groups" columns={['check', ...when(isCodeVisible, 'text'), ...when(isNameVisible, 'text'), 'actions']} />
+                <TableSkeletonRows rows={10} label="Loading item groups" columns={['check', ...when(isCodeVisible, 'text'), ...when(isNameVisible, 'text'), 'actions']} />
               ) : itemGroups.length === 0 ? (
                 <TableEmptyRow colSpan={visibleColCount} label="No item groups found." />
               ) : (
                 itemGroups.map((item: any) => {
                   const id = item.uuid ?? String(item.id);
                   return (
-                    <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                      <td className="px-4 py-4 whitespace-nowrap">
+                    <tr key={id} onClick={() => setViewing(item)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedRowKeys.includes(id)}
@@ -253,7 +256,7 @@ export function ItemGroupList() {
                           <span className="text-sm font-medium text-[var(--text-primary)]">{item?.name ?? ''}</span>
                         </td>
                       )}
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
@@ -280,6 +283,17 @@ export function ItemGroupList() {
         </div>
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
       </div>
+      <SettingViewDrawer
+        config={itemGroupView} pageSize={perPage} seed={meta && currentPage === 1 && !searchTerm ? { items: itemGroups, hasMore: totalPages > 1 } : null}
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        data={viewing}
+        onSelect={setViewing}
+        onEdit={() => {
+          if (viewing) handleEditClick(viewing);
+          setViewing(null);
+        }}
+      />
       <ItemGroupAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} data={{ initialData: editInitialData ?? undefined, isLoading: editLoading }} onEvent={handleItemGroupEvent} />
     </div>
   );

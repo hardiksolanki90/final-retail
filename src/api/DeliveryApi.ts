@@ -1,4 +1,5 @@
 import axiosInstance from '../lib/axios';
+import type { DeliveryView } from '../types/DocumentView';
 import type { Delivery, DeliveryFormData, DeliveryListResponse } from '../types/Delivery';
 
 export const getDeliveryList = async (
@@ -27,7 +28,7 @@ export const getDeliveryList = async (
   return response.data;
 };
 
-export const getDeliveryDetails = async (uuid: string): Promise<Delivery> => {
+export const getDeliveryDetails = async (uuid: string): Promise<DeliveryView> => {
   const response = await axiosInstance.get(`/delivery/edit/${uuid}`);
   return response.data.data || response.data;
 };

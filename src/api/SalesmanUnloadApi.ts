@@ -1,5 +1,6 @@
 import axiosInstance from '../lib/axios';
 import type { SalesmanUnload, SalesmanUnloadFormData, SalesmanUnloadListResponse } from '../types/SalesmanUnload';
+import type { SalesmanUnloadView } from '../types/DocumentView';
 
 export const getSalesmanUnloadList = async (page: number = 1, searchTerm?: string, perPage: number = 15): Promise<SalesmanUnloadListResponse> => {
   const params = new URLSearchParams();
@@ -18,6 +19,10 @@ export const createSalesmanUnload = async (data: SalesmanUnloadFormData): Promis
   return response.data.data;
 };
 
+export const updateSalesmanUnload = async (uuid: string, data: SalesmanUnloadFormData): Promise<SalesmanUnload> => (await axiosInstance.post(`/salesman-unload/edit/${uuid}`, data)).data.data;
+
 export const bulkActionSalesmanUnloads = async (uuids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<void> => {
   await axiosInstance.post('/salesman-unload/bulk-action', { uuids, action });
 };
+
+export const getSalesmanUnloadByUuid = async (uuid: string): Promise<SalesmanUnloadView> => (await axiosInstance.get(`/salesman-unload/edit/${uuid}`)).data.data;

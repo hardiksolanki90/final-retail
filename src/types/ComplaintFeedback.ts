@@ -1,34 +1,44 @@
 export interface ComplaintFeedback {
-  id: string;
-  type: 'complaint' | 'feedback';
-  customerId: string;
-  customerName: string;
-  salesmanId: string;
-  salesmanName: string;
-  orderId?: string;
-  subject: string;
+  id: number;
+  uuid: string;
+  complaintId: string;
+  title: string;
+  type: 'complaint' | 'suggestion';
   description: string;
-  category: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  resolution?: string;
-  resolvedBy?: string;
-  resolvedDate?: string;
-  attachments?: string[];
+  date: string;
+  routeId: number | null;
+  routeCode: string | null;
+  routeName: string | null;
+  merchandiserId: number;
+  merchandiserUuid: string | null;
+  merchandiserCode: string | null;
+  merchandiserName: string;
+  itemId: number | null;
+  itemUuid: string | null;
+  itemCode: string | null;
+  itemName: string | null;
+  images: string[];
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface ComplaintFeedbackFormData {
-  type: 'complaint' | 'feedback';
-  customerId: string;
-  salesmanId: string;
-  orderId?: string;
-  subject: string;
+  title: string;
+  merchandiserId: string;
+  itemId: string;
+  type: 'complaint' | 'suggestion';
   description: string;
-  category: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  resolution?: string;
-  attachments?: string[];
+}
+
+export interface ComplaintFeedbackListParams {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  date?: string;
+  route?: string;
+  complaintId?: string;
+  merchandiserName?: string;
+  title?: string;
+  itemCode?: string;
+  itemName?: string;
+  type?: '' | 'complaint' | 'suggestion';
 }

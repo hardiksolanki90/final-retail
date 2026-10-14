@@ -20,11 +20,6 @@ export const getWarehouseAll = async () => {
   return response.data;
 };
 
-export const getWarehouseByUuid = async (uuid: string) => {
-  const response = await axiosInstance.get(`/warehouse/edit/${uuid}`);
-  return response.data;
-};
-
 export const createWarehouse = async (data: WarehouseFormData) => {
   const response = await axiosInstance.post('/warehouse/add', data);
   showToast.success('Warehouse created successfully');
@@ -41,3 +36,5 @@ export const deleteWarehouse = async (uuid: string) => {
   await axiosInstance.delete(`/warehouse/delete/${uuid}`);
   showToast.success('Warehouse deleted successfully');
 };
+
+export const getWarehouseDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/warehouse/view/${uuid}`)).data.data;

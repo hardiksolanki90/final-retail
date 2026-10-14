@@ -39,3 +39,5 @@ export const getDepotOptions = async (regionId?: number | string, areaId?: numbe
   const response = await axiosInstance.get(`/depot/all?${params.toString()}`);
   return (response.data?.data ?? []).map((d: { id: number; depotCode: string; depotName: string }) => ({ value: d.id, label: `${d.depotCode} - ${d.depotName}` }));
 };
+
+export const getDepotDetails = async (uuid: string): Promise<object> => (await axiosInstance.get(`/depot/view/${uuid}`)).data.data;

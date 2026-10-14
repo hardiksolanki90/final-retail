@@ -134,6 +134,42 @@ export interface CustomerSalesData {
   summary: { totalOrders: number; totalAmount: number; avgOrderValue: number };
 }
 
+/** Document kinds in a customer's activity (GET /customer/{uuid}/transactions). */
+export type CustomerTransactionType = 'order' | 'delivery' | 'invoice' | 'credit-note' | 'debit-note';
+
+export interface CustomerActivityFilters {
+  from?: string;
+  to?: string;
+  type?: CustomerTransactionType | '';
+  status?: string;
+  sort?: 'date' | 'amount';
+  direction?: 'asc' | 'desc';
+}
+
+export interface CustomerTransaction {
+  uuid: string;
+  type: CustomerTransactionType;
+  number: string;
+  date: string | null;
+  amount: number;
+  status: string | null;
+}
+
+/** GET /customer/{uuid}/ledger: invoices + debit notes (debit), credit notes (credit), running balance. */
+export interface CustomerLedger {
+  openingBalance: number;
+  totalDebit: number;
+  totalCredit: number;
+  closingBalance: number;
+  entries: { uuid: string; type: CustomerTransactionType; number: string; date: string | null; debit: number; credit: number; balance: number }[];
+}
+
+/** GET /customer/{uuid}/item-report: invoiced quantity and amount per item + unit. */
+export interface CustomerItemReport {
+  totalAmount: number;
+  items: { itemId: string | null; itemName: string | null; itemCode: string | null; uomName: string | null; quantity: number; amount: number }[];
+}
+
 export interface CustomerType {
   id?: number;
   uuid?: string;

@@ -374,7 +374,7 @@ export function JourneyPlanList() {
                 currentData.map((item) => (
                   <tr
                     key={item.id}
-                    onClick={() => navigate(`/journey-plan/view/${item.id}`)}
+                    onClick={() => navigate(`/journey-plan/view/${item.id}`, { state: { row: journeyPlans.find((jp) => jp.uuid === item.id) } })}
                     className={`hover:bg-[var(--bg-secondary)] cursor-pointer transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
                   >
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>

@@ -70,13 +70,16 @@ export const getAllSalesmen = async (filters?: SalesmanFilters): Promise<Salesma
 };
 
 /** Paginated + searchable salesman options, for searchable Select dropdowns. */
-export const getSalesmanOptions = async (page: number = 1, search?: string, perPage: number = 25): Promise<NormalizedListResponse<SalesmanSelectOption>> => {
+export const getSalesmanOptions = async (page: number = 1, search?: string, perPage: number = 25, filters?: SalesmanFilters): Promise<NormalizedListResponse<SalesmanSelectOption>> => {
   const params = new URLSearchParams();
   params.append('page', page.toString());
   params.append('per_page', perPage.toString());
 
   if (search) {
     params.append('search', search);
+  }
+  if (filters?.salesmanTypeId) {
+    params.append('salesman_type_id', String(filters.salesmanTypeId));
   }
 
   const response = await axiosInstance.get(`/salesman/all?${params.toString()}`);

@@ -5,6 +5,8 @@ import { Pagination } from '../../../components/ui/Pagination';
 import { TableEmptyRow } from '../../../components/ui/TableEmptyRow';
 import { TableSkeletonRows } from '../../../components/ui/skeleton';
 import { useArea } from '../../../providers/AreaProvider';
+import { SettingViewDrawer, type SettingRow } from '../../shared/SettingViewDrawer';
+import { areaView } from '../settingViews';
 
 interface Column {
     key: string;
@@ -13,6 +15,7 @@ interface Column {
 }
 
 export function AreaList() {
+    const [viewing, setViewing] = useState<SettingRow | null>(null);
     const {
         data: areas,
         meta,
@@ -111,11 +114,10 @@ export function AreaList() {
                 <div className="flex flex-wrap items-center gap-2">
                     <button
                         onClick={() => setFilterOpen((prev) => !prev)}
-                        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${
-                            filterOpen || searchTerm
+                        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors cursor-pointer ${filterOpen || searchTerm
                                 ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
                                 : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-                        }`}
+                            }`}
                     >
                         <Filter className="w-4 h-4" />
                         Filter
@@ -248,17 +250,16 @@ export function AreaList() {
                         </thead>
                         <tbody className="divide-y divide-[var(--border-color)]">
                             {isLoading ? (
-                                <TableSkeletonRows rows={perPage} label="Loading areas" columns={['check', 'text', 'text', 'text', 'badge', 'actions']} />
+                                <TableSkeletonRows rows={10} label="Loading areas" columns={['check', 'text', 'text', 'text', 'badge', 'actions']} />
                             ) : areas.length === 0 ? (
                                 <TableEmptyRow colSpan={visibleColCount} label="No areas found." />
                             ) : (
                                 areas.map((item: any) => {
                                     const id = item.uuid ?? String(item.id);
                                     return (
-                                        <tr key={id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
-                                            <td className="px-4 py-4 whitespace-nowrap">
-                                                <input
-                                                    type="checkbox"
+                                        <tr key={id} onClick={() => setViewing(item)} className="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer">
+                                            <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
+                                                <input type="checkbox"
                                                     checked={selectedRowKeys.includes(id)}
                                                     onChange={() => handleSelectRow(id)}
                                                     className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
@@ -288,7 +289,7 @@ export function AreaList() {
                                                     </span>
                                                 </td>
                                             )}
-                                            <td className="px-4 py-4 whitespace-nowrap">
+                                            <td onClick={(e) => e.stopPropagation()} className="px-4 py-4 whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:shadow-md"
@@ -316,6 +317,8 @@ export function AreaList() {
 
                 <Pagination currentPage={currentPage} totalPages={totalPages} total={total} perPage={perPage} onPageChange={setCurrentPage} onPerPageChange={setPerPage} hasLoaded={!!meta} />
             </div>
+
+            <SettingViewDrawer config={areaView} pageSize={perPage} seed={meta && currentPage === 1 && !searchTerm ? { items: areas, hasMore: totalPages > 1 } : null} isOpen={viewing !== null} onClose={() => setViewing(null)} data={viewing} onSelect={setViewing} onEdit={() => { if (viewing) handleEditClick(viewing); setViewing(null); }} />
 
             <AreaAdd isOpen={addDrawerOpen} onClose={handleDrawerClose} onSubmit={() => handleSaved()} editData={editingItem} />
         </div>

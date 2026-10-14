@@ -2,7 +2,11 @@ export interface Campaign {
   id?: string;
   uuid?: string;
   campaignCode: string;
-  date: string;
+  type?: string;
+  budget?: number | string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
   salesmanId: string;
   customerId: string;
   feedback: string;
@@ -14,11 +18,16 @@ export interface Campaign {
 
 export interface CampaignFormData {
   campaignCode: string;
-  date: string;
+  type?: string;
+  budget?: number | string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
   salesmanId: string;
   customerId: string;
   feedback: string;
   image?: File | null;
+  status?: 'active' | 'inactive';
 }
 
 export interface CampaignListResponse {

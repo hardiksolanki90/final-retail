@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Filter, Plus, Columns3, Download, Upload, ChevronDown, Check, Trash2, Archive, Tag, X, Menu } from 'lucide-react';
 import { TableSkeletonRows, colsByKey } from '../../components/ui/skeleton';
 import { TableEmptyRow } from '../../components/ui/TableEmptyRow';
 import { Pagination } from '../../components/ui/Pagination';
 import { useSalesmanUnloads } from '../../hooks/SalesmanUnload/useSalesmanUnload';
+import { DocumentViewDrawer } from '../shared/DocumentViewDrawer';
+import { API_PAGE_SIZE } from '../shared/RecordView/RecordRail';
+import { useEntityDetail } from '../../hooks/useEntityDetail';
+import { getSalesmanUnloadByUuid } from '../../api/SalesmanUnloadApi';
+import { salesmanUnloadSheet } from '../../utils/documentSheets';
+import { salesmanUnloadRail } from '../../utils/documentRails';
 
 interface Column {
   key: string;
@@ -13,7 +19,11 @@ interface Column {
 }
 
 export function SalesmanUnloadList() {
+  const navigate = useNavigate();
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  // The row whose details are open in the view drawer (its uuid), and that unload's full record.
+  const [viewUuid, setViewUuid] = useState<string | null>(null);
+  const { data: viewed, isLoading: isViewing } = useEntityDetail('salesman-unload', getSalesmanUnloadByUuid, viewUuid);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
@@ -360,11 +370,16 @@ export function SalesmanUnloadList() {
                 <TableEmptyRow colSpan={visibleColumns.length + 1} label="No salesman unloads yet." />
               ) : (
                 currentData.map((item) => (
-                  <tr key={item.id} className={`hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
+                  <tr
+                    key={item.id}
+                    onClick={() => setViewUuid(item.id)}
+                    className={`cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors ${selectedRows.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
+                  >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedRows.includes(item.id)}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={() => handleSelectRow(item.id)}
                         className="w-4 h-4 rounded border-[var(--border-color)] text-primary-600 focus:ring-primary-500"
                       />
@@ -486,6 +501,18 @@ export function SalesmanUnloadList() {
           </div>
         </div>
       )}
+
+      <DocumentViewDrawer
+        isOpen={viewUuid !== null}
+        onClose={() => setViewUuid(null)}
+        title="Salesman unload"
+        rail={{ ...salesmanUnloadRail(API_PAGE_SIZE), seed: !isLoading && currentPage === 1 && unloads.length > 0 ? { items: unloads, hasMore: total > unloads.length } : null, selectedKey: viewUuid, onSelect: (row) => setViewUuid(row.uuid ?? null) }}
+        sheet={viewed && salesmanUnloadSheet(viewed)}
+        isLoading={isViewing}
+        editPermission="salesman-unload.edit"
+        onEdit={() => viewUuid && navigate(`/salesman-unload/edit/${viewUuid}`)}
+        number={unloads.find((r) => r.uuid === viewUuid)?.unloadNumber}
+      />
     </div>
   );
 }
